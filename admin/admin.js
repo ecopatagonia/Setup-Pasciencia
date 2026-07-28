@@ -23,6 +23,24 @@
       "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
     })[char]);
   }
+  function digits(value) {
+    return String(value ?? "").replace(/\D/g, "");
+  }
+  function formatPhone(user) {
+    const phone = String(user.phoneE164 || "").trim();
+    if (phone) return phone;
+    const ddi = digits(user.ddi);
+    const areaCode = digits(user.areaCode);
+    const localNumber = digits(user.localNumber);
+    const reconstructed = `${ddi ? `+${ddi}` : ""}${areaCode ? ` ${areaCode}` : ""}${localNumber ? ` ${localNumber}` : ""}`.trim();
+    return reconstructed || "Não informado";
+  }
+  function whatsappUrl(user) {
+    const current = String(user.whatsappUrl || "").trim();
+    if (current) return current;
+    const number = digits(`${user.ddi || ""}${user.areaCode || ""}${user.localNumber || ""}`);
+    return number ? `https://wa.me/${number}` : "";
+  }
   async function api(payload) {
     const response = await fetch(config.API_URL, {
       method: "POST",
@@ -75,13 +93,15 @@
     renderList();
     const user = users.find((item) => item.id === id);
     const detail = document.querySelector("#detail");
+    const phone = formatPhone(user);
+    const whatsapp = whatsappUrl(user);
     detail.innerHTML = `
       <div class="detail-head">
         <div><span class="status ${h(user.status.toLowerCase())}">${h(user.status)}</span><h2>${h(user.name)}</h2><p>${h(user.id)}</p></div>
-        <a class="whatsapp" href="${h(user.whatsappUrl)}" target="_blank" rel="noopener">Abrir no WhatsApp ↗</a>
+        ${whatsapp ? `<a class="whatsapp" href="${h(whatsapp)}" target="_blank" rel="noopener">Abrir no WhatsApp ↗</a>` : ""}
       </div>
       <section><h3>01 · Dados de acesso</h3>
-        <div class="data-grid"><label>E-mail<strong>${h(user.email)}</strong></label><label>Celular<strong>${h(user.phoneE164)}</strong></label></div>
+        <div class="data-grid"><label>E-mail<strong>${h(user.email)}</strong></label><label>Celular<strong>${h(phone)}</strong></label></div>
         <label>Chave de 4 números<input name="pin" value="${h(user.pin)}" maxlength="4" inputmode="numeric" pattern="[0-9]{4}" required></label>
       </section>
       <section><h3>02 · Nível e situação</h3><div class="data-grid">
