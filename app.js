@@ -1403,4 +1403,6 @@ try {
   console.warn('Preferência visual indisponível.', error);
 }
 setTheme(savedTheme);
-loadData();
+document.addEventListener('pulo:session', () => {
+  if (!state.all.length) loadData();
+});
