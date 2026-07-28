@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#09111f">
+  <title>Painel administrativo — O Pulo do Gatto</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="brand"><span>G</span><p><strong>O PULO DO GATTO</strong><small>ADMINISTRAÇÃO</small></p></div>
+    <nav><button class="active">Participantes</button><a id="open-site" href="#">Abrir site completo ↗</a></nav>
+    <button id="logout">Encerrar sessão</button>
+  </aside>
+  <main class="content">
+    <header><div><small>GESTÃO DE ACESSOS</small><h1>Participantes</h1></div><input id="search" placeholder="Buscar participante..."></header>
+    <section class="summary" id="summary"></section>
+    <section class="workspace">
+      <div class="people" id="people"></div>
+      <form class="detail" id="detail">
+        <div class="empty">Selecione um participante.</div>
+      </form>
+    </section>
+  </main>
+  <div class="message" id="message" hidden></div>
+  <script src="../config.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>

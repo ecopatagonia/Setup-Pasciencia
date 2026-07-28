@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Laboratório de performance do Setup da Paciência.">
   <title>O PULO DO GATTO — Performance</title>
-  <link rel="stylesheet" href="styles.css?v=4.2">
+  <link rel="stylesheet" href="styles.css?v=5.0">
+  <link rel="stylesheet" href="auth.css?v=5.0">
 </head>
 <body>
   <div class="app">
@@ -26,12 +27,12 @@
             <span>Estatísticas</span><span class="nav-chevron">⌄</span>
           </button>
           <div class="nav-submenu">
-            <button class="nav-button nav-subitem" data-page="patrimonio" type="button">Patrimônio</button>
-            <button class="nav-button nav-subitem" data-page="resultados" type="button">Resultados</button>
-            <button class="nav-button nav-subitem" data-page="pontos" type="button">Pontos</button>
-            <button class="nav-button nav-subitem" data-page="consistencia" type="button">Consistência</button>
-            <button class="nav-button nav-subitem" data-page="evolucao" type="button">Evolução temporal</button>
-            <button class="nav-button nav-subitem" data-page="horarios" type="button">Horários</button>
+            <button class="nav-button nav-subitem" data-page="patrimonio" data-permission="patrimonio" type="button">Patrimônio</button>
+            <button class="nav-button nav-subitem" data-page="resultados" data-permission="resultados" type="button">Resultados</button>
+            <button class="nav-button nav-subitem" data-page="pontos" data-permission="pontos" type="button">Pontos</button>
+            <button class="nav-button nav-subitem" data-page="consistencia" data-permission="consistencia" type="button">Consistência</button>
+            <button class="nav-button nav-subitem" data-page="evolucao" data-permission="evolucao_temporal" type="button">Evolução temporal</button>
+            <button class="nav-button nav-subitem" data-page="horarios" data-permission="horarios" type="button">Horários</button>
           </div>
         </div>
         <div class="nav-group">
@@ -40,8 +41,8 @@
             <span>Controle de risco</span><span class="nav-chevron">⌄</span>
           </button>
           <div class="nav-submenu">
-            <button class="nav-button nav-subitem" data-page="risco" type="button">Calibragem</button>
-            <button class="nav-button nav-subitem" data-page="projecao" type="button">Projeção de risco</button>
+            <button class="nav-button nav-subitem" data-page="risco" data-permission="calibragem" type="button">Calibragem</button>
+            <button class="nav-button nav-subitem" data-page="projecao" data-permission="projecao_risco" type="button">Projeção de risco</button>
           </div>
         </div>
         <button class="nav-button" data-page="operacoes" type="button">
@@ -583,6 +584,8 @@
     </main>
   </div>
 
-  <script src="app.js?v=4.2"></script>
+  <script src="config.js?v=5.0"></script>
+  <script src="auth.js?v=5.0"></script>
+  <script src="app.js?v=5.0"></script>
 </body>
 </html>

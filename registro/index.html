@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#09111f">
+  <title>Cadastro de participantes — O Pulo do Gatto</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@25.11.2/build/css/intlTelInput.css">
+</head>
+<body>
+  <header class="simple-header">
+    <a class="brand" href="#" aria-label="O Pulo do Gatto">
+      <span class="brand-mark" aria-hidden="true">G</span>
+      <span><strong>O PULO DO GATTO</strong><small>SETUP DA PACIÊNCIA</small></span>
+    </a>
+    <span>CADASTRO DE PARTICIPANTES</span>
+  </header>
+
+  <main class="register-page">
+    <section class="register-shell" id="register-shell">
+      <div class="register-intro">
+        <span class="kicker">NOVO PARTICIPANTE</span>
+        <h1>Solicite seu acesso</h1>
+        <p>Preencha seus dados. O envio não libera o acesso automaticamente: sua solicitação será analisada pelo administrador.</p>
+        <div class="steps" aria-label="Etapas do cadastro">
+          <div class="active"><span>1</span><p><strong>Seus dados</strong><small>Preencha o formulário</small></p></div>
+          <div><span>2</span><p><strong>Análise</strong><small>Aguarde a aprovação</small></p></div>
+          <div><span>3</span><p><strong>Acesso</strong><small>Entre com e-mail e chave</small></p></div>
+        </div>
+      </div>
+
+      <form class="register-card" id="register-form" novalidate>
+        <label>
+          Nome completo
+          <input id="name" name="name" autocomplete="name" placeholder="Como devemos chamar você?" maxlength="120" required>
+        </label>
+        <label>
+          E-mail
+          <input id="email" name="email" type="email" autocomplete="email" placeholder="seu@email.com" maxlength="180" required>
+        </label>
+
+        <fieldset class="phone-fieldset">
+          <legend>Celular para WhatsApp</legend>
+          <div class="phone-grid">
+            <label>
+              País / DDI
+              <div class="country-row">
+                <select id="country" name="country" aria-label="País" required></select>
+                <input id="ddi" name="ddi" aria-label="DDI" value="+55" readonly>
+              </div>
+            </label>
+            <label>
+              <span id="area-label">DDD</span>
+              <input id="area-code" name="areaCode" inputmode="numeric" autocomplete="tel-area-code" placeholder="22" maxlength="5">
+            </label>
+            <label>
+              Número
+              <input id="local-number" name="localNumber" inputmode="numeric" autocomplete="tel-local" placeholder="99999-9999" maxlength="18" required>
+            </label>
+          </div>
+          <p class="phone-preview" id="phone-preview">Será salvo no formato internacional para uso no WhatsApp.</p>
+        </fieldset>
+
+        <div class="two-columns">
+          <label>
+            Crie sua chave
+            <input id="pin" name="pin" type="password" inputmode="numeric" autocomplete="new-password" maxlength="4" pattern="[0-9]{4}" placeholder="4 números" required>
+          </label>
+          <label>
+            Confirme sua chave
+            <input id="pin-confirm" name="pinConfirm" type="password" inputmode="numeric" autocomplete="new-password" maxlength="4" pattern="[0-9]{4}" placeholder="Repita a chave" required>
+          </label>
+        </div>
+
+        <p class="field-error" id="form-error" role="alert" hidden></p>
+        <label class="check-line">
+          <input id="confirm-data" type="checkbox" required>
+          <span>Confirmo que os dados informados estão corretos e que este acesso é pessoal.</span>
+        </label>
+        <button class="primary-button" id="submit-button" type="submit">Enviar solicitação <span aria-hidden="true">→</span></button>
+      </form>
+    </section>
+
+    <section class="success-card" id="success-card" hidden>
+      <div class="success-icon" aria-hidden="true">✓</div>
+      <span class="kicker">SOLICITAÇÃO ENVIADA</span>
+      <h1>Seu cadastro está em análise.</h1>
+      <p>O administrador precisa aprovar seu acesso. Você receberá a confirmação pelos dados informados.</p>
+      <div class="status-line"><span>STATUS ATUAL</span><strong>• Pendente</strong></div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@25.11.2/build/js/intlTelInput.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/libphonenumber-js@1.11.20/bundle/libphonenumber-min.js"></script>
+  <script src="../config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
