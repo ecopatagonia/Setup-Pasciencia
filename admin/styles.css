@@ -3,7 +3,7 @@
 [hidden] { display:none!important; }
 html,body { margin:0; min-height:100%; background:var(--bg); color:var(--ink); font-family:Inter,ui-sans-serif,system-ui,sans-serif; }
 button,input,select { font:inherit; }
-body { min-height:100vh; display:grid; grid-template-columns:240px 1fr; }
+body { min-height:100vh; display:grid; grid-template-columns:240px 1fr; overflow-y:auto; }
 .sidebar { min-height:100vh; padding:26px 18px; display:flex; flex-direction:column; gap:34px; border-right:1px solid var(--line); background:#0b1525; }
 .brand { display:flex; gap:11px; align-items:center; }
 .brand>span { width:40px; height:40px; display:grid; place-items:center; border:1px solid var(--green); border-radius:50%; color:#96d09f; font:italic 700 22px Georgia; }
@@ -17,7 +17,7 @@ header small { color:var(--green); font-weight:800; letter-spacing:.18em; } head
 header input { width:min(320px,40vw); height:44px; padding:0 14px; border:1px solid #2a3a52; border-radius:8px; background:#0b1525; color:white; }
 .summary { margin:28px 0; display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
 .summary article { padding:18px; border:1px solid var(--line); border-radius:10px; background:var(--panel); }.summary span,.summary strong { display:block; }.summary span { color:var(--muted); font-size:11px; }.summary strong { margin-top:8px; font:500 30px Georgia; }
-.workspace { min-height:600px; display:grid; grid-template-columns:minmax(280px,.75fr) minmax(480px,1.25fr); border:1px solid var(--line); border-radius:13px; overflow:hidden; background:var(--panel); }
+.workspace { min-height:600px; display:grid; grid-template-columns:minmax(280px,.75fr) minmax(480px,1.25fr); border:1px solid var(--line); border-radius:13px; overflow:visible; background:var(--panel); }
 .people { border-right:1px solid var(--line); max-height:74vh; overflow:auto; }
 .person { width:100%; padding:15px; display:grid; grid-template-columns:42px 1fr auto; gap:11px; align-items:center; border:0; border-bottom:1px solid var(--line); background:transparent; color:inherit; text-align:left; cursor:pointer; }
 .person.selected { background:#17263a; box-shadow:inset 3px 0 var(--green); }.avatar { width:40px; height:40px; display:grid; place-items:center; border-radius:50%; background:#254d35; color:#b9e3c0; font-weight:800; font-size:12px; }
@@ -32,6 +32,6 @@ header input { width:min(320px,40vw); height:44px; padding:0 14px; border:1px so
 .permission-groups input { width:18px; height:18px; margin:0; accent-color:var(--green); }
 .actions { padding:20px 25px; display:flex; justify-content:space-between; gap:12px; }.actions button { min-height:44px; padding:0 16px; border:1px solid #3b4a60; border-radius:8px; background:transparent; color:white; cursor:pointer; }.actions button[type=submit] { margin-left:auto; border-color:#86c791; background:var(--green); color:#09120c; font-weight:800; }
 .empty { padding:30px; color:var(--muted); }.message { position:fixed; right:20px; bottom:20px; padding:14px 17px; border:1px solid #486151; border-radius:9px; background:#142135; box-shadow:0 16px 50px rgba(0,0,0,.35); }.message.danger { border-color:var(--red); color:#f09ba0; }
-@media(min-width:961px){body{height:100vh;overflow:hidden}.sidebar{height:100vh;overflow:auto}.content{height:100vh;display:flex;flex-direction:column;overflow:hidden}.content>header,.summary{flex:none}.workspace{min-height:0;flex:1}.people,.detail{height:100%;max-height:none}}
+@media(min-width:961px){body{min-height:100vh;align-items:start;overflow-y:auto}.sidebar{position:sticky;top:0;height:100vh;overflow:auto}.content{min-height:100vh;display:flex;flex-direction:column;overflow:visible}.content>header,.summary{flex:none}.workspace{min-height:0;overflow:visible;align-items:start}.people{max-height:calc(100vh - 250px);overflow:auto}.detail{max-height:none;overflow:visible}}
 @media(max-width:960px){body{grid-template-columns:1fr}.sidebar{min-height:auto;flex-direction:row;align-items:center}.sidebar nav{display:flex}.sidebar>#logout{margin:0 0 0 auto}.workspace{grid-template-columns:1fr}.people{max-height:310px;border-right:0;border-bottom:1px solid var(--line)}.detail{max-height:none}}
 @media(max-width:650px){.content{padding:20px 12px}.sidebar{padding:13px}.sidebar nav{display:none}.summary{grid-template-columns:1fr 1fr}.workspace{grid-template-columns:1fr}.content>header{align-items:start;flex-direction:column}header input{width:100%}.data-grid,.permission-list,.permission-groups{grid-template-columns:1fr}.detail-head{gap:14px;flex-direction:column}.actions{flex-direction:column}.actions button[type=submit]{margin:0}}
