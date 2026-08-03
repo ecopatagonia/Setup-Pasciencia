@@ -1244,7 +1244,7 @@ async function loadData() {
   }
 }
 
-document.querySelectorAll('.nav-button').forEach(button => {
+document.querySelectorAll('.nav-button[data-page]').forEach(button => {
   button.addEventListener('click', () => {
     document.querySelectorAll('.nav-button').forEach(b => b.classList.toggle('active', b === button));
     document.querySelectorAll('.page').forEach(page => page.classList.toggle('active', page.id === `page-${button.dataset.page}`));

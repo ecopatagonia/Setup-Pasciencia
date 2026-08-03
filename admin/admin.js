@@ -9,9 +9,10 @@
     ["evolucao_temporal", "Estatísticas", "Evolução temporal"],
     ["horarios", "Estatísticas", "Horários"],
     ["calibragem", "Controle de risco", "Calibragem"],
-    ["projecao_risco", "Controle de risco", "Projeção de risco"]
+    ["projecao_risco", "Controle de risco", "Projeção de risco"],
+    ["robustez", "Módulos", "Teste de Robustez"]
   ];
-  const permissionGroups = ["Estatísticas", "Controle de risco"];
+  const permissionGroups = ["Estatísticas", "Controle de risco", "Módulos"];
   const config = window.PULO_ACCESS_CONFIG || {};
   const tokenKey = config.TOKEN_KEY || "pulo_gatto_session";
   let users = [];
