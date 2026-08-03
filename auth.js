@@ -4,14 +4,62 @@
   const config = window.PULO_ACCESS_CONFIG || {};
   let currentUser = null;
   let checkTimer = 0;
+  let activityTimer = 0;
+  const IDLE_TIMEOUT_MS = Number(config.IDLE_TIMEOUT_MS) || 60 * 60 * 1000;
+  const ACTIVITY_EVENTS = ["click", "keydown", "pointerdown", "touchstart", "scroll"];
+
+  function storageKey(suffix) {
+    return `${config.TOKEN_KEY || "pulo_gatto_session"}_${suffix}`;
+  }
+
+  function markActivity() {
+    localStorage.setItem(storageKey("last_activity"), String(Date.now()));
+  }
+
+  function sessionFresh() {
+    const last = Number(localStorage.getItem(storageKey("last_activity")));
+    return Number.isFinite(last) && Date.now() - last <= IDLE_TIMEOUT_MS;
+  }
+
+  function cachedUser() {
+    try {
+      return JSON.parse(localStorage.getItem(storageKey("user")) || "null");
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function cacheUser(user) {
+    if (user) localStorage.setItem(storageKey("user"), JSON.stringify(user));
+    else localStorage.removeItem(storageKey("user"));
+  }
+
+  function bindActivityTracking() {
+    const record = () => {
+      if (!token()) return;
+      window.clearTimeout(activityTimer);
+      activityTimer = window.setTimeout(markActivity, 250);
+    };
+    ACTIVITY_EVENTS.forEach((eventName) => window.addEventListener(eventName, record, { passive: true }));
+    window.addEventListener("focus", record);
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) record();
+    });
+  }
 
   function token() {
     return localStorage.getItem(config.TOKEN_KEY || "pulo_gatto_session") || "";
   }
 
   function setToken(value) {
-    if (value) localStorage.setItem(config.TOKEN_KEY || "pulo_gatto_session", value);
-    else localStorage.removeItem(config.TOKEN_KEY || "pulo_gatto_session");
+    if (value) {
+      localStorage.setItem(config.TOKEN_KEY || "pulo_gatto_session", value);
+      markActivity();
+    } else {
+      localStorage.removeItem(config.TOKEN_KEY || "pulo_gatto_session");
+      localStorage.removeItem(storageKey("last_activity"));
+      cacheUser(null);
+    }
   }
 
   async function api(payload) {
@@ -153,6 +201,8 @@
 
   function activateUser(user) {
     hideGate();
+    markActivity();
+    cacheUser(user);
     applyPermissions(user);
     renderSessionControl(user);
     document.dispatchEvent(new CustomEvent("pulo:session", { detail: user }));
@@ -218,6 +268,13 @@
       showGate();
       return;
     }
+    if (!sessionFresh()) {
+      setToken("");
+      currentUser = null;
+      window.clearInterval(checkTimer);
+      showGate("Sua sessão expirou por inatividade.");
+      return;
+    }
     try {
       const result = await api({ action: "validateSession", token: activeToken });
       if (!result.ok) throw new Error(result.message || "Sua sessão expirou.");
@@ -229,6 +286,12 @@
       }
       activateUser(currentUser);
     } catch (error) {
+      const user = cachedUser();
+      if (user && sessionFresh()) {
+        currentUser = user;
+        activateUser(currentUser);
+        return;
+      }
       setToken("");
       currentUser = null;
       window.clearInterval(checkTimer);
@@ -256,7 +319,12 @@
   });
 
   document.addEventListener("DOMContentLoaded", () => {
-    if (token()) showLoadingGate();
+    bindActivityTracking();
+    const user = cachedUser();
+    if (token() && sessionFresh() && user) {
+      currentUser = user;
+      activateUser(currentUser);
+    } else if (token()) showLoadingGate();
     else showGate();
     validate();
   });

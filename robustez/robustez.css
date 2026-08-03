@@ -659,11 +659,43 @@ button.danger {
   margin-bottom: 8px;
 }
 
+.drawdown-summary > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
 .drawdown-summary span,
 .drawdown-summary small {
   color: var(--muted);
   font-size: 12px;
   line-height: 1.35;
+}
+
+.drawdown-mode {
+  display: inline-flex;
+  gap: 4px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.8);
+}
+
+.drawdown-mode button {
+  border: 0;
+  border-radius: 999px;
+  padding: 5px 8px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.drawdown-mode button.active {
+  background: rgba(56, 189, 248, 0.18);
+  color: var(--white);
 }
 
 .drawdown-summary strong {
