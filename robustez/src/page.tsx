@@ -241,18 +241,20 @@ function worstDrawdownSegment(curve: CurvePoint[]) {
   };
 }
 
-const OPERATIONS_BY_DATE = REAL_OPERATIONS.reduce<Record<string, RealOperation[]>>((acc, operation) => {
-  acc[operation.date] = acc[operation.date] ?? [];
-  acc[operation.date].push(operation);
-  return acc;
-}, {});
-
 function baseDaysFromReal(): ScenarioDay[] {
   return REAL_DAYS.map((day) => ({ date: day.date, label: day.label, points: day.points, operations: day.operations, gains: day.gains, losses: day.losses, breakevens: day.breakevens }));
 }
+function operationsByDate() {
+  return REAL_OPERATIONS.reduce<Record<string, RealOperation[]>>((acc, operation) => {
+    acc[operation.date] = acc[operation.date] ?? [];
+    acc[operation.date].push(operation);
+    return acc;
+  }, {});
+}
 function daysByOperationPositions(positions: number[]): ScenarioDay[] {
+  const operationsByDay = operationsByDate();
   return REAL_DAYS.map((day) => {
-    const ops = (OPERATIONS_BY_DATE[day.date] ?? []).filter((operation) => positions.includes(operation.position));
+    const ops = (operationsByDay[day.date] ?? []).filter((operation) => positions.includes(operation.position));
     return { date: day.date, label: day.label, points: ops.reduce((sum, operation) => sum + operation.points, 0), operations: ops.length, gains: ops.filter((operation) => operation.result === "GAIN").length, losses: ops.filter((operation) => operation.result === "LOSS").length, breakevens: ops.filter((operation) => operation.result === "BREAKEVEN").length, zeroBySelection: ops.length === 0 };
   });
 }
@@ -471,7 +473,7 @@ function ActionButtons({ onApply, onSave, onClear, saveLabel = "Salvar", savedMe
 }
 function PeriodBars({ bars, granularity, onToggle }: { bars: PeriodBar[]; granularity: PeriodGranularity; onToggle: (key: string) => void }) {
   const max = Math.max(...bars.map((bar) => Math.abs(bar.points)), 1);
-  return <div className={`period-bars ${granularity === "Dias" ? "daily-bars" : ""}`}>{bars.map((bar) => <button aria-pressed={bar.selected} className={`${bar.points >= 0 ? "positive" : "negative"} ${bar.removed ? "removed" : ""} ${bar.selected ? "selected" : ""}`} key={bar.key} onClick={() => onToggle(bar.key)} title={`${bar.label}: ${formatPts(bar.points)}`}><strong style={{ height: `${Math.max(10, (Math.abs(bar.points) / max) * 128)}px` }} /><span>{bar.label}</span></button>)}</div>;
+  return <div className={`period-bars ${granularity === "Dias" ? "daily-bars" : ""}`}>{bars.map((bar) => <button aria-pressed={bar.selected} className={`${bar.points >= 0 ? "positive" : "negative"} ${bar.removed ? "removed" : ""} ${bar.selected ? "selected" : ""}`} key={bar.key} onClick={() => onToggle(bar.key)} title={`${bar.label}: ${formatPts(bar.points)}`}><em>{formatPts(bar.points).replace(" pts", "")}</em><strong style={{ height: `${Math.max(10, (Math.abs(bar.points) / max) * 128)}px` }} /><span>{bar.label}</span></button>)}</div>;
 }
 function DataTable({ days }: { days: RealDay[] }) {
   return <div className="table-wrap"><table><thead><tr><th>Dia</th><th>Pts dia</th><th>Ops</th><th>GAIN</th><th>LOSS</th><th>BE</th><th>Range mercado</th></tr></thead><tbody>{days.slice(-10).reverse().map((day) => <tr key={day.date}><td>{day.label}</td><td className={day.points >= 0 ? "good-text" : "bad-text"}>{formatPts(day.points)}</td><td>{day.operations}</td><td>{day.gains}</td><td>{day.losses}</td><td>{day.breakevens}</td><td>{day.marketRange ? formatPts(day.marketRange).replace(" pts", "") : "sem dado"}</td></tr>)}</tbody></table></div>;

@@ -11,6 +11,7 @@ const percent2 = value => `${number2.format(value)}%`;
 const POINT_VALUE = 0.20;
 const riskConfig = { contracts: 1, maxOperations: 3, lastLimitEdited: 'points' };
 const cssColor = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const ROBUSTEZ_BASE_CACHE_KEY = 'pulo_robustez_base_cache_v1';
 
 function setText(key, value) {
   document.querySelectorAll(`[data-metric="${key}"]`).forEach(el => {
@@ -32,6 +33,20 @@ function groupByDay(operations) {
     day.count += 1;
   });
   return [...map.values()].sort((a, b) => a.date.localeCompare(b.date));
+}
+
+function cacheBaseForRobustez(payload) {
+  try {
+    if (!payload || !Array.isArray(payload.operacoes)) return;
+    sessionStorage.setItem(ROBUSTEZ_BASE_CACHE_KEY, JSON.stringify({
+      savedAt: new Date().toISOString(),
+      geradoEm: payload.geradoEm || new Date().toISOString(),
+      meta: payload.meta || {},
+      operacoes: payload.operacoes
+    }));
+  } catch (error) {
+    console.warn('Não foi possível guardar cache para Robustez.', error);
+  }
 }
 
 function calculateStats(operations) {
@@ -1212,6 +1227,7 @@ async function loadData() {
     if (!payload.sucesso || !Array.isArray(payload.operacoes)) {
       throw new Error(payload.mensagem || 'A API não devolveu operações válidas.');
     }
+    cacheBaseForRobustez(payload);
 
     state.all = payload.operacoes.sort((a, b) => a.dataHoraIso.localeCompare(b.dataHoraIso));
     if (state.all.length) {

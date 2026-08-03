@@ -462,7 +462,7 @@ button.danger {
   display: grid;
   align-content: end;
   justify-items: center;
-  gap: 8px;
+  gap: 7px;
   padding: 8px 4px;
   background: rgba(12, 20, 32, 0.7);
 }
@@ -479,6 +479,15 @@ button.danger {
 
 .period-bars .negative strong {
   background: var(--bad);
+}
+
+.period-bars em {
+  color: var(--text);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .period-bars .removed {
