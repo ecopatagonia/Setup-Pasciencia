@@ -1,17 +1,595 @@
 <!doctype html>
-<html lang="pt-BR" data-theme="dark">
+<html lang="pt-BR">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Teste de Robustez do O PULO DO GATTO.">
-  <title>O PULO DO GATTO — Robustez</title>
-  <link rel="stylesheet" href="../auth.css?v=6.0">
-  <link rel="stylesheet" href="robustez.css?v=1.0">
+  <meta name="description" content="Laboratório de performance do Setup da Paciência.">
+  <title>O PULO DO GATTO — Performance</title>
+  <link rel="stylesheet" href="styles.css?v=5.0">
+  <link rel="stylesheet" href="auth.css?v=6.1">
 </head>
 <body>
-  <div id="root"></div>
-  <script src="robustez-config.js?v=1.0"></script>
-  <script src="../auth.js?v=6.0"></script>
-  <script type="module" src="robustez.js?v=1.0"></script>
+  <div class="app">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">PG</div>
+        <div><strong>O PULO DO GATTO</strong><small>Performance</small></div>
+      </div>
+
+      <nav class="nav" aria-label="Menu principal">
+        <button class="nav-button active" data-page="visao" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 13h6V4H4v9Zm0 7h6v-4H4v4Zm10 0h6v-9h-6v9Zm0-16v4h6V4h-6Z"/></svg>
+          Visão geral
+        </button>
+        <div class="nav-group">
+          <button class="nav-group-toggle" type="button" aria-expanded="false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V9m5 10V5m6 14v-7m5 7V3"/><path d="M2 21h20"/></svg>
+            <span>Estatísticas</span><span class="nav-chevron">⌄</span>
+          </button>
+          <div class="nav-submenu">
+            <button class="nav-button nav-subitem" data-page="patrimonio" data-permission="patrimonio" type="button">Patrimônio</button>
+            <button class="nav-button nav-subitem" data-page="resultados" data-permission="resultados" type="button">Resultados</button>
+            <button class="nav-button nav-subitem" data-page="pontos" data-permission="pontos" type="button">Pontos</button>
+            <button class="nav-button nav-subitem" data-page="consistencia" data-permission="consistencia" type="button">Consistência</button>
+            <button class="nav-button nav-subitem" data-page="evolucao" data-permission="evolucao_temporal" type="button">Evolução temporal</button>
+            <button class="nav-button nav-subitem" data-page="horarios" data-permission="horarios" type="button">Horários</button>
+          </div>
+        </div>
+        <div class="nav-group">
+          <button class="nav-group-toggle" type="button" aria-expanded="false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 4 6v5c0 5 3.4 8.2 8 10 4.6-1.8 8-5 8-10V6l-8-3Z"/><path d="M12 8v5m0 3h.01"/></svg>
+            <span>Controle de risco</span><span class="nav-chevron">⌄</span>
+          </button>
+          <div class="nav-submenu">
+            <button class="nav-button nav-subitem" data-page="risco" data-permission="calibragem" type="button">Calibragem</button>
+            <button class="nav-button nav-subitem" data-page="projecao" data-permission="projecao_risco" type="button">Projeção de risco</button>
+          </div>
+        </div>
+        <button class="nav-button" data-page="operacoes" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16M4 12h16M4 18h16"/><path d="M7 4v4m7 2v4m4 2v4"/></svg>
+          Operações
+        </button>
+        <a class="nav-button nav-link" data-permission="robustez" href="robustez/index.html?view=site">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 4 6v5c0 5 3.4 8.2 8 10 4.6-1.8 8-5 8-10V6l-8-3Z"/><path d="m7 15 3-3 2 2 5-5"/></svg>
+          Teste de Robustez
+        </a>
+      </nav>
+
+      <div class="nav-spacer"></div>
+      <div class="data-status">
+        <div class="status-row">
+          <span class="status-dot" id="statusDot"></span>
+          <strong id="statusText">Conectando...</strong>
+        </div>
+        <small id="statusDetail">Google Sheets</small>
+      </div>
+    </aside>
+
+    <main>
+      <div class="topbar">
+        <div class="theme-switch" role="group" aria-label="Tema visual">
+          <button type="button" data-theme-option="light" aria-pressed="false">
+            <span aria-hidden="true">☀</span> Claro
+          </button>
+          <button type="button" data-theme-option="dark" class="active" aria-pressed="true">
+            <span aria-hidden="true">☾</span> Escuro
+          </button>
+        </div>
+      </div>
+      <div class="notice" id="notice" role="alert"></div>
+      <div class="loading-state" id="loadingState" role="status" aria-live="polite">
+        <span class="loading-spinner" aria-hidden="true"></span>
+        <div>
+          <strong>Carregando os dados</strong>
+          <small id="loadingDetail">Conectando à base de operações…</small>
+        </div>
+      </div>
+      <section class="analysis-toolbar" aria-label="Controles da análise">
+        <div class="toolbar-group">
+          <span class="toolbar-label">Período</span>
+          <div class="segmented period-options" id="periodSelector" role="group" aria-label="Selecionar período">
+            <button data-period="last" type="button" aria-pressed="false">Último dia</button>
+            <button data-period="week" type="button" aria-pressed="false">Semana</button>
+            <button data-period="month" type="button" aria-pressed="false">Mês</button>
+            <button data-period="year" type="button" aria-pressed="false">Ano</button>
+            <button class="active" data-period="custom" type="button" aria-pressed="true">Personalizado</button>
+          </div>
+          <div class="custom-range" id="customRange">
+            <label>Desde<input id="customFrom" type="date" aria-label="Data inicial"></label>
+            <label>Até<input id="customTo" type="date" aria-label="Data final"></label>
+            <span class="auto-apply-note">Aplicação automática</span>
+          </div>
+          <p class="period-reference" id="periodReference">Aguardando dados para definir o período.</p>
+        </div>
+        <div class="toolbar-group mode-group">
+          <span class="toolbar-label">Unidade de análise</span>
+          <div class="segmented mode-options" id="analysisMode" role="group" aria-label="Selecionar unidade de análise">
+            <button class="active" data-mode="operations" type="button" aria-pressed="true"><span>Por operações</span><small>Cada trade é um ponto</small></button>
+            <button data-mode="days" type="button" aria-pressed="false"><span>Por dia</span><small>Cada pregão é um ponto</small></button>
+          </div>
+        </div>
+      </section>
+
+      <section class="page active" id="page-visao">
+        <header class="page-header">
+          <div class="page-heading-wrap">
+            <button class="menu-toggle" type="button" aria-label="Abrir menu" aria-expanded="false">
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+            </button>
+            <div>
+              <p class="eyebrow">Setup da Paciência</p>
+              <h1>Visão geral</h1>
+              <p class="subtitle">Leitura objetiva da performance registrada.</p>
+            </div>
+          </div>
+        </header>
+
+        <div class="metrics">
+          <article class="metric">
+            <div class="metric-label">Resultado acumulado</div>
+            <div class="metric-value skeleton" data-metric="resultado">R$ 0,00</div>
+            <div class="metric-note" data-note="periodo">Período personalizado</div>
+          </article>
+          <article class="metric" data-mode-only="operations">
+            <div class="metric-label">Expectativa por operação</div>
+            <div class="metric-value skeleton" data-metric="exp-op">R$ 0,00</div>
+            <div class="metric-note">Média financeira</div>
+          </article>
+          <article class="metric" data-mode-only="days">
+            <div class="metric-label">Expectativa por dia</div>
+            <div class="metric-value skeleton" data-metric="exp-dia">R$ 0,00</div>
+            <div class="metric-note">Média por pregão</div>
+          </article>
+          <article class="metric">
+            <div class="metric-label" data-dynamic-label="hit-rate">Taxa de acerto por operação</div>
+            <div class="metric-value skeleton" data-metric="taxa">0%</div>
+            <div class="metric-note" data-metric="contagem">0 operações</div>
+          </article>
+          <article class="metric">
+            <div class="metric-label">Drawdown máximo</div>
+            <div class="metric-value negative skeleton" data-metric="drawdown">R$ 0,00</div>
+            <div class="metric-note" data-unit-note>Calculado por operação</div>
+          </article>
+          <article class="metric">
+            <div class="metric-label">Maior alta da curva</div>
+            <div class="metric-value positive skeleton" data-metric="updraw">R$ 0,00</div>
+            <div class="metric-note" data-unit-note>Calculado por operação</div>
+          </article>
+          <article class="metric">
+            <div class="metric-label">Dias operados</div>
+            <div class="metric-value skeleton" data-metric="dias">0</div>
+            <div class="metric-note">Pregões com registro</div>
+          </article>
+          <article class="metric">
+            <div class="metric-label">Operações por dia</div>
+            <div class="metric-value skeleton" data-metric="ops-dia">0,00</div>
+            <div class="metric-note">Média observada</div>
+          </article>
+        </div>
+
+        <article class="panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Curva acumulada</p>
+              <h2 class="panel-title">Evolução do resultado</h2>
+              <p class="panel-copy">Início em R$ 0, com máximo, mínimo e estado atual.</p>
+            </div>
+            <div class="legend">
+              <span class="legend-item"><i class="legend-line"></i>Acima de zero</span>
+              <span class="legend-item"><i class="legend-line negative"></i>Abaixo de zero</span>
+            </div>
+          </div>
+          <div class="chart-wrap"><canvas id="resultChart" aria-label="Curva de evolução do resultado"></canvas></div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Resultado diário</p>
+              <h2 class="panel-title">Atividade por pregão</h2>
+            </div>
+            <div class="legend">
+              <span class="legend-item"><i class="legend-line"></i>Positivo</span>
+              <span class="legend-item"><i class="legend-line negative"></i>Negativo</span>
+              <span class="legend-item"><i class="legend-line neutral"></i>Breakeven</span>
+            </div>
+          </div>
+          <div class="chart-wrap small"><canvas id="dailyChart" aria-label="Resultados financeiros por dia"></canvas></div>
+          <div class="summary-row">
+            <div class="summary-chip"><strong class="positive" data-metric="dias-pos">0</strong><span data-summary-positive>dias positivos</span></div>
+            <div class="summary-chip"><strong class="negative" data-metric="dias-neg">0</strong><span data-summary-negative>dias negativos</span></div>
+            <div class="summary-chip"><strong data-metric="dias-zero">0</strong><span data-summary-neutral>dias neutros</span></div>
+          </div>
+          <p class="panel-copy chart-explanation">As barras mostram o resultado de cada dia ou operação. A linha central é a média; a faixa sombreada representa média ± 1 desvio padrão.</p>
+        </article>
+      </section>
+
+      <section class="page" id="page-patrimonio">
+        <header class="page-header">
+          <div class="page-heading-wrap">
+            <button class="menu-toggle" type="button" aria-label="Abrir menu" aria-expanded="false">
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+            </button>
+            <div>
+              <p class="eyebrow">Capital destinado</p>
+              <h1>Patrimônio</h1>
+              <p class="subtitle">Ganhos e perdas acumulados em relação ao capital inicial.</p>
+            </div>
+          </div>
+        </header>
+
+        <article class="info-banner"><strong>Como usar:</strong> informe o capital destinado à estratégia para simular o impacto dos resultados históricos sobre o patrimônio. A análise não garante resultados futuros.</article>
+        <article class="panel capital-box">
+          <div class="field">
+            <label for="capitalInput">Capital inicial (R$)</label>
+            <div class="input-wrap capital-input"><span class="input-prefix">R$</span><input id="capitalInput" type="text" value="0" inputmode="numeric" aria-describedby="capitalHelp" aria-label="Capital inicial em reais"></div>
+            <small id="capitalHelp">Digite somente números; o separador de milhar é aplicado automaticamente.</small>
+          </div>
+          <div>
+            <div class="field"><label>Referência: 3 × drawdown máximo</label></div>
+            <div class="reference"><strong id="capitalReference">R$ 0,00</strong></div>
+          </div>
+          <button class="action" id="useReference" type="button">Usar referência</button>
+        </article>
+
+        <div class="metrics">
+          <article class="metric">
+            <div class="metric-label">Estado atual</div>
+            <div class="metric-value" data-metric="pat-atual">0,00%</div>
+            <div class="metric-note">Resultado sobre o capital</div>
+          </article>
+          <article class="metric">
+            <div class="metric-label">Patrimônio atual</div>
+            <div class="metric-value" data-metric="pat-total">100,00%</div>
+            <div class="metric-note">Capital inicial = 100%</div>
+          </article>
+          <article class="metric" data-mode-only="operations">
+            <div class="metric-label">Expectativa por operação</div>
+            <div class="metric-value" data-metric="pat-exp-op">0,00%</div>
+            <div class="metric-note">Sobre o capital inicial</div>
+          </article>
+          <article class="metric" data-mode-only="days">
+            <div class="metric-label">Expectativa por dia</div>
+            <div class="metric-value" data-metric="pat-exp-dia">0,00%</div>
+            <div class="metric-note">Sobre o capital inicial</div>
+          </article>
+          <article class="metric">
+            <div class="metric-label">Drawdown máximo</div>
+            <div class="metric-value negative" data-metric="pat-drawdown">0,00%</div>
+            <div class="metric-note" data-unit-note>Calculado por operação</div>
+          </article>
+          <article class="metric">
+            <div class="metric-label">Maior alta da curva</div>
+            <div class="metric-value positive" data-metric="pat-updraw">0,00%</div>
+            <div class="metric-note" data-unit-note>Calculado por operação</div>
+          </article>
+          <article class="metric">
+            <div class="metric-label">Máximo da curva</div>
+            <div class="metric-value positive" data-metric="pat-max">0,00%</div>
+            <div class="metric-note">Maior resultado acumulado</div>
+          </article>
+          <article class="metric">
+            <div class="metric-label">Mínimo da curva</div>
+            <div class="metric-value" data-metric="pat-min">0,00%</div>
+            <div class="metric-note">Menor resultado acumulado</div>
+          </article>
+          <article class="metric">
+            <div class="metric-label">Rentabilidade média a cada 30 dias</div>
+            <div class="metric-value" data-metric="pat-30d">0,00%</div>
+            <div class="metric-note" data-metric="pat-30d-note">Equivalente histórico do período</div>
+          </article>
+        </div>
+
+        <article class="panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Variação do capital</p>
+              <h2 class="panel-title">Evolução do capital — ganhos e perdas acumulados</h2>
+              <p class="panel-copy">O zero representa o capital inicial intacto. A linha vermelha de −100% representa o esgotamento do capital destinado.</p>
+            </div>
+            <div class="legend">
+              <span class="legend-item"><i class="legend-line zero-reference"></i>Capital intacto · 0%</span>
+              <span class="legend-item"><i class="legend-line negative"></i>Esgotamento · −100%</span>
+            </div>
+          </div>
+          <div class="chart-wrap"><canvas id="patrimonyChart" aria-label="Ganhos e perdas acumulados sobre o capital destinado, em reais e porcentagem"></canvas></div>
+        </article>
+      </section>
+
+      <section class="page" id="page-resultados">
+        <header class="page-header">
+          <div class="page-heading-wrap">
+            <button class="menu-toggle" type="button" aria-label="Abrir menu" aria-expanded="false"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+            <div><p class="eyebrow">Distribuição</p><h1>Resultados</h1><p class="subtitle">Qualidade financeira de gains, stops e operações neutras.</p></div>
+          </div>
+        </header>
+        <div class="metrics">
+          <article class="metric"><div class="metric-label">Profit factor</div><div class="metric-value" data-metric="profit-factor">0,00</div><div class="metric-note">Ganhos brutos ÷ perdas brutas</div></article>
+          <article class="metric"><div class="metric-label">Payoff médio</div><div class="metric-value" data-metric="payoff">0,00</div><div class="metric-note">Gain médio ÷ stop médio</div></article>
+          <article class="metric"><div class="metric-label">Gain médio</div><div class="metric-value positive" data-metric="gain-medio">R$ 0,00</div><div class="metric-note" data-metric="gains-count">0 gains</div></article>
+          <article class="metric"><div class="metric-label">Loss médio</div><div class="metric-value negative" data-metric="stop-medio">R$ 0,00</div><div class="metric-note" data-metric="stops-count">0 losses</div></article>
+          <article class="metric"><div class="metric-label">Melhor operação</div><div class="metric-value positive" data-metric="melhor-op">R$ 0,00</div><div class="metric-note">Maior resultado individual</div></article>
+          <article class="metric"><div class="metric-label">Pior operação</div><div class="metric-value negative" data-metric="pior-op">R$ 0,00</div><div class="metric-note">Menor resultado individual</div></article>
+          <article class="metric"><div class="metric-label">Pontos médios</div><div class="metric-value" data-metric="pontos-medios">0,00</div><div class="metric-note">Por operação</div></article>
+          <article class="metric"><div class="metric-label">Breakevens</div><div class="metric-value" data-metric="be-count">0</div><div class="metric-note">Operações neutras</div></article>
+        </div>
+        <article class="panel">
+          <div class="panel-heading"><div><p class="eyebrow">Compra × venda</p><h2 class="panel-title">Desempenho por lado</h2></div></div>
+          <div class="comparison-grid" id="sideComparison"></div>
+        </article>
+        <article class="panel">
+          <div class="panel-heading"><div><p class="eyebrow">Sequências</p><h2 class="panel-title">Gains e losses consecutivos</h2><p class="panel-copy">Frequência histórica das sequências; não representa uma previsão futura.</p></div></div>
+          <div class="comparison-grid" id="streakAnalysis"></div>
+        </article>
+        <article class="panel">
+          <div class="panel-heading"><div><p class="eyebrow">Faixas financeiras</p><h2 class="panel-title" id="distributionTitle">Distribuição das operações</h2><p class="panel-copy" id="distributionCopy">Quantidade de operações em cada faixa de resultado.</p></div></div>
+          <div class="chart-wrap small distribution-chart-wrap"><canvas id="distributionChart" aria-label="Distribuição financeira"></canvas></div>
+        </article>
+      </section>
+
+      <section class="page" id="page-consistencia">
+        <header class="page-header">
+          <div class="page-heading-wrap">
+            <button class="menu-toggle" type="button" aria-label="Abrir menu" aria-expanded="false"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+            <div><p class="eyebrow">Regularidade</p><h1>Consistência</h1><p class="subtitle">Estabilidade dos resultados ao longo dos pregões.</p></div>
+          </div>
+        </header>
+        <div class="metrics">
+          <article class="metric"><div class="metric-label">Dias positivos</div><div class="metric-value positive" data-metric="cons-pos">0%</div><div class="metric-note" data-metric="cons-pos-count">0 pregões</div></article>
+          <article class="metric"><div class="metric-label">Melhor pregão</div><div class="metric-value positive" data-metric="melhor-dia">R$ 0,00</div><div class="metric-note" data-metric="melhor-dia-data">—</div></article>
+          <article class="metric"><div class="metric-label">Pior pregão</div><div class="metric-value negative" data-metric="pior-dia">R$ 0,00</div><div class="metric-note" data-metric="pior-dia-data">—</div></article>
+          <article class="metric"><div class="metric-label">Desvio diário</div><div class="metric-value" data-metric="desvio-dia">R$ 0,00</div><div class="metric-note">Dispersão dos resultados</div></article>
+          <article class="metric"><div class="metric-label">Maior sequência de gains</div><div class="metric-value positive" data-metric="streak-gain">0</div><div class="metric-note">Operações consecutivas</div></article>
+          <article class="metric"><div class="metric-label">Maior sequência de stops</div><div class="metric-value negative" data-metric="streak-stop">0</div><div class="metric-note">Operações consecutivas</div></article>
+          <article class="metric"><div class="metric-label">Resultado típico</div><div class="metric-value" data-metric="cons-mediana">R$ 0,00</div><div class="metric-note" data-metric="cons-media-mediana">Mediana · média R$ 0,00</div></article>
+          <article class="metric"><div class="metric-label">Gains que cobrem as perdas</div><div class="metric-value" data-metric="cons-cover-count">0</div><div class="metric-note" data-metric="cons-cover-share">0% dos gains</div></article>
+        </div>
+        <article class="panel">
+          <div class="panel-heading"><div><p class="eyebrow">Sequência temporal</p><h2 class="panel-title">Mapa de pregões</h2><p class="panel-copy">Cada bloco representa um dia: turquesa positivo, vermelho negativo.</p></div></div>
+          <div class="day-map" id="dayMap"></div>
+        </article>
+        <article class="panel">
+          <div class="panel-heading"><div><p class="eyebrow">Dependência dos extremos</p><h2 class="panel-title">Gains que sustentam o resultado</h2><p class="panel-copy">Mostra quantos gains, começando pelos maiores, são necessários para compensar todas as perdas.</p></div></div>
+          <div class="comparison-grid" id="concentrationAnalysis"></div>
+          <div class="chart-wrap small"><canvas id="coverageChart" aria-label="Cobertura acumulada das perdas pelos gains"></canvas></div>
+          <p class="panel-copy"><strong>Como interpretar:</strong> quanto menos gains forem necessários para cruzar a linha das perdas brutas, maior é a dependência de poucas operações grandes. Isso não é um julgamento; indica quais resultados precisam ser repetíveis.</p>
+        </article>
+      </section>
+
+      <section class="page" id="page-pontos">
+        <header class="page-header">
+          <div class="page-heading-wrap">
+            <button class="menu-toggle" type="button" aria-label="Abrir menu" aria-expanded="false"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+            <div><p class="eyebrow">Unidade técnica</p><h1>Pontos</h1><p class="subtitle">Performance integral calculada sem utilizar valores financeiros.</p></div>
+          </div>
+        </header>
+        <div class="metrics">
+          <article class="metric"><div class="metric-label">Resultado acumulado</div><div class="metric-value" data-metric="pts-total">0 pts</div><div class="metric-note">Soma de todas as operações</div></article>
+          <article class="metric"><div class="metric-label" data-metric="pts-exp-label">Expectativa por operação</div><div class="metric-value" data-metric="pts-exp-active">0 pts</div><div class="metric-note">Média na unidade selecionada</div></article>
+          <article class="metric metric-emphasis"><div class="metric-label" data-metric="pts-median-label">Mediana por operação</div><div class="metric-value" data-metric="pts-median">0 pts</div><div class="metric-note">Resultado típico</div></article>
+          <article class="metric"><div class="metric-label">Profit factor em pontos</div><div class="metric-value" data-metric="pts-pf">0,00</div><div class="metric-note">Pontos ganhos ÷ perdidos</div></article>
+          <article class="metric"><div class="metric-label">Drawdown máximo</div><div class="metric-value negative" data-metric="pts-dd">0 pts</div><div class="metric-note">Maior queda da curva</div></article>
+          <article class="metric"><div class="metric-label">Updraw máximo</div><div class="metric-value positive" data-metric="pts-up">0 pts</div><div class="metric-note">Maior avanço da curva</div></article>
+          <article class="metric"><div class="metric-label">Gain médio</div><div class="metric-value positive" data-metric="pts-gain">0 pts</div><div class="metric-note">Média das operações GAIN</div></article>
+          <article class="metric"><div class="metric-label">Loss médio</div><div class="metric-value negative" data-metric="pts-stop">0 pts</div><div class="metric-note">Média das operações com perda</div></article>
+          <article class="metric" data-mode-only="operations"><div class="metric-label">Melhor operação</div><div class="metric-value positive" data-metric="pts-best">0 pts</div><div class="metric-note">Maior resultado individual</div></article>
+          <article class="metric" data-mode-only="operations"><div class="metric-label">Pior operação</div><div class="metric-value negative" data-metric="pts-worst">0 pts</div><div class="metric-note">Menor resultado individual</div></article>
+          <article class="metric" data-mode-only="days"><div class="metric-label">Melhor pregão</div><div class="metric-value positive" data-metric="pts-best-day">0 pts</div><div class="metric-note" data-metric="pts-best-day-date">—</div></article>
+          <article class="metric" data-mode-only="days"><div class="metric-label">Pior pregão</div><div class="metric-value negative" data-metric="pts-worst-day">0 pts</div><div class="metric-note" data-metric="pts-worst-day-date">—</div></article>
+        </div>
+        <article class="panel">
+          <div class="panel-heading"><div><p class="eyebrow">Curva técnica</p><h2 class="panel-title">Evolução acumulada em pontos</h2><p class="panel-copy">Parte de zero e destaca máximos, mínimos e estado atual.</p></div><div class="legend"><span class="legend-item"><i class="legend-line"></i>Acima de zero</span><span class="legend-item"><i class="legend-line negative"></i>Abaixo de zero</span></div></div>
+          <div class="chart-wrap"><canvas id="pointsChart" aria-label="Curva acumulada em pontos"></canvas></div>
+        </article>
+        <article class="panel">
+          <div class="panel-heading"><div><p class="eyebrow">Pontos por pregão</p><h2 class="panel-title">Resultado técnico diário</h2></div></div>
+          <div class="chart-wrap small"><canvas id="pointsDailyChart" aria-label="Resultado diário em pontos"></canvas></div>
+          <div class="summary-row"><div class="summary-chip"><strong class="positive" data-metric="pts-days-pos">0</strong><span data-pts-positive>dias positivos</span></div><div class="summary-chip"><strong class="negative" data-metric="pts-days-neg">0</strong><span data-pts-negative>dias negativos</span></div><div class="summary-chip"><strong data-metric="pts-days-zero">0</strong><span data-pts-neutral>dias neutros</span></div></div>
+        </article>
+      </section>
+
+      <section class="page" id="page-evolucao">
+        <header class="page-header">
+          <div class="page-heading-wrap"><button class="menu-toggle" type="button" aria-label="Abrir menu"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+            <div><p class="eyebrow">Análise macro</p><h1>Evolução temporal</h1><p class="subtitle">Compare estabilidade, melhora e deterioração entre semanas e meses.</p></div>
+          </div>
+        </header>
+        <article class="info-banner">A média fixa resume todo o período; a média acumulada mostra como o histórico chegou até ela; a média móvel destaca o desempenho recente.</article>
+        <div class="metrics">
+          <article class="metric"><div class="metric-label">Média ativa</div><div class="metric-value" data-metric="evo-average">R$ 0,00</div><div class="metric-note" data-metric="evo-average-unit">Por operação</div></article>
+          <article class="metric metric-emphasis"><div class="metric-label">Mediana ativa</div><div class="metric-value" data-metric="evo-median">R$ 0,00</div><div class="metric-note">Resultado típico</div></article>
+          <article class="metric"><div class="metric-label">Primeira metade</div><div class="metric-value" data-metric="evo-first-half">R$ 0,00</div><div class="metric-note">Média do trecho</div></article>
+          <article class="metric"><div class="metric-label">Segunda metade</div><div class="metric-value" data-metric="evo-second-half">R$ 0,00</div><div class="metric-note" data-metric="evo-comparison">Comparação indisponível</div></article>
+        </div>
+        <article class="panel">
+          <div class="panel-heading"><div><p class="eyebrow">Formação do desempenho</p><h2 class="panel-title">Média fixa, acumulada e recente</h2><p class="panel-copy">A janela recente usa 5 dias ou 10 operações, conforme a visualização. O zero permanece visível e os valores finais aparecem à direita.</p></div>
+            <div class="legend averages-legend"><span class="legend-item"><i class="legend-line average-fixed"></i>Média fixa do período</span><span class="legend-item"><i class="legend-line average-cumulative"></i>Média acumulada</span><span class="legend-item"><i class="legend-line average-moving"></i><span id="movingAverageLegend">Média móvel · 10 operações</span></span></div>
+          </div>
+          <div class="chart-wrap"><canvas id="averagesChart" aria-label="Evolução das médias"></canvas></div>
+          <p class="panel-copy"><strong>Como interpretar:</strong> média acumulada em alta indica melhora do histórico; a média móvel reage mais rápido e mostra se o desempenho recente está acima ou abaixo da média final.</p>
+        </article>
+        <article class="panel">
+          <div class="panel-heading"><div><p class="eyebrow">Semanas</p><h2 class="panel-title">Resultado semanal</h2><p class="panel-copy">Resultado, volume e taxa de acerto em cada semana.</p></div><div class="legend"><span class="legend-item"><i class="legend-line period-average"></i>Média fixa</span><span class="legend-item"><i class="legend-line period-cumulative"></i>Média acumulada</span></div></div>
+          <div class="chart-wrap small"><canvas id="weeklyChart" aria-label="Resultados por semana"></canvas></div>
+          <div class="period-table" id="weeklyTable"></div>
+        </article>
+        <article class="panel">
+          <div class="panel-heading"><div><p class="eyebrow">Meses</p><h2 class="panel-title">Resultado mensal</h2><p class="panel-copy">Visão consolidada para identificar tendências de prazo maior.</p></div><div class="legend"><span class="legend-item"><i class="legend-line period-average"></i>Média fixa</span><span class="legend-item"><i class="legend-line period-cumulative"></i>Média acumulada</span></div></div>
+          <div class="chart-wrap small"><canvas id="monthlyChart" aria-label="Resultados por mês"></canvas></div>
+          <div class="period-table" id="monthlyTable"></div>
+        </article>
+      </section>
+
+      <section class="page" id="page-horarios">
+        <header class="page-header">
+          <div class="page-heading-wrap">
+            <button class="menu-toggle" type="button" aria-label="Abrir menu" aria-expanded="false"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+            <div><p class="eyebrow">Janelas operacionais</p><h1>Horários</h1><p class="subtitle">Relação entre hora de entrada, duração e qualidade dos resultados.</p></div>
+          </div>
+        </header>
+        <div class="metrics">
+          <article class="metric"><div class="metric-label">Melhor horário</div><div class="metric-value positive" data-metric="melhor-hora">—</div><div class="metric-note" data-metric="melhor-hora-res">R$ 0,00</div></article>
+          <article class="metric"><div class="metric-label">Pior horário</div><div class="metric-value negative" data-metric="pior-hora">—</div><div class="metric-note" data-metric="pior-hora-res">R$ 0,00</div></article>
+          <article class="metric"><div class="metric-label">Horário mais operado</div><div class="metric-value" data-metric="mais-operado">—</div><div class="metric-note" data-metric="mais-operado-count">0 operações</div></article>
+          <article class="metric"><div class="metric-label">Primeira entrada</div><div class="metric-value" data-metric="primeira-hora">—</div><div class="metric-note">No período filtrado</div></article>
+        </div>
+        <article class="panel">
+          <div class="panel-heading"><div><p class="eyebrow">Resultado por hora</p><h2 class="panel-title">Eficiência das janelas</h2><p class="panel-copy">Resultado acumulado e volume de operações em cada horário.</p></div></div>
+          <div class="hour-list" id="hourList"></div>
+        </article>
+        <article class="panel">
+          <div class="panel-heading"><div><p class="eyebrow">Perfil das operações</p><h2 class="panel-title">Quando começam e quanto duram</h2><p class="panel-copy">Compara o horário e a duração típicos dos resultados positivos e negativos.</p></div></div>
+          <div class="comparison-grid" id="durationProfiles"></div>
+          <p class="panel-copy"><strong>Como interpretar:</strong> compare as medianas para identificar diferenças recorrentes sem deixar que uma única operação muito longa ou muito lucrativa domine a leitura.</p>
+        </article>
+        <article class="panel">
+          <div class="panel-heading"><div><p class="eyebrow">Tempo de permanência</p><h2 class="panel-title">Desempenho por duração</h2><p class="panel-copy">Resultado, expectativa, mediana e acerto em cada faixa de duração.</p></div></div>
+          <div class="duration-grid" id="durationBands"></div>
+        </article>
+        <article class="panel">
+          <div class="panel-heading"><div><p class="eyebrow">Cruzamento central</p><h2 class="panel-title">Horário de início × duração</h2><p class="panel-copy">A cor representa a mediana do resultado; cada célula informa a quantidade de operações.</p></div>
+            <div class="heat-legend"><span>Negativo</span><i></i><span>Positivo</span></div>
+          </div>
+          <div class="heatmap-wrap"><canvas id="hourDurationChart" aria-label="Mapa de calor de horário de início por duração"></canvas></div>
+          <p class="panel-copy"><strong>Como interpretar:</strong> procure combinações com resultado típico favorável e amostra repetida. Células com menos de 5 operações são marcadas como amostra reduzida e não devem ser tomadas como padrão.</p>
+        </article>
+        <article class="panel">
+          <div class="panel-heading"><div><p class="eyebrow">Ordem no pregão</p><h2 class="panel-title">Desempenho por ordem da operação no dia</h2><p class="panel-copy">1ª, 2ª e 3ª operação: compara quantidade, acerto, expectativa e resultado por tentativa.</p></div></div>
+          <div class="comparison-grid three" id="operationOrder"></div>
+          <p class="panel-copy"><strong>Como interpretar:</strong> cada posição reúne a operação correspondente de todos os pregões em que ela existiu. A amostra diminui quando menos dias chegaram à segunda ou à terceira tentativa.</p>
+        </article>
+      </section>
+
+      <section class="page" id="page-risco">
+        <header class="page-header">
+          <div class="page-heading-wrap"><button class="menu-toggle" type="button" aria-label="Abrir menu"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+            <div><p class="eyebrow">Calibração</p><h1>Controle de risco</h1><p class="subtitle">Compare o risco máximo previsto pelo setup com o comportamento observado no histórico.</p></div>
+          </div>
+        </header>
+        <article class="panel risk-section">
+          <div class="risk-section-heading">
+            <div><span class="risk-step">1</span><h2>Referências do setup e do histórico</h2></div>
+            <p>O limite técnico mostra o pior cenário previsto. A estatística mostra o que realmente ocorreu com o efeito do trailing.</p>
+          </div>
+          <div class="risk-reference-grid">
+            <div class="risk-reference-card technical">
+              <h3>Máximo teórico do setup</h3>
+              <label for="technicalStop">Stop inicial máximo</label>
+              <div class="risk-inline-input"><input id="technicalStop" type="text" inputmode="numeric" value="500"><span>pts</span></div>
+              <div class="risk-reference-row"><span>Valor do ponto por contrato</span><strong>R$ 0,20</strong></div>
+              <label for="safetyFactor">Margem de segurança</label>
+              <select class="risk-compact-field" id="safetyFactor"><option value="1">1 × risco calculado</option><option value="2">2 × risco calculado</option><option value="3" selected>3 × risco calculado</option><option value="4">4 × risco calculado</option></select>
+            </div>
+            <div class="risk-reference-card historical">
+              <h3>Estatística observada</h3>
+              <div class="risk-reference-row"><span>Pior operação</span><strong class="negative" data-metric="risk-worst-operation">0 pts</strong></div>
+              <div class="risk-reference-row"><span>Pior pregão</span><strong class="negative" data-metric="risk-worst-day-points">0 pts</strong></div>
+              <div class="risk-reference-row"><span>Drawdown máximo</span><strong class="negative" data-metric="risk-drawdown-points">0 pts</strong></div>
+              <div class="risk-reference-row"><span>Maior sequência</span><strong class="negative" data-metric="risk-loss-streak">0 dias negativos</strong></div>
+              <div class="risk-reference-row"><span>Amostra</span><strong data-metric="risk-sample">0 operações · 0 pregões</strong></div>
+            </div>
+          </div>
+        </article>
+        <article class="panel risk-section risk-selector-section">
+          <div class="risk-section-heading">
+            <div><span class="risk-step">2</span><h2>Selecione o lote de referência</h2></div>
+            <p>A quantidade fixa de contratos converte o mesmo risco em pontos para valor financeiro.</p>
+          </div>
+          <div class="risk-stepper" aria-label="Contratos de referência">
+            <button type="button" data-stepper="contracts" data-delta="-1" aria-label="Diminuir contratos">−</button>
+            <strong><span id="contractCount">1</span> <span id="contractLabel">contrato</span></strong>
+            <button type="button" data-stepper="contracts" data-delta="1" aria-label="Aumentar contratos">+</button>
+          </div>
+        </article>
+        <article class="panel risk-section">
+          <div class="risk-section-heading">
+            <div><span class="risk-step">3</span><h2>Defina os limites operacionais do dia</h2></div>
+            <p>O máximo de operações altera o pior cenário técnico, mas não obriga você a adotar esse valor como limite real.</p>
+          </div>
+          <div class="risk-limit-layout">
+            <div class="risk-control-card">
+              <label>Máximo de operações por dia</label>
+              <div class="risk-stepper compact"><button type="button" data-stepper="operations" data-delta="-1" aria-label="Diminuir operações">−</button><strong><span id="maxOperations">3</span> operações</strong><button type="button" data-stepper="operations" data-delta="1" aria-label="Aumentar operações">+</button></div>
+            </div>
+            <div class="risk-linked">
+              <label>Limite diário escolhido</label>
+              <div class="risk-linked-fields">
+                <div><small>Em pontos</small><div class="risk-inline-input large"><input id="dailyLimitPoints" type="text" inputmode="numeric" value="1.000"><span>pts</span></div></div>
+                <span class="risk-link-symbol" aria-hidden="true">↔</span>
+                <div><small>Em valor</small><div class="risk-inline-input large"><span>R$</span><input id="dailyLimitValue" type="text" inputmode="numeric" value="200"></div></div>
+              </div>
+              <p>Valores vinculados. Ao alterar um campo, o outro é recalculado pelo lote selecionado.</p>
+            </div>
+          </div>
+          <div class="risk-warning">
+            <div><small>Máximo técnico diário</small><strong><span data-metric="risk-technical-points">0 pts</span> · <span data-metric="risk-technical-value">R$ 0,00</span></strong></div>
+            <p data-metric="risk-technical-formula">—</p>
+            <p data-metric="risk-limit-message">—</p>
+          </div>
+        </article>
+        <article class="panel risk-section">
+          <div class="risk-section-heading">
+            <div><span class="risk-step">4</span><h2>Compare as referências de capital</h2></div>
+            <p>Os dois valores usam a mesma margem de segurança, mas respondem a critérios diferentes.</p>
+          </div>
+          <div class="risk-capital-grid">
+            <div class="risk-capital-card technical"><small>Capital pelo máximo teórico</small><strong data-metric="risk-technical-capital">R$ 0,00</strong><p>Considera stops iniciais completos e o máximo de operações permitido.</p></div>
+            <div class="risk-capital-card historical"><small>Capital pela estatística histórica</small><strong data-metric="risk-statistical-capital">R$ 0,00</strong><p>Considera o maior entre drawdown e sequência negativa observada.</p></div>
+          </div>
+          <div class="risk-difference">Diferença entre as referências: <strong data-metric="risk-capital-difference">R$ 0,00 · 0,00%</strong></div>
+          <p class="risk-disclaimer">A referência estatística depende da quantidade e da representatividade dos dados disponíveis. Não é garantia de perdas futuras.</p>
+        </article>
+      </section>
+
+      <section class="page" id="page-projecao">
+        <header class="page-header">
+          <div class="page-heading-wrap"><button class="menu-toggle" type="button" aria-label="Abrir menu"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+            <div><p class="eyebrow">Controle de risco</p><h1>Projeção de risco</h1><p class="subtitle">Consequências da calibragem sobre a resistência do capital.</p></div>
+          </div>
+        </header>
+        <article class="projection-summary">
+          <span>Configuração analisada</span>
+          <strong id="projectionConfig">1 contrato · limite diário de 1.000 pontos · máximo de 3 operações</strong>
+        </article>
+        <div class="projection-grid">
+          <article class="projection-card technical"><span>Capital pelo máximo teórico</span><strong data-metric="risk-technical-capital">R$ 0,00</strong><p>Referência conservadora definida pelo setup e pela margem de segurança.</p></article>
+          <article class="projection-card historical"><span>Capital pela estatística histórica</span><strong data-metric="risk-statistical-capital">R$ 0,00</strong><p>Referência calculada com drawdown e sequências observadas.</p></article>
+          <article class="projection-card"><span>Pregões que excederiam o limite</span><strong data-metric="projection-exceedance">0 de 0</strong><p data-metric="projection-exceedance-note">Nenhum pregão analisado.</p></article>
+          <article class="projection-card"><span>Limites suportados · capital técnico</span><strong data-metric="projection-technical-limits">0,00 ×</strong><p>Quantas perdas iguais ao limite diário escolhido cabem nessa referência.</p></article>
+          <article class="projection-card"><span>Limites suportados · capital histórico</span><strong data-metric="projection-historical-limits">0,00 ×</strong><p>Mesma comparação usando a referência estatística.</p></article>
+          <article class="projection-card"><span>Maior sequência negativa observada</span><strong data-metric="projection-worst-sequence">R$ 0,00</strong><p data-metric="projection-worst-sequence-note">0 pregões consecutivos.</p></article>
+        </div>
+        <article class="panel projection-chart-panel">
+          <div class="panel-heading"><div><p class="eyebrow">Cenário conservador</p><h2 class="panel-title">Capital partindo da referência técnica</h2><p class="panel-copy">Aplica a sequência real de resultados ao capital técnico calculado em Calibragem.</p></div></div>
+          <div class="chart-wrap"><canvas id="riskProjectionChart" aria-label="Evolução do capital partindo da referência técnica"></canvas></div>
+        </article>
+        <article class="panel projection-chart-panel">
+          <div class="panel-heading"><div><p class="eyebrow">Cenário histórico</p><h2 class="panel-title">Capital partindo da referência estatística</h2><p class="panel-copy">Mostra a folga da referência histórica diante da mesma sequência de pregões.</p></div></div>
+          <div class="chart-wrap"><canvas id="riskMarginChart" aria-label="Evolução do capital partindo da referência estatística"></canvas></div>
+        </article>
+        <p class="risk-disclaimer">Simulação descritiva baseada no histórico selecionado. Não prevê resultados futuros nem garante suficiência de capital.</p>
+      </section>
+
+      <section class="page" id="page-operacoes">
+        <header class="page-header">
+          <div class="page-heading-wrap">
+            <button class="menu-toggle" type="button" aria-label="Abrir menu" aria-expanded="false"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+            <div><p class="eyebrow">Registro detalhado</p><h1>Operações</h1><p class="subtitle">Consulta auditável dos dados recebidos da planilha.</p></div>
+          </div>
+        </header>
+        <article class="panel table-panel">
+          <div class="table-toolbar">
+            <div class="segmented" id="resultFilter"><button class="active" data-result="all" type="button">Todas</button><button data-result="GAIN" type="button">Gains</button><button data-result="STOP" type="button">Losses</button><button data-result="BREAKEVEN" type="button">Breakevens</button></div>
+          </div>
+          <div class="table-scroll"><table><thead><tr id="operationsHead"><th>Data</th><th>Hora</th><th>Lado</th><th>Resultado</th><th>Pontos</th><th>Financeiro</th><th>Stop</th><th>Duração</th></tr></thead><tbody id="operationsBody"></tbody></table></div>
+          <div class="table-footer" id="operationsCount">0 operações exibidas</div>
+        </article>
+      </section>
+    </main>
+  </div>
+
+  <script src="config.js?v=5.0"></script>
+  <script src="auth.js?v=6.1"></script>
+  <script src="app.js?v=5.1"></script>
 </body>
 </html>
