@@ -649,7 +649,7 @@ tbody tr:hover { background: rgba(255,255,255,.02); }
   .analysis-toolbar { position: static; margin-top: 0; }
   .mode-group { margin-left: 0; }
   #periodSelector, #analysisMode { display: grid; grid-template-columns: repeat(2, 1fr); }
-  .period-options button:last-child { grid-column: 1 / -1; }
+  .period-options button:last-child { grid-column: auto; }
   .capital-input input { font-size: 32px; }
   .risk-linked-fields { grid-template-columns: 1fr; }
   .projection-summary { display: grid; }

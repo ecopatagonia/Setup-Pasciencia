@@ -9,6 +9,9 @@ const points0 = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 });
 const number2 = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const percent2 = value => `${number2.format(value)}%`;
 const POINT_VALUE = 0.20;
+const REAL_OPERATIONS_START = '2026-07-11';
+const BACKTEST_COLOR = '#b58ad9';
+const REAL_OPERATIONS_COLOR = '#35d8ca';
 const riskConfig = { contracts: 1, maxOperations: 3, lastLimitEdited: 'points' };
 const cssColor = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 const ROBUSTEZ_BASE_CACHE_KEY = 'pulo_robustez_base_cache_v1';
@@ -138,7 +141,14 @@ function applyPeriod() {
     const latestIso = state.all[state.all.length - 1].dataHoraIso.slice(0, 10);
     const latest = new Date(`${latestIso}T12:00:00`);
     let start = new Date(latest), end = new Date(latest);
-    if (state.period === 'last') start = new Date(latest);
+    if (state.period === 'all') {
+      start = new Date(`${state.all[0].dataHoraIso.slice(0, 10)}T00:00:00`);
+      end = new Date(`${latestIso}T23:59:59`);
+    }
+    if (state.period === 'real') {
+      start = new Date(`${REAL_OPERATIONS_START}T00:00:00`);
+      end = new Date(`${latestIso}T23:59:59`);
+    }
     if (state.period === 'week') {
       const weekday = (latest.getDay() + 6) % 7;
       start.setDate(start.getDate() - weekday);
@@ -236,7 +246,8 @@ function describePeriod() {
   const last = state.filtered[state.filtered.length - 1].dataHoraIso.slice(0, 10);
   const days = groupByDay(state.filtered).length;
   const longDate = iso => new Intl.DateTimeFormat('pt-BR', { weekday: 'short', day: 'numeric', month: 'long' }).format(new Date(`${iso}T12:00:00`)).replace('.', '');
-  if (state.period === 'last') return `${longDate(last)} · 1 dia operado`;
+  if (state.period === 'all') return `Todas: ${formatDate(first)} a ${formatDate(last)} · ${days} ${days === 1 ? 'dia operado' : 'dias operados'}`;
+  if (state.period === 'real') return `Operações reais: ${formatDate(first)} a ${formatDate(last)} · ${days} ${days === 1 ? 'dia operado' : 'dias operados'}`;
   if (state.period === 'week') return `${longDate(first)} a ${longDate(last)} · ${days} ${days === 1 ? 'dia operado' : 'dias operados'}`;
   if (state.period === 'month') return `${new Intl.DateTimeFormat('pt-BR', { day: 'numeric', month: 'long' }).format(new Date(`${first}T12:00:00`))} a ${new Intl.DateTimeFormat('pt-BR', { day: 'numeric', month: 'long' }).format(new Date(`${last}T12:00:00`))} · ${days} dias operados`;
   if (state.period === 'year') return `${formatDate(first)} a ${formatDate(last)} · ${days} dias operados`;
@@ -484,8 +495,9 @@ function groupPeriods(type) {
       key = monday.toISOString().slice(0, 10);
       label = `Sem. ${new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short' }).format(monday)}`;
     }
-    if (!map.has(key)) map.set(key, { key, label, value: 0, count: 0, gains: 0 });
+    if (!map.has(key)) map.set(key, { key, label, value: 0, count: 0, gains: 0, firstDate: op.dataHoraIso.slice(0, 10), lastDate: op.dataHoraIso.slice(0, 10) });
     const row = map.get(key); row.value += Number(op.financeiro); row.count++;
+    row.lastDate = op.dataHoraIso.slice(0, 10);
     if (Number(op.financeiro) > 0) row.gains++;
   });
   return [...map.values()].sort((a, b) => a.key.localeCompare(b.key));
@@ -708,6 +720,27 @@ function alignedRange(values, base = 50, targetTicks = 8) {
   };
 }
 
+function realOperationsTransition(dates) {
+  if (!dates?.length) return null;
+  const normalized = dates.map(date => String(date || '').slice(0, 10));
+  const firstReal = normalized.findIndex(date => date >= REAL_OPERATIONS_START);
+  return firstReal > 0 && normalized.slice(0, firstReal).some(date => date < REAL_OPERATIONS_START) ? firstReal : null;
+}
+
+function drawRealOperationsTransition(ctx, xPosition, top, bottom, right) {
+  ctx.save();
+  ctx.strokeStyle = '#f4b942'; ctx.lineWidth = 1.6; ctx.setLineDash([6, 5]);
+  ctx.beginPath(); ctx.moveTo(xPosition, top); ctx.lineTo(xPosition, bottom); ctx.stroke();
+  ctx.setLineDash([]); ctx.font = '700 10px Inter, system-ui, sans-serif';
+  const label = 'Início das operações reais';
+  const labelWidth = ctx.measureText(label).width + 12;
+  const labelX = Math.min(Math.max(3, xPosition + 6), right - labelWidth);
+  ctx.fillStyle = cssColor('--panel-2'); ctx.fillRect(labelX, top + 3, labelWidth, 18);
+  ctx.fillStyle = '#f4b942'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  ctx.fillText(label, labelX + 6, top + 12);
+  ctx.restore();
+}
+
 function drawLineChart(canvas, values, options = {}) {
   if (!canvas || !values.length) return;
   const { ctx, width, height } = setupCanvas(canvas);
@@ -718,6 +751,7 @@ function drawLineChart(canvas, values, options = {}) {
   const x = i => pad.left + (values.length === 1 ? 0 : i / (values.length - 1) * plotW);
   const y = value => pad.top + (range.max - value) / (range.max - range.min) * plotH;
   const zeroY = y(0);
+  const transitionIndex = realOperationsTransition(options.dates);
 
   ctx.clearRect(0, 0, width, height);
   ctx.font = '11px Inter, system-ui, sans-serif';
@@ -796,8 +830,19 @@ function drawLineChart(canvas, values, options = {}) {
     ctx.restore();
   };
 
-  strokeSegment(true, '#35d8ca');
-  strokeSegment(false, '#ff5164');
+  if (transitionIndex === null) {
+    strokeSegment(true, '#35d8ca');
+    strokeSegment(false, '#ff5164');
+  } else {
+    const strokePeriod = (from, to, color) => {
+      ctx.beginPath();
+      for (let i = from; i <= to; i += 1) i === from ? ctx.moveTo(x(i), y(values[i])) : ctx.lineTo(x(i), y(values[i]));
+      ctx.strokeStyle = color; ctx.lineWidth = 3.5; ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.stroke();
+    };
+    strokePeriod(0, transitionIndex, BACKTEST_COLOR);
+    strokePeriod(transitionIndex, values.length - 1, REAL_OPERATIONS_COLOR);
+    drawRealOperationsTransition(ctx, x(transitionIndex), pad.top, pad.top + plotH, width - pad.right);
+  }
 
   if (values.length <= 100) {
     values.forEach((value, index) => {
@@ -836,7 +881,7 @@ function drawDaily() {
   const canvas = document.getElementById('dailyChart');
   const rows = state.mode === 'days'
     ? (state.stats?.days || []).map(day => ({ date: day.date, label: new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short' }).format(new Date(`${day.date}T12:00:00`)), value: day.value }))
-    : state.filtered.map((op, index) => ({ label: `Op. ${index + 1}`, value: Number(op.financeiro) }));
+    : state.filtered.map((op, index) => ({ date: op.dataHoraIso.slice(0, 10), label: `Op. ${index + 1}`, value: Number(op.financeiro) }));
   if (!rows.length) return;
   const { ctx, width, height } = setupCanvas(canvas);
   const pad = { top: 18, right: 15, bottom: 34, left: 62 };
@@ -848,6 +893,7 @@ function drawDaily() {
   const zeroY = y(0);
   const slot = plotW / rows.length;
   const barW = Math.max(3, Math.min(18, slot * .58));
+  const transitionIndex = realOperationsTransition(rows.map(row => row.date));
 
   ctx.clearRect(0, 0, width, height);
   ctx.font = '11px Inter, system-ui, sans-serif';
@@ -886,7 +932,9 @@ function drawDaily() {
     let top = Math.min(y(d.value), zeroY);
     let h = Math.abs(y(d.value) - zeroY);
     if (Math.abs(d.value) < .005) { top = zeroY - 3; h = 6; }
-    ctx.fillStyle = d.value > 0 ? '#35d8ca' : d.value < 0 ? '#ff5164' : '#8b9aa1';
+    ctx.fillStyle = transitionIndex === null
+      ? (d.value > 0 ? '#35d8ca' : d.value < 0 ? '#ff5164' : '#8b9aa1')
+      : (i < transitionIndex ? BACKTEST_COLOR : REAL_OPERATIONS_COLOR);
     ctx.beginPath(); ctx.roundRect(xx, top, barW, Math.max(3, h), 3); ctx.fill();
   });
 
@@ -895,6 +943,9 @@ function drawDaily() {
   [...new Set(labelIndices)].forEach(i => {
     ctx.fillText(rows[i].label, pad.left + slot * i + slot / 2, height - 12);
   });
+  if (transitionIndex !== null) {
+    drawRealOperationsTransition(ctx, pad.left + slot * transitionIndex, pad.top, pad.top + plotH, width - pad.right);
+  }
 }
 
 function drawPatrimony() {
@@ -910,6 +961,7 @@ function drawPatrimony() {
     max: Math.max(step, Math.ceil(maxValue / step) * step)
   };
   drawLineChart(document.getElementById('patrimonyChart'), values, {
+    dates: state.stats.curve.map(point => point.date),
     range,
     tickStep: step,
     prominentZero: true,
@@ -940,6 +992,8 @@ function drawBarChart(canvas, rows, formatAxis, options = {}) {
   const plotW = width - pad.left - pad.right, plotH = height - pad.top - pad.bottom;
   const y = value => pad.top + (range.max - value) / (range.max - range.min) * plotH;
   const zeroY = y(0), slot = plotW / rows.length, barW = Math.max(5, Math.min(32, slot * .6));
+  const periodDates = rows.map(row => row.date || row.lastDate);
+  const transitionIndex = realOperationsTransition(periodDates);
   ctx.clearRect(0, 0, width, height);
   ctx.font = '11px Inter, system-ui, sans-serif'; ctx.textBaseline = 'middle';
   const ticks = aligned
@@ -958,7 +1012,9 @@ function drawBarChart(canvas, rows, formatAxis, options = {}) {
   rows.forEach((row, i) => {
     const xx = pad.left + slot * i + (slot - barW) / 2;
     const top = Math.min(y(row.value), zeroY), h = Math.max(3, Math.abs(y(row.value) - zeroY));
-    ctx.fillStyle = row.color || (row.value > 0 ? '#35d8ca' : row.value < 0 ? '#ff5164' : '#8b9aa1');
+    ctx.fillStyle = row.color || (transitionIndex === null
+      ? (row.value > 0 ? '#35d8ca' : row.value < 0 ? '#ff5164' : '#8b9aa1')
+      : (i < transitionIndex ? BACKTEST_COLOR : REAL_OPERATIONS_COLOR));
     ctx.beginPath(); ctx.roundRect(xx, top, barW, h, 3); ctx.fill();
     if (row.showCount) {
       ctx.fillStyle = cssColor('--text'); ctx.textAlign = 'center';
@@ -1000,6 +1056,9 @@ function drawBarChart(canvas, rows, formatAxis, options = {}) {
       });
     }
   }
+  if (transitionIndex !== null) {
+    drawRealOperationsTransition(ctx, pad.left + slot * transitionIndex, pad.top, pad.top + plotH, width - pad.right);
+  }
 }
 
 function drawDistribution() {
@@ -1039,6 +1098,7 @@ function drawMultiLineChart(canvas, series, labels, formatAxis, options = {}) {
   const plotW=width-pad.left-pad.right, plotH=height-pad.top-pad.bottom;
   const x=i=>pad.left+(labels.length===1?plotW/2:i*plotW/(labels.length-1));
   const y=value=>pad.top+(range.max-value)/(range.max-range.min)*plotH;
+  const transitionIndex=realOperationsTransition(options.dates);
   ctx.clearRect(0,0,width,height); ctx.font='11px Inter, system-ui, sans-serif'; ctx.textBaseline='middle';
   for(let i=0;i<=4;i++){const value=range.max-(range.max-range.min)*i/4,yy=pad.top+plotH*i/4;ctx.strokeStyle='rgba(99,133,147,.18)';ctx.setLineDash([5,7]);ctx.beginPath();ctx.moveTo(pad.left,yy);ctx.lineTo(width-pad.right,yy);ctx.stroke();ctx.fillStyle=cssColor('--muted');ctx.textAlign='right';ctx.fillText(formatAxis(value),pad.left-9,yy);}
   const zeroY=y(0);
@@ -1051,6 +1111,7 @@ function drawMultiLineChart(canvas, series, labels, formatAxis, options = {}) {
   ctx.setLineDash([]); ctx.fillStyle=cssColor('--muted');ctx.textAlign='center';
   const indices=[0,Math.floor((labels.length-1)/2),labels.length-1];
   [...new Set(indices)].forEach(index=>ctx.fillText(labels[index],x(index),height-18));
+  if(transitionIndex!==null) drawRealOperationsTransition(ctx,x(transitionIndex),pad.top,pad.top+plotH,width-pad.right);
   if (options.endLabels) {
     const endX=x(labels.length-1);
     const labelRows=[
@@ -1129,11 +1190,12 @@ function drawAverages() {
   const windowSize=state.mode==='days'?5:10;
   const moving=values.map((_,index)=>{const slice=values.slice(Math.max(0,index-windowSize+1),index+1);return slice.reduce((sum,value)=>sum+value,0)/slice.length;});
   const labels=values.map((_,index)=>state.mode==='days'?`Dia ${index+1}`:`Op. ${index+1}`);
+  const dates=state.mode==='days'?state.stats.days.map(day=>day.date):state.filtered.map(op=>op.dataHoraIso.slice(0,10));
   drawMultiLineChart(document.getElementById('averagesChart'),[
     {values:values.map(()=>fixed),color:'#f4b942',dashed:true},
     {values:cumulativeAverage,color:'#35d8ca'},
     {values:moving,color:'#b58ad9'}
-  ],labels,value=>money0.format(value),{endLabels:true});
+  ],labels,value=>money0.format(value),{endLabels:true,dates});
 }
 
 function drawPoints() {
@@ -1141,18 +1203,22 @@ function drawPoints() {
   if (!s) return;
   const curveFromZero = s.curve[0] === 0 ? s.curve : [0, ...s.curve];
   drawLineChart(document.getElementById('pointsChart'), curveFromZero, {
+    dates: [state.filtered[0]?.dataHoraIso, ...(
+      state.mode === 'days' ? s.days.map(day => day.date) : state.filtered.map(op => op.dataHoraIso)
+    )],
     formatAxis: value => `${points0.format(value)} pts`,
     formatMarker: value => `${points0.format(value)} pts`
   });
   const rows = state.mode === 'days'
-    ? s.days.map(day => ({ label: new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short' }).format(new Date(`${day.date}T12:00:00`)), value: day.value }))
-    : state.filtered.map((op, index) => ({ label: `Op. ${index + 1}`, value: Number(op.pontos) }));
+    ? s.days.map(day => ({ date: day.date, label: new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short' }).format(new Date(`${day.date}T12:00:00`)), value: day.value }))
+    : state.filtered.map((op, index) => ({ date: op.dataHoraIso.slice(0, 10), label: `Op. ${index + 1}`, value: Number(op.pontos) }));
   drawBarChart(document.getElementById('pointsDailyChart'), rows, value => `${points0.format(value)} pts`, { tickBase: 50 });
 }
 
 function drawAll() {
   if (!state.stats) return;
   drawLineChart(document.getElementById('resultChart'), state.stats.curve.map(p => p.value), {
+    dates: state.stats.curve.map(point => point.date),
     formatAxis: value => money.format(value).replace(',00', ''),
     formatMarker: value => money.format(value)
   });
@@ -1179,9 +1245,11 @@ function drawAll() {
     return [current, ...dayValues.map(value => (current += value))];
   };
   drawLineChart(document.getElementById('riskProjectionChart'), accumulateFrom(technicalStart), {
+    dates: [state.stats.days[0]?.date, ...state.stats.days.map(day => day.date)],
     formatAxis: value => money0.format(value), formatMarker: value => money.format(value), prominentZero: true
   });
   drawLineChart(document.getElementById('riskMarginChart'), accumulateFrom(historicalStart), {
+    dates: [state.stats.days[0]?.date, ...state.stats.days.map(day => day.date)],
     formatAxis: value => money0.format(value), formatMarker: value => money.format(value), prominentZero: true
   });
 }
