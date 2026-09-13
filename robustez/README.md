@@ -4,11 +4,9 @@ Port estático do mockup validado para GitHub Pages. O arquivo `robustez.js` já
 
 ## Conexão de dados
 
-1. Publique `../apps-script/robustez.gs` como Aplicativo da Web a partir da planilha `WINFUT - 5min`.
-2. Copie o URL terminado em `/exec`.
-3. Substitua `COLE_AQUI_A_URL_DO_APPS_SCRIPT_DE_ROBUSTEZ` em `robustez-config.js`.
+O módulo usa primeiro as operações já carregadas pelo painel principal no cache compartilhado da sessão. Se esse cache não estiver disponível, busca somente a base de operações principal; a base de mercado de 5 minutos não é carregada.
 
-O módulo não usa dados simulados como fallback. Se a API não responder ou faltar uma coluna obrigatória, a tela informa o erro e não calcula métricas.
+O módulo não usa dados simulados como fallback. Se as operações não estiverem disponíveis, a tela informa o erro e não calcula métricas.
 
 ## Desenvolvimento
 

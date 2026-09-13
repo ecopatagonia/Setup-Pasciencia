@@ -1,11 +1,10 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import Home from "./page";
-import { hydrateRuntimeData, type MarketDay, type RealDay, type RealOperation, type RobustezPayload } from "./robustez-runtime-data";
+import { hydrateRuntimeData, type RealDay, type RealOperation, type RobustezPayload } from "./robustez-runtime-data";
 
 declare global {
   interface Window {
-    PULO_ROBUSTEZ_CONFIG?: { API_URL?: string };
     PuloAccess?: { validate?: () => Promise<void> };
   }
 }
@@ -14,6 +13,7 @@ const rootElement = document.getElementById("root");
 if (!rootElement) throw new Error("Contêiner #root não encontrado.");
 const root = createRoot(rootElement);
 const PANEL_CACHE_KEY = "pulo_robustez_base_cache_v1";
+const PANEL_OPERATIONS_URL = "https://script.google.com/macros/s/AKfycby1rs6UObGzUGgp2I-vLt4W48V1tu2Jk8MIB066GdBynFTKjJXgBZHl8uptw3Gx_jLd/exec";
 
 type PanelOperation = {
   id?: string;
@@ -72,11 +72,9 @@ function resultFromOperation(operation: PanelOperation, points: number): RealOpe
   return "LOSS";
 }
 
-function payloadFromPanelCache(): RobustezPayload | null {
-  try {
-    const parsed = JSON.parse(sessionStorage.getItem(PANEL_CACHE_KEY) || "null") as { operacoes?: PanelOperation[]; geradoEm?: string } | null;
-    if (!parsed || !Array.isArray(parsed.operacoes) || parsed.operacoes.length === 0) return null;
-    const sorted = [...parsed.operacoes].sort((a, b) => String(a.dataHoraIso || "").localeCompare(String(b.dataHoraIso || "")));
+function payloadFromOperations(operations: PanelOperation[], source: string): RobustezPayload | null {
+    if (!operations.length) return null;
+    const sorted = [...operations].sort((a, b) => String(a.dataHoraIso || "").localeCompare(String(b.dataHoraIso || "")));
     const grouped = new Map<string, PanelOperation[]>();
     for (const operation of sorted) {
       const date = String(operation.dataHoraIso || "").slice(0, 10);
@@ -118,64 +116,44 @@ function payloadFromPanelCache(): RobustezPayload | null {
         breakevens: dayOperations.filter((operation) => operation.result === "BREAKEVEN").length,
         avgStop: stops.length ? Math.round((stops.reduce((sum, value) => sum + value, 0) / stops.length) * 100) / 100 : 0,
         students: [...new Set(dayOperations.map((operation) => operation.student).filter(Boolean))].join(", "),
-        marketRange: null,
-        marketMove: null,
-        marketCandles: null,
       });
     });
     if (!realDays.length || !realOperations.length) return null;
     return {
       realDays,
       realOperations,
-      marketDays: [],
       audit: {
-        source: "Cache do painel principal",
+        source,
         operations: realOperations.length,
         validDays: realDays.length,
-        marketDays: 0,
-        validDaysWithMarket: 0,
         finalPoints: Math.round(cumulative * 100) / 100,
       },
     };
+}
+
+function payloadFromPanelCache(): RobustezPayload | null {
+  try {
+    const parsed = JSON.parse(sessionStorage.getItem(PANEL_CACHE_KEY) || "null") as { operacoes?: PanelOperation[] } | null;
+    return parsed && Array.isArray(parsed.operacoes) ? payloadFromOperations(parsed.operacoes, "Cache do painel principal") : null;
   } catch {
     return null;
   }
 }
 
-function withMarket(basePayload: RobustezPayload, marketPayload: Partial<RobustezPayload> & { audit?: Partial<RobustezPayload["audit"]> }): RobustezPayload {
-  const marketDays = Array.isArray(marketPayload.marketDays) ? marketPayload.marketDays as MarketDay[] : [];
-  const marketByDate = new Map(marketDays.map((day) => [day.date, day]));
-  const realDays = basePayload.realDays.map((day) => {
-    const market = marketByDate.get(day.date);
-    return market ? { ...day, marketRange: market.range, marketMove: market.move, marketCandles: market.candles } : day;
-  });
-  return {
-    ...basePayload,
-    realDays,
-    marketDays,
-    audit: {
-      ...basePayload.audit,
-      source: `${basePayload.audit.source} + mercado 5m`,
-      marketDays: marketDays.length,
-      validDaysWithMarket: realDays.filter((day) => day.marketRange !== null).length,
-    },
-  };
-}
-
-async function fetchRobustezAction(apiUrl: string, action: "robustez" | "market", timeoutMs: number) {
+async function fetchPanelOperations(timeoutMs: number) {
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const response = await fetch(`${apiUrl}${apiUrl.includes("?") ? "&" : "?"}action=${action}`, {
+    const response = await fetch(PANEL_OPERATIONS_URL, {
       method: "GET",
       redirect: "follow",
       cache: "no-store",
       signal: controller.signal,
     });
     if (!response.ok) throw new Error(`A base respondeu com HTTP ${response.status}.`);
-    const payload = await response.json() as Partial<RobustezPayload> & { sucesso?: boolean; mensagem?: string };
-    if (payload.sucesso === false) throw new Error(payload.mensagem || "A API de Robustez recusou a leitura.");
-    return payload;
+    const payload = await response.json() as { sucesso?: boolean; mensagem?: string; operacoes?: PanelOperation[] };
+    if (payload.sucesso === false || !Array.isArray(payload.operacoes)) throw new Error(payload.mensagem || "A base principal não devolveu operações válidas.");
+    return payloadFromOperations(payload.operacoes, "Base de operações do painel principal");
   } finally {
     window.clearTimeout(timeout);
   }
@@ -185,32 +163,18 @@ async function load() {
   const savedTheme = localStorage.getItem("pulo-theme") === "light" ? "light" : "dark";
   document.documentElement.dataset.theme = savedTheme;
   const cachedBase = payloadFromPanelCache();
-  root.render(<Status title="Carregando Robustez" detail={cachedBase ? "Base real já carregada. Lendo somente mercado de 5 minutos…" : "Lendo operações reais e mercado de 5 minutos…"} />);
+  root.render(<Status title="Carregando Robustez" detail={cachedBase ? "Usando operações já carregadas pelo painel principal…" : "Buscando somente as operações do painel principal…"} />);
 
   try {
-    const apiUrl = window.PULO_ROBUSTEZ_CONFIG?.API_URL || "";
-    if (!apiUrl || apiUrl.includes("COLE_AQUI")) {
-      throw new Error("Publique robustez.gs como aplicativo da web e informe a URL em robustez-config.js.");
-    }
-    let payload: RobustezPayload;
-    if (cachedBase) {
-      try {
-        const marketPayload = await fetchRobustezAction(apiUrl, "market", 90000);
-        payload = withMarket(cachedBase, marketPayload);
-      } catch (error) {
-        console.warn("Leitura leve de mercado indisponível. Usando carga completa de Robustez.", error);
-        payload = await fetchRobustezAction(apiUrl, "robustez", 120000) as RobustezPayload;
-      }
-    } else {
-      payload = await fetchRobustezAction(apiUrl, "robustez", 120000) as RobustezPayload;
-    }
+    const payload = cachedBase || await fetchPanelOperations(90000);
+    if (!payload) throw new Error("Nenhuma operação principal está disponível para a análise.");
     hydrateRuntimeData(payload);
     root.render(<Home />);
     window.requestAnimationFrame(mountShellLinks);
     window.requestAnimationFrame(() => window.PuloAccess?.validate?.());
   } catch (error) {
     const message = error instanceof DOMException && error.name === "AbortError"
-      ? "A API demorou mais de 120 segundos para responder. Tente novamente ou reduza a base processada no Apps Script."
+      ? "A base principal demorou mais de 90 segundos para responder. Tente novamente pelo painel principal."
       : error instanceof Error ? error.message : "Falha desconhecida ao carregar a base.";
     root.render(<Status error title="Não foi possível carregar os dados" detail={message} />);
   }
