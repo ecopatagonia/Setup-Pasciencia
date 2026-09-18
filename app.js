@@ -884,7 +884,7 @@ function drawDaily() {
     : state.filtered.map((op, index) => ({ date: op.dataHoraIso.slice(0, 10), label: `Op. ${index + 1}`, value: Number(op.financeiro) }));
   if (!rows.length) return;
   const { ctx, width, height } = setupCanvas(canvas);
-  const pad = { top: 18, right: 15, bottom: 34, left: 62 };
+  const pad = { top: 18, right: 132, bottom: 34, left: 62 };
   const values = rows.map(d => d.value);
   const range = niceRange(values);
   const plotW = width - pad.left - pad.right;
@@ -918,13 +918,19 @@ function drawDaily() {
   ctx.beginPath(); ctx.moveTo(pad.left, zeroY); ctx.lineTo(width - pad.right, zeroY); ctx.stroke();
   [
     {value:average,label:`Média ${money.format(average).replace(',00','')}`,color:'#f4b942'},
-    {value:average+deviation,label:'+1 DP',color:'rgba(244,185,66,.8)'},
-    {value:average-deviation,label:'−1 DP',color:'rgba(244,185,66,.8)'}
+    {value:average+deviation,label:`+1 DP ${money.format(average+deviation).replace(',00','')}`,color:'rgba(244,185,66,.8)'},
+    {value:average-deviation,label:`−1 DP ${money.format(average-deviation).replace(',00','')}`,color:'rgba(244,185,66,.8)'}
   ].forEach(line=>{
     const yy=y(line.value);
     if (yy < pad.top || yy > pad.top+plotH) return;
     ctx.strokeStyle=line.color; ctx.setLineDash([6,6]); ctx.beginPath(); ctx.moveTo(pad.left,yy); ctx.lineTo(width-pad.right,yy); ctx.stroke();
-    ctx.setLineDash([]); ctx.fillStyle=line.color; ctx.textAlign='right'; ctx.fillText(line.label,width-pad.right,Math.max(10,yy-8));
+    ctx.setLineDash([]);
+    ctx.font='700 10px Inter, system-ui, sans-serif';
+    const labelWidth=ctx.measureText(line.label).width+12;
+    const labelX=width-pad.right+7;
+    const labelY=Math.max(pad.top+9,Math.min(pad.top+plotH-9,yy));
+    ctx.fillStyle=cssColor('--panel-2'); ctx.fillRect(labelX,labelY-9,labelWidth,18);
+    ctx.fillStyle=line.color; ctx.textAlign='left'; ctx.fillText(line.label,labelX+6,labelY);
   });
 
   rows.forEach((d, i) => {
@@ -932,9 +938,7 @@ function drawDaily() {
     let top = Math.min(y(d.value), zeroY);
     let h = Math.abs(y(d.value) - zeroY);
     if (Math.abs(d.value) < .005) { top = zeroY - 3; h = 6; }
-    ctx.fillStyle = transitionIndex === null
-      ? (d.value > 0 ? '#35d8ca' : d.value < 0 ? '#ff5164' : '#8b9aa1')
-      : (i < transitionIndex ? BACKTEST_COLOR : REAL_OPERATIONS_COLOR);
+    ctx.fillStyle = d.value > 0 ? '#35d8ca' : d.value < 0 ? '#ff5164' : '#8b9aa1';
     ctx.beginPath(); ctx.roundRect(xx, top, barW, Math.max(3, h), 3); ctx.fill();
   });
 
@@ -1217,8 +1221,18 @@ function drawPoints() {
 
 function drawAll() {
   if (!state.stats) return;
-  drawLineChart(document.getElementById('resultChart'), state.stats.curve.map(p => p.value), {
+  const resultValues = state.stats.curve.map(p => p.value);
+  const breakPoint = resultValues[resultValues.length - 1] - 2500;
+  drawLineChart(document.getElementById('resultChart'), resultValues, {
     dates: state.stats.curve.map(point => point.date),
+    range: niceRange([...resultValues, breakPoint]),
+    referenceLines: [{
+      value: breakPoint,
+      color: '#ff5164',
+      width: 2,
+      dashed: true,
+      label: `Ponto de quebra · Atual − R$ 2.500 · ${money.format(breakPoint)}`
+    }],
     formatAxis: value => money.format(value).replace(',00', ''),
     formatMarker: value => money.format(value)
   });
