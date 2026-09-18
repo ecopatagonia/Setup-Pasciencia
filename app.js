@@ -1225,7 +1225,8 @@ function drawPoints() {
 function drawAll() {
   if (!state.stats) return;
   const resultValues = state.stats.curve.map(p => p.value);
-  const breakPoint = resultValues[resultValues.length - 1] - 2500;
+  const peakValue = Math.max(...resultValues);
+  const breakPoint = peakValue - 2500;
   drawLineChart(document.getElementById('resultChart'), resultValues, {
     dates: state.stats.curve.map(point => point.date),
     range: niceRange([...resultValues, breakPoint]),
@@ -1234,7 +1235,7 @@ function drawAll() {
       color: '#ff5164',
       width: 2,
       dashed: true,
-      label: `Ponto de quebra · Atual − R$ 2.500 · ${money.format(breakPoint)}`
+      label: `Ponto de quebra · Pico − R$ 2.500 · ${money.format(breakPoint)}`
     }],
     formatAxis: value => money.format(value).replace(',00', ''),
     formatMarker: value => money.format(value)
