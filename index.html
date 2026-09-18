@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Painel de performance do O PULO DO GATTO.">
   <title>O PULO DO GATTO — Performance</title>
-  <link rel="stylesheet" href="styles.css?v=5.0">
+  <link rel="stylesheet" href="styles.css?v=5.1">
   <link rel="stylesheet" href="auth.css?v=6.2">
 </head>
 <body>
@@ -94,6 +94,11 @@
             <button data-period="year" type="button" aria-pressed="false">Ano</button>
             <button data-period="real" type="button" aria-pressed="false">Operações reais</button>
             <button class="active" data-period="custom" type="button" aria-pressed="true">Personalizado</button>
+          </div>
+          <div class="year-range" id="yearRange" hidden>
+            <label>Ano
+              <select id="yearSelector" aria-label="Selecionar ano"></select>
+            </label>
           </div>
           <div class="custom-range" id="customRange">
             <label>Desde<input id="customFrom" type="date" aria-label="Data inicial"></label>
@@ -591,6 +596,6 @@
 
   <script src="config.js?v=5.0"></script>
   <script src="auth.js?v=6.2"></script>
-  <script src="app.js?v=5.6"></script>
+  <script src="app.js?v=5.7"></script>
 </body>
 </html>
