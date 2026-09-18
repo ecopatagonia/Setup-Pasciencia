@@ -1,7 +1,7 @@
 'use strict';
 
 const API_URL = 'https://script.google.com/macros/s/AKfycby1rs6UObGzUGgp2I-vLt4W48V1tu2Jk8MIB066GdBynFTKjJXgBZHl8uptw3Gx_jLd/exec';
-const state = { all: [], filtered: [], period: 'custom', customFrom: '', customTo: '', mode: 'operations', stats: null, resultFilter: 'all' };
+const state = { all: [], filtered: [], period: 'custom', selectedYear: null, customFrom: '', customTo: '', mode: 'operations', stats: null, resultFilter: 'all' };
 const MODE_PAGES = new Set(['visao', 'resultados', 'pontos', 'operacoes']);
 const money = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 const money0 = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
@@ -158,7 +158,11 @@ function applyPeriod() {
       end.setHours(23, 59, 59, 999);
     }
     if (state.period === 'month') { start = new Date(latest.getFullYear(), latest.getMonth(), 1, 12); end = new Date(latest.getFullYear(), latest.getMonth() + 1, 0, 12); }
-    if (state.period === 'year') { start = new Date(latest.getFullYear(), 0, 1, 12); end = new Date(latest.getFullYear(), 11, 31, 12); }
+    if (state.period === 'year') {
+      const selectedYear = Number(state.selectedYear) || latest.getFullYear();
+      start = new Date(selectedYear, 0, 1, 0, 0, 0, 0);
+      end = new Date(selectedYear, 11, 31, 23, 59, 59, 999);
+    }
     if (state.period === 'custom') {
       const firstIso = state.all[0].dataHoraIso.slice(0, 10);
       start = new Date(`${state.customFrom || firstIso}T00:00:00`);
@@ -223,6 +227,8 @@ function render() {
     button.classList.toggle('active', active);
     button.setAttribute('aria-pressed', String(active));
   });
+  const yearRange = document.getElementById('yearRange');
+  if (yearRange) yearRange.hidden = state.period !== 'year';
   document.querySelectorAll('#analysisMode button').forEach(button => {
     const active = button.dataset.mode === state.mode;
     button.classList.toggle('active', active);
@@ -253,7 +259,7 @@ function describePeriod() {
   if (state.period === 'real') return `Operações reais: ${formatDate(first)} a ${formatDate(last)} · ${days} ${days === 1 ? 'dia operado' : 'dias operados'}`;
   if (state.period === 'week') return `${longDate(first)} a ${longDate(last)} · ${days} ${days === 1 ? 'dia operado' : 'dias operados'}`;
   if (state.period === 'month') return `${new Intl.DateTimeFormat('pt-BR', { day: 'numeric', month: 'long' }).format(new Date(`${first}T12:00:00`))} a ${new Intl.DateTimeFormat('pt-BR', { day: 'numeric', month: 'long' }).format(new Date(`${last}T12:00:00`))} · ${days} dias operados`;
-  if (state.period === 'year') return `${formatDate(first)} a ${formatDate(last)} · ${days} dias operados`;
+  if (state.period === 'year') return `${state.selectedYear || first.slice(0, 4)}: ${formatDate(first)} a ${formatDate(last)} · ${days} dias operados`;
   return `Personalizado: ${formatDate(first)} a ${formatDate(last)} · ${days} ${days === 1 ? 'dia operado' : 'dias operados'}`;
 }
 
@@ -1327,6 +1333,17 @@ async function loadData() {
       customFrom.max = state.customTo;
       customTo.min = state.customFrom;
       customTo.max = state.customTo;
+      const availableYears = [...new Set(state.all.map(operation => operation.dataHoraIso.slice(0, 4)))].sort();
+      const latestYear = availableYears[availableYears.length - 1];
+      state.selectedYear = latestYear;
+      const yearSelector = document.getElementById('yearSelector');
+      if (yearSelector) {
+        yearSelector.innerHTML = availableYears.map(year => {
+          const partial = year === latestYear ? ' (parcial)' : '';
+          return `<option value="${year}">${year}${partial}</option>`;
+        }).join('');
+        yearSelector.value = state.selectedYear;
+      }
     }
     statusDot.className = 'status-dot ok';
     statusText.textContent = 'Dados atualizados';
@@ -1399,6 +1416,11 @@ document.querySelectorAll('#periodSelector button').forEach(button => {
     });
     applyPeriod();
   });
+});
+document.getElementById('yearSelector')?.addEventListener('change', event => {
+  state.selectedYear = event.target.value;
+  state.period = 'year';
+  applyPeriod();
 });
 ['customFrom', 'customTo'].forEach(id => document.getElementById(id)?.addEventListener('change', event => {
   const fromInput = document.getElementById('customFrom');
