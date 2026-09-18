@@ -492,9 +492,10 @@ function Historicos({ riskCapital, setRiskCapital, contracts, setContracts, risk
   const invalidRange = temporalMode === "Personalizado" && customFrom > customTo;
   const temporalDays = useMemo(() => invalidRange ? [] : allDays.filter((day) => temporalMode === "Todas" || (temporalMode === "Por ano" ? day.date.startsWith(`${selectedYear}-`) : day.date >= customFrom && day.date <= customTo)), [allDays, temporalMode, selectedYear, customFrom, customTo, invalidRange]);
   const temporalOperations = useMemo(() => { const dates = new Set(temporalDays.map((day) => day.date)); return REAL_OPERATIONS.filter((operation) => dates.has(operation.date)); }, [temporalDays]);
-  const baseDays = useMemo(() => daysByOperationPositions(positions, temporalDays, temporalOperations), [positions, temporalDays, temporalOperations]);
-  const realStats = scenarioStats(temporalDays, riskPoints);
-  const realOperationStats = useMemo(() => statsWithCurve(realStats, cumulativeCurve(temporalOperations.map((operation) => ({ label: `${operation.label} · ${operation.position}ª`, points: operation.points }))), riskPoints), [realStats, temporalOperations, riskPoints]);
+  const selectedTemporalOperations = useMemo(() => temporalOperations.filter((operation) => positions.includes(operation.position)), [temporalOperations, positions]);
+  const baseDays = useMemo(() => daysByOperationPositions(positions, temporalDays, temporalOperations).filter((day) => !day.zeroBySelection), [positions, temporalDays, temporalOperations]);
+  const realStats = scenarioStats(baseDays, riskPoints);
+  const realOperationStats = useMemo(() => statsWithCurve(realStats, cumulativeCurve(selectedTemporalOperations.map((operation) => ({ label: `${operation.label} · ${operation.position}ª`, points: operation.points }))), riskPoints), [realStats, selectedTemporalOperations, riskPoints]);
   const scenario = useMemo(() => buildHistoricalScenario(baseDays, granularity, mode, percent, manualSelected), [baseDays, granularity, mode, percent, manualSelected]);
   const scenarioResult = scenarioStats(scenario.days, riskPoints);
   const scenarioOperationStats = useMemo(() => statsWithCurve(scenarioResult, operationCurveForHistoricalScenario(granularity, scenario.removed, positions, temporalDays, temporalOperations), riskPoints), [scenarioResult, granularity, scenario.removed, positions, temporalDays, temporalOperations, riskPoints]);
@@ -502,13 +503,13 @@ function Historicos({ riskCapital, setRiskCapital, contracts, setContracts, risk
   const displayedRealDrawdownStats = drawdownScope === "operations" ? realOperationStats : realStats;
   const bars = buildBars(baseDays, granularity, scenario.removed, manualSelected);
   const savedOnly = savedScenarios.filter((item) => item.kind === "Histórico");
-  const observedWindow = temporalDays.length ? `${temporalDays[0].label} a ${temporalDays.at(-1)?.label} · ${temporalMode === "Todas" ? "todas as operações" : temporalMode === "Por ano" ? "ano selecionado" : "período personalizado"}` : "Nenhuma operação na janela selecionada.";
+  const observedWindow = baseDays.length ? `${baseDays[0].label} a ${baseDays.at(-1)?.label} · ${temporalMode === "Todas" ? "todas as operações" : temporalMode === "Por ano" ? "ano selecionado" : "período personalizado"}` : "Nenhuma operação na janela e nas posições selecionadas.";
   const resetWindow = () => { setManualSelected(new Set()); setSavedMessage(""); };
   const togglePosition = (position: number) => setPositions((current) => { const next = current.includes(position) ? current.filter((item) => item !== position) : [...current, position].sort(); return next.length ? next : current; });
   const clear = () => { setGranularity("Dias"); setMode("Manual"); setPercent(0); setPositions([1, 2, 3]); setManualSelected(new Set()); setSavedMessage(""); };
   const save = () => {
-    if (!temporalDays.length) { setSavedMessage("Não há operações para salvar nesta janela."); return; }
-    const next: SavedScenario = { id: `hist-${Date.now()}`, name: `${granularity}: ${mode === "Manual" ? `${manualSelected.size} manual` : `${mode} ${percent}%`}`, kind: "Histórico", risk: scenarioResult.risk, color: RISK_COLORS[scenarioResult.risk], stats: scenarioResult, days: scenario.days, description: `${scenario.quantity}/${scenario.totalPeriods} blocos excluídos; ${scenario.days.length}/${temporalDays.length} dias; ${observedWindow}`, config: { kind: "Histórico", granularity, mode, percent, positions, manualSelected: [...manualSelected], temporalMode, year: selectedYear, from: customFrom, to: customTo } };
+    if (!baseDays.length) { setSavedMessage("Não há operações para salvar nesta janela."); return; }
+    const next: SavedScenario = { id: `hist-${Date.now()}`, name: `${granularity}: ${mode === "Manual" ? `${manualSelected.size} manual` : `${mode} ${percent}%`}`, kind: "Histórico", risk: scenarioResult.risk, color: RISK_COLORS[scenarioResult.risk], stats: scenarioResult, days: scenario.days, description: `${scenario.quantity}/${scenario.totalPeriods} blocos excluídos; ${scenario.days.length}/${baseDays.length} dias; ${observedWindow}`, config: { kind: "Histórico", granularity, mode, percent, positions, manualSelected: [...manualSelected], temporalMode, year: selectedYear, from: customFrom, to: customTo } };
     setSavedScenarios(limitedSavedScenarios(savedScenarios, next));
     setSavedMessage("Cenário salvo");
   };

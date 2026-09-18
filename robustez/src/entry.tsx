@@ -13,7 +13,6 @@ const rootElement = document.getElementById("root");
 if (!rootElement) throw new Error("Contêiner #root não encontrado.");
 const root = createRoot(rootElement);
 const PANEL_CACHE_KEY = "pulo_robustez_base_cache_v1";
-const PANEL_OPERATIONS_URL = "https://script.google.com/macros/s/AKfycby1rs6UObGzUGgp2I-vLt4W48V1tu2Jk8MIB066GdBynFTKjJXgBZHl8uptw3Gx_jLd/exec";
 
 type PanelOperation = {
   id?: string;
@@ -140,42 +139,20 @@ function payloadFromPanelCache(): RobustezPayload | null {
   }
 }
 
-async function fetchPanelOperations(timeoutMs: number) {
-  const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const response = await fetch(PANEL_OPERATIONS_URL, {
-      method: "GET",
-      redirect: "follow",
-      cache: "no-store",
-      signal: controller.signal,
-    });
-    if (!response.ok) throw new Error(`A base respondeu com HTTP ${response.status}.`);
-    const payload = await response.json() as { sucesso?: boolean; mensagem?: string; operacoes?: PanelOperation[] };
-    if (payload.sucesso === false || !Array.isArray(payload.operacoes)) throw new Error(payload.mensagem || "A base principal não devolveu operações válidas.");
-    return payloadFromOperations(payload.operacoes, "Base de operações do painel principal");
-  } finally {
-    window.clearTimeout(timeout);
-  }
-}
-
 async function load() {
   const savedTheme = localStorage.getItem("pulo-theme") === "light" ? "light" : "dark";
   document.documentElement.dataset.theme = savedTheme;
   const cachedBase = payloadFromPanelCache();
-  root.render(<Status title="Carregando Robustez" detail={cachedBase ? "Usando operações já carregadas pelo painel principal…" : "Buscando somente as operações do painel principal…"} />);
+  root.render(<Status title="Carregando Robustez" detail="Usando operações já carregadas pelo painel principal…" />);
 
   try {
-    const payload = cachedBase || await fetchPanelOperations(90000);
-    if (!payload) throw new Error("Nenhuma operação principal está disponível para a análise.");
-    hydrateRuntimeData(payload);
+    if (!cachedBase) throw new Error("A base de operações ainda não está no cache. Volte ao painel principal, aguarde a carga dos dados e abra Robustez novamente.");
+    hydrateRuntimeData(cachedBase);
     root.render(<Home />);
     window.requestAnimationFrame(mountShellLinks);
     window.requestAnimationFrame(() => window.PuloAccess?.validate?.());
   } catch (error) {
-    const message = error instanceof DOMException && error.name === "AbortError"
-      ? "A base principal demorou mais de 90 segundos para responder. Tente novamente pelo painel principal."
-      : error instanceof Error ? error.message : "Falha desconhecida ao carregar a base.";
+    const message = error instanceof Error ? error.message : "Falha desconhecida ao ler o cache do painel principal.";
     root.render(<Status error title="Não foi possível carregar os dados" detail={message} />);
   }
 }
