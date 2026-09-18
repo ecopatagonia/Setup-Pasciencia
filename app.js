@@ -152,7 +152,10 @@ function applyPeriod() {
     if (state.period === 'week') {
       const weekday = (latest.getDay() + 6) % 7;
       start.setDate(start.getDate() - weekday);
-      end = new Date(start); end.setDate(end.getDate() + 4);
+      start.setHours(0, 0, 0, 0);
+      end = new Date(start);
+      end.setDate(end.getDate() + 4);
+      end.setHours(23, 59, 59, 999);
     }
     if (state.period === 'month') { start = new Date(latest.getFullYear(), latest.getMonth(), 1, 12); end = new Date(latest.getFullYear(), latest.getMonth() + 1, 0, 12); }
     if (state.period === 'year') { start = new Date(latest.getFullYear(), 0, 1, 12); end = new Date(latest.getFullYear(), 11, 31, 12); }
