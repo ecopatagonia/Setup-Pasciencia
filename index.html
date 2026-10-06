@@ -306,30 +306,45 @@
         <header class="page-header">
           <div class="page-heading-wrap">
             <button class="menu-toggle" type="button" aria-label="Abrir menu" aria-expanded="false"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
-            <div><p class="eyebrow">Distribuição</p><h1>Resultados</h1><p class="subtitle">Qualidade financeira de gains, stops e operações neutras.</p></div>
+            <div><p class="eyebrow">Resultados consolidados</p><h1>Desempenho do setup</h1><p class="subtitle">Leitura financeira, temporal e operacional da mesma base utilizada em Visão geral.</p></div>
           </div>
         </header>
-        <div class="metrics">
+        <div class="metrics results-kpis">
+          <article class="metric metric-emphasis"><div class="metric-label">Resultado líquido</div><div class="metric-value" data-metric="res-total">R$ 0,00</div><div class="metric-note" data-metric="res-return">0% sobre R$ 2.500</div></article>
+          <article class="metric"><div class="metric-label">Operações</div><div class="metric-value" data-metric="res-operations">0</div><div class="metric-note" data-metric="res-days">0 pregões</div></article>
+          <article class="metric"><div class="metric-label">Expectativa</div><div class="metric-value" data-metric="res-expectancy">R$ 0,00</div><div class="metric-note">Por operação</div></article>
           <article class="metric"><div class="metric-label">Profit factor</div><div class="metric-value" data-metric="profit-factor">0,00</div><div class="metric-note">Ganhos brutos ÷ perdas brutas</div></article>
           <article class="metric"><div class="metric-label">Payoff médio</div><div class="metric-value" data-metric="payoff">0,00</div><div class="metric-note">Gain médio ÷ stop médio</div></article>
-          <article class="metric"><div class="metric-label">Gain médio</div><div class="metric-value positive" data-metric="gain-medio">R$ 0,00</div><div class="metric-note" data-metric="gains-count">0 gains</div></article>
-          <article class="metric"><div class="metric-label">Loss médio</div><div class="metric-value negative" data-metric="stop-medio">R$ 0,00</div><div class="metric-note" data-metric="stops-count">0 losses</div></article>
-          <article class="metric"><div class="metric-label">Melhor operação</div><div class="metric-value positive" data-metric="melhor-op">R$ 0,00</div><div class="metric-note">Maior resultado individual</div></article>
-          <article class="metric"><div class="metric-label">Pior operação</div><div class="metric-value negative" data-metric="pior-op">R$ 0,00</div><div class="metric-note">Menor resultado individual</div></article>
-          <article class="metric"><div class="metric-label">Pontos médios</div><div class="metric-value" data-metric="pontos-medios">0,00</div><div class="metric-note">Por operação</div></article>
-          <article class="metric"><div class="metric-label">Breakevens</div><div class="metric-value" data-metric="be-count">0</div><div class="metric-note">Operações neutras</div></article>
+          <article class="metric"><div class="metric-label">Drawdown máximo</div><div class="metric-value negative" data-metric="res-max-dd">R$ 0,00</div><div class="metric-note">Pico → vale</div></article>
         </div>
         <article class="panel">
-          <div class="panel-heading"><div><p class="eyebrow">Compra × venda</p><h2 class="panel-title">Desempenho por lado</h2></div></div>
-          <div class="comparison-grid" id="sideComparison"></div>
+          <div class="panel-heading"><div><p class="eyebrow">Evolução acumulada</p><h2 class="panel-title">Curva patrimonial</h2></div><div class="legend"><span class="legend-item"><i class="legend-line backtest"></i>Backtest</span><span class="legend-item"><i class="legend-line"></i>Operações reais</span><span class="legend-item"><i class="legend-line negative"></i>Limite: pico − R$ 2.500</span></div></div>
+          <div class="chart-wrap"><canvas id="resultsEquityChart" aria-label="Curva patrimonial consolidada"></canvas></div>
         </article>
         <article class="panel">
-          <div class="panel-heading"><div><p class="eyebrow">Sequências</p><h2 class="panel-title">Gains e losses consecutivos</h2><p class="panel-copy">Frequência histórica das sequências; não representa uma previsão futura.</p></div></div>
-          <div class="comparison-grid" id="streakAnalysis"></div>
+          <div class="panel-heading"><div><p class="eyebrow">Drawdown vigente</p><h2 class="panel-title">Queda e recuperação desde o último pico</h2></div><div class="legend"><span class="legend-item"><i class="legend-line negative"></i>Queda</span><span class="legend-item"><i class="legend-line"></i>Recuperação</span><span class="legend-item"><i class="legend-line period-average"></i>Último pico</span></div></div>
+          <div class="drawdown-metrics" id="currentDrawdownMetrics"></div>
+          <div class="chart-wrap results-drawdown-wrap"><canvas id="currentDrawdownChart" aria-label="Drawdown atual completo"></canvas></div>
+          <div class="recovery-heading"><span>Recuperação desde o fundo</span><strong id="recoveryPercent">0%</strong></div>
+          <div class="recovery-track" role="progressbar" aria-label="Recuperação do drawdown" aria-valuemin="0" aria-valuemax="100"><i id="recoveryFill"></i></div>
+          <div class="results-summary" id="drawdownSummary"></div>
         </article>
+        <div class="results-grid">
+          <article class="panel">
+            <div class="panel-heading"><div><p class="eyebrow">Consistência</p><h2 class="panel-title">Resultado mensal</h2><p class="panel-copy">Valores em R$ e retorno sobre R$ 2.500.</p></div></div>
+            <div class="chart-wrap small"><canvas id="resultsMonthlyChart" aria-label="Resultado mensal"></canvas></div>
+            <div class="results-summary" id="monthlySummary"></div>
+          </article>
+          <article class="panel">
+            <div class="panel-heading"><div><p class="eyebrow">Comparação anual</p><h2 class="panel-title">Resultado e ritmo mensal</h2></div></div>
+            <div class="annual-results" id="annualResults"></div>
+          </article>
+        </div>
         <article class="panel">
-          <div class="panel-heading"><div><p class="eyebrow">Faixas financeiras</p><h2 class="panel-title" id="distributionTitle">Distribuição das operações</h2><p class="panel-copy" id="distributionCopy">Quantidade de operações em cada faixa de resultado.</p></div></div>
-          <div class="chart-wrap small distribution-chart-wrap"><canvas id="distributionChart" aria-label="Distribuição financeira"></canvas></div>
+          <div class="panel-heading"><div><p class="eyebrow">Consistência de curto prazo</p><h2 class="panel-title">Resultado semanal</h2><p class="panel-copy">Cada barra representa uma semana operacional. O eixo X identifica cada mês como 01-24, 02-24, 03-24…</p></div></div>
+          <div class="chart-wrap results-weekly-wrap"><canvas id="resultsWeeklyChart" aria-label="Resultado semanal com escala mensal"></canvas></div>
+          <div class="results-summary" id="weeklySummary"></div>
+          <div class="results-summary" id="weeklySummarySecondary"></div>
         </article>
       </section>
 
