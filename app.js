@@ -236,8 +236,10 @@ function render() {
   });
   document.querySelectorAll('[data-metric="melhor-op"]').forEach(el => el.previousElementSibling.textContent = state.mode === 'days' ? 'Melhor dia' : 'Melhor operação');
   document.querySelectorAll('[data-metric="pior-op"]').forEach(el => el.previousElementSibling.textContent = state.mode === 'days' ? 'Pior dia' : 'Pior operação');
-  document.getElementById('distributionTitle').textContent = `Distribuição por ${state.mode === 'days' ? 'dia' : 'operação'}`;
-  document.getElementById('distributionCopy').textContent = `Quantidade de ${unitName} em cada faixa de resultado.`;
+  const distributionTitle = document.getElementById('distributionTitle');
+  const distributionCopy = document.getElementById('distributionCopy');
+  if (distributionTitle) distributionTitle.textContent = `Distribuição por ${state.mode === 'days' ? 'dia' : 'operação'}`;
+  if (distributionCopy) distributionCopy.textContent = `Quantidade de ${unitName} em cada faixa de resultado.`;
   updatePatrimony();
   renderSideComparison();
   renderConsistency();
@@ -246,6 +248,7 @@ function render() {
   renderPoints();
   renderEvolution();
   renderExtended();
+  renderResultsDashboard();
   drawAll();
 }
 
@@ -510,6 +513,153 @@ function groupPeriods(type) {
     if (Number(op.financeiro) > 0) row.gains++;
   });
   return [...map.values()].sort((a, b) => a.key.localeCompare(b.key));
+}
+
+function resultsReturn(value) {
+  return value / 2500 * 100;
+}
+
+function resultsPeriodStats(rows) {
+  const values = rows.map(row => row.value);
+  const total = values.reduce((sum, value) => sum + value, 0);
+  const average = values.length ? total / values.length : 0;
+  const ordered = [...values].sort((a, b) => a - b);
+  const medianValue = ordered.length
+    ? (ordered[Math.floor((ordered.length - 1) / 2)] + ordered[Math.ceil((ordered.length - 1) / 2)]) / 2
+    : 0;
+  const best = rows.reduce((current, row) => !current || row.value > current.value ? row : current, null);
+  const worst = rows.reduce((current, row) => !current || row.value < current.value ? row : current, null);
+  return {
+    total, average, median: medianValue, best, worst,
+    positive: rows.filter(row => row.value > 0).length,
+    negative: rows.filter(row => row.value < 0).length
+  };
+}
+
+function resultsStatMarkup(label, value) {
+  return `<div class="result-summary-item"><span>${label}</span><strong>${value}</strong></div>`;
+}
+
+function currentDrawdownEpisode() {
+  const curve = state.stats?.curve || [];
+  if (curve.length < 2) return null;
+  const peakValue = Math.max(...curve.map(point => point.value));
+  let peakIndex = curve.findIndex(point => point.value === peakValue);
+  if (peakIndex < 0) peakIndex = 0;
+  const episode = curve.slice(peakIndex);
+  let troughIndex = 0;
+  episode.forEach((point, index) => {
+    if (point.value < episode[troughIndex].value) troughIndex = index;
+  });
+  const peak = episode[0];
+  const trough = episode[troughIndex];
+  const current = episode[episode.length - 1];
+  const maxDrawdown = Math.max(0, peak.value - trough.value);
+  const currentDrawdown = Math.max(0, peak.value - current.value);
+  const recovered = Math.max(0, current.value - trough.value);
+  const recovery = maxDrawdown ? Math.min(100, recovered / maxDrawdown * 100) : 100;
+  const peakDate = peak.date?.slice(0, 10) || '';
+  const troughDate = trough.date?.slice(0, 10) || peakDate;
+  const currentDate = current.date?.slice(0, 10) || troughDate;
+  const calendarDays = peakDate && currentDate
+    ? Math.round((new Date(`${currentDate}T12:00:00`) - new Date(`${peakDate}T12:00:00`)) / 86400000)
+    : 0;
+  const episodeOperations = state.filtered.filter(op => op.dataHoraIso.slice(0, 10) >= peakDate).length;
+  const tradingDays = groupByDay(state.filtered.filter(op => op.dataHoraIso.slice(0, 10) >= peakDate)).length;
+  const daysSinceTrough = troughDate && currentDate
+    ? Math.round((new Date(`${currentDate}T12:00:00`) - new Date(`${troughDate}T12:00:00`)) / 86400000)
+    : 0;
+  return { episode, troughIndex, peak, trough, current, peakDate, troughDate, currentDate, maxDrawdown, currentDrawdown, recovered, recovery, calendarDays, episodeOperations, tradingDays, daysSinceTrough };
+}
+
+function renderResultsDashboard() {
+  const s = state.stats;
+  if (!s) return;
+  setText('res-total', money.format(s.total));
+  setText('res-return', `${number2.format(resultsReturn(s.total))}% sobre R$ 2.500`);
+  setText('res-operations', points0.format(s.operations));
+  setText('res-days', `${s.days.length} pregões`);
+  setText('res-expectancy', money.format(s.expOperation));
+  setText('res-max-dd', money.format(-s.maxDrawdown));
+
+  document.querySelectorAll('#resultsPeriodSelector button').forEach(button => {
+    const active = button.dataset.period === state.period;
+    button.classList.toggle('active', active);
+    button.setAttribute('aria-pressed', String(active));
+  });
+  const resultsYearRange = document.getElementById('resultsYearRange');
+  if (resultsYearRange) resultsYearRange.hidden = state.period !== 'year';
+  const resultsYearSelector = document.getElementById('resultsYearSelector');
+  if (resultsYearSelector && state.selectedYear) resultsYearSelector.value = state.selectedYear;
+
+  const months = groupPeriods('month');
+  const weeks = groupPeriods('week');
+  const monthly = resultsPeriodStats(months);
+  const weekly = resultsPeriodStats(weeks);
+  const periodValue = value => `${money0.format(value)} · ${number2.format(resultsReturn(value))}%`;
+  const monthlySummary = document.getElementById('monthlySummary');
+  if (monthlySummary) monthlySummary.innerHTML = [
+    resultsStatMarkup('Meses positivos', monthly.positive),
+    resultsStatMarkup('Meses negativos', monthly.negative),
+    resultsStatMarkup('Média mensal', periodValue(monthly.average)),
+    resultsStatMarkup('Mediana mensal', periodValue(monthly.median)),
+    resultsStatMarkup('Acumulado', periodValue(monthly.total)),
+    resultsStatMarkup('Melhor mês', periodValue(monthly.best?.value || 0)),
+    resultsStatMarkup('Pior mês', periodValue(monthly.worst?.value || 0))
+  ].join('');
+  const weeklySummary = document.getElementById('weeklySummary');
+  if (weeklySummary) weeklySummary.innerHTML = [
+    resultsStatMarkup('Semanas positivas', weekly.positive),
+    resultsStatMarkup('Semanas negativas', weekly.negative),
+    resultsStatMarkup('Média semanal', periodValue(weekly.average)),
+    resultsStatMarkup('Mediana semanal', periodValue(weekly.median)),
+    resultsStatMarkup('Acumulado', periodValue(weekly.total))
+  ].join('');
+  const weeklySecondary = document.getElementById('weeklySummarySecondary');
+  if (weeklySecondary) weeklySecondary.innerHTML = [
+    resultsStatMarkup('Melhor semana', periodValue(weekly.best?.value || 0)),
+    resultsStatMarkup('Pior semana', periodValue(weekly.worst?.value || 0)),
+    resultsStatMarkup('Última semana', periodValue(weeks.at(-1)?.value || 0)),
+    resultsStatMarkup('Semanas observadas', String(weeks.length)),
+    resultsStatMarkup('Pregões observados', String(s.days.length))
+  ].join('');
+
+  const annualResults = document.getElementById('annualResults');
+  if (annualResults) {
+    const years = [...new Set(state.filtered.map(op => op.dataHoraIso.slice(0, 4)))];
+    const latestYear = state.all.at(-1)?.dataHoraIso.slice(0, 4);
+    annualResults.innerHTML = years.map(year => {
+      const rows = months.filter(row => row.key.startsWith(year));
+      const total = rows.reduce((sum, row) => sum + row.value, 0);
+      const average = rows.length ? total / rows.length : 0;
+      return `<article><small>${year}${year === latestYear ? ' parcial' : ''}</small><strong>${money.format(total)}</strong><span>${number2.format(resultsReturn(total))}% · média mensal ${number2.format(resultsReturn(average))}%</span></article>`;
+    }).join('') || '<p class="empty">Sem anos no período selecionado.</p>';
+  }
+
+  const dd = currentDrawdownEpisode();
+  const metrics = document.getElementById('currentDrawdownMetrics');
+  const summary = document.getElementById('drawdownSummary');
+  if (dd && metrics) metrics.innerHTML = [
+    resultsStatMarkup('Início', formatDate(dd.peakDate)),
+    resultsStatMarkup('Dias corridos', String(dd.calendarDays)),
+    resultsStatMarkup('Pregões', String(dd.tradingDays)),
+    resultsStatMarkup('Operações', String(dd.episodeOperations)),
+    resultsStatMarkup('DD máximo do episódio', money.format(-dd.maxDrawdown)),
+    resultsStatMarkup('DD atual', money.format(-dd.currentDrawdown))
+  ].join('');
+  if (dd && summary) summary.innerHTML = [
+    resultsStatMarkup('Recuperado em R$', money.format(dd.recovered)),
+    resultsStatMarkup('Falta para o pico', money.format(dd.currentDrawdown)),
+    resultsStatMarkup('Dias desde o fundo', String(dd.daysSinceTrough)),
+    resultsStatMarkup('Valor do pico', money.format(dd.peak.value)),
+    resultsStatMarkup('Valor atual', money.format(dd.current.value))
+  ].join('');
+  const recoveryPercent = document.getElementById('recoveryPercent');
+  const recoveryFill = document.getElementById('recoveryFill');
+  const recoveryTrack = recoveryFill?.parentElement;
+  if (dd && recoveryPercent) recoveryPercent.textContent = `${number2.format(dd.recovery)}%`;
+  if (dd && recoveryFill) recoveryFill.style.width = `${dd.recovery}%`;
+  if (dd && recoveryTrack) recoveryTrack.setAttribute('aria-valuenow', String(dd.recovery));
 }
 
 function renderPeriodTable(id, rows) {
@@ -1228,6 +1378,90 @@ function drawPoints() {
   drawBarChart(document.getElementById('pointsDailyChart'), rows, value => `${points0.format(value)} pts`, { tickBase: 50 });
 }
 
+function drawCurrentDrawdownChart() {
+  const canvas = document.getElementById('currentDrawdownChart');
+  const dd = currentDrawdownEpisode();
+  if (!canvas || !dd || !dd.episode.length) return;
+  const { ctx, width, height } = setupCanvas(canvas);
+  const pad = { top: 48, right: 34, bottom: 48, left: 78 };
+  const plotW = Math.max(1, width - pad.left - pad.right);
+  const plotH = Math.max(1, height - pad.top - pad.bottom);
+  const limit = dd.peak.value - 2500;
+  const min = Math.min(limit, ...dd.episode.map(point => point.value));
+  const max = dd.peak.value;
+  const span = Math.max(1, max - min);
+  const x = index => pad.left + (dd.episode.length === 1 ? 0 : index / (dd.episode.length - 1) * plotW);
+  const y = value => pad.top + (max - value) / span * plotH;
+  ctx.clearRect(0, 0, width, height);
+  ctx.font = '11px Inter, system-ui, sans-serif';
+  ctx.textBaseline = 'middle';
+  for (let index = 0; index <= 2; index += 1) {
+    const yy = pad.top + plotH * index / 2;
+    ctx.strokeStyle = 'rgba(99,133,147,.2)';
+    ctx.setLineDash([]);
+    ctx.beginPath(); ctx.moveTo(pad.left, yy); ctx.lineTo(width - pad.right, yy); ctx.stroke();
+  }
+  const reference = (value, color, label, align = 'left') => {
+    const yy = y(value);
+    ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.setLineDash([8, 7]);
+    ctx.beginPath(); ctx.moveTo(pad.left, yy); ctx.lineTo(width - pad.right, yy); ctx.stroke();
+    ctx.setLineDash([]); ctx.fillStyle = color; ctx.textAlign = align;
+    ctx.fillText(label, align === 'left' ? pad.left + 7 : width - pad.right - 7, Math.max(12, yy - 12));
+  };
+  reference(dd.peak.value, '#f4b942', 'Último pico — início do episódio');
+  reference(limit, '#ff5164', `Limite: pico − R$ 2.500 · ${money0.format(limit)}`, 'right');
+  const strokeSegment = (from, to, color) => {
+    ctx.beginPath();
+    for (let index = from; index <= to; index += 1) {
+      const point = dd.episode[index];
+      index === from ? ctx.moveTo(x(index), y(point.value)) : ctx.lineTo(x(index), y(point.value));
+    }
+    ctx.strokeStyle = color; ctx.lineWidth = 4; ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.stroke();
+  };
+  strokeSegment(0, dd.troughIndex, '#ff5164');
+  strokeSegment(dd.troughIndex, dd.episode.length - 1, '#35d8ca');
+  const marker = (index, color, label, above) => {
+    const point = dd.episode[index];
+    ctx.fillStyle = color; ctx.beginPath(); ctx.arc(x(index), y(point.value), 6, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = cssColor('--text'); ctx.textAlign = index === dd.episode.length - 1 ? 'right' : 'center';
+    ctx.font = '700 11px Inter, system-ui, sans-serif';
+    ctx.fillText(label, index === dd.episode.length - 1 ? x(index) - 8 : x(index), y(point.value) + (above ? -17 : 19));
+  };
+  marker(0, '#f4b942', money.format(dd.peak.value), true);
+  marker(dd.troughIndex, '#ff5164', `Fundo · ${money.format(dd.trough.value)}`, false);
+  marker(dd.episode.length - 1, '#35d8ca', `Atual · ${money.format(dd.current.value)}`, true);
+  ctx.font = '11px Inter, system-ui, sans-serif'; ctx.fillStyle = cssColor('--muted');
+  ctx.textAlign = 'left'; ctx.fillText(formatDate(dd.peakDate), pad.left, height - 17);
+  ctx.textAlign = 'center'; ctx.fillText(formatDate(dd.troughDate), x(dd.troughIndex), height - 17);
+  ctx.textAlign = 'right'; ctx.fillText(formatDate(dd.currentDate), width - pad.right, height - 17);
+}
+
+function drawResultsDashboard() {
+  if (!state.stats) return;
+  const values = state.stats.curve.map(point => point.value);
+  const peak = Math.max(0, ...values);
+  const breakPoint = peak - 2500;
+  drawLineChart(document.getElementById('resultsEquityChart'), values, {
+    dates: state.stats.curve.map(point => point.date),
+    range: niceRange([...values, breakPoint]),
+    referenceLines: [{ value: breakPoint, color: '#ff5164', width: 2, dashed: true, label: `Limite · Pico − R$ 2.500 · ${money0.format(breakPoint)}` }],
+    formatAxis: value => money0.format(value),
+    formatMarker: value => money.format(value)
+  });
+  drawCurrentDrawdownChart();
+  const months = groupPeriods('month');
+  drawBarChart(document.getElementById('resultsMonthlyChart'), months, value => money0.format(value));
+  const weeks = groupPeriods('week');
+  let previousMonth = '';
+  const weeklyAxisRows = weeks.map(row => {
+    const month = row.key.slice(0, 7);
+    const label = month !== previousMonth ? `${month.slice(5, 7)}-${month.slice(2, 4)}` : '';
+    previousMonth = month;
+    return { ...row, label };
+  });
+  drawBarChart(document.getElementById('resultsWeeklyChart'), weeklyAxisRows, value => money0.format(value));
+}
+
 function drawAll() {
   if (!state.stats) return;
   const resultValues = state.stats.curve.map(p => p.value);
@@ -1252,6 +1486,7 @@ function drawAll() {
   drawPoints();
   drawCoverage();
   drawAverages();
+  drawResultsDashboard();
   drawHourDurationHeatmap();
   const weeks = groupPeriods('week'), months = groupPeriods('month');
   drawBarChart(document.getElementById('weeklyChart'), weeks, value => money.format(value).replace(',00',''), { cumulativeAverage: true });
@@ -1344,6 +1579,14 @@ async function loadData() {
         }).join('');
         yearSelector.value = state.selectedYear;
       }
+      const resultsYearSelector = document.getElementById('resultsYearSelector');
+      if (resultsYearSelector) {
+        resultsYearSelector.innerHTML = availableYears.map(year => {
+          const partial = year === latestYear ? ' (parcial)' : '';
+          return `<option value="${year}">${year}${partial}</option>`;
+        }).join('');
+        resultsYearSelector.value = state.selectedYear;
+      }
     }
     statusDot.className = 'status-dot ok';
     statusText.textContent = 'Dados atualizados';
@@ -1421,6 +1664,22 @@ document.getElementById('yearSelector')?.addEventListener('change', event => {
   state.selectedYear = event.target.value;
   state.period = 'year';
   applyPeriod();
+});
+document.getElementById('resultsYearSelector')?.addEventListener('change', event => {
+  state.selectedYear = event.target.value;
+  state.period = 'year';
+  const yearSelector = document.getElementById('yearSelector');
+  if (yearSelector) yearSelector.value = state.selectedYear;
+  applyPeriod();
+});
+document.querySelectorAll('#resultsPeriodSelector button').forEach(button => {
+  button.addEventListener('click', () => {
+    state.period = button.dataset.period;
+    if (state.period === 'year' && !state.selectedYear) {
+      state.selectedYear = state.all.at(-1)?.dataHoraIso.slice(0, 4) || null;
+    }
+    applyPeriod();
+  });
 });
 ['customFrom', 'customTo'].forEach(id => document.getElementById(id)?.addEventListener('change', event => {
   const fromInput = document.getElementById('customFrom');
