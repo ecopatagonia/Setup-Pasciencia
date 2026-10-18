@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Painel de performance do O PULO DO GATTO.">
   <title>O PULO DO GATTO — Performance</title>
-  <link rel="stylesheet" href="styles.css?v=5.1">
+  <link rel="stylesheet" href="styles.css?v=5.2">
   <link rel="stylesheet" href="auth.css?v=6.2">
 </head>
 <body>
@@ -52,6 +52,18 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16M4 12h16M4 18h16"/><path d="M7 4v4m7 2v4m4 2v4"/></svg>
           Operações
         </button>
+        <div class="nav-group" id="comparisonNav">
+          <button class="nav-group-toggle" data-permission="resultados" type="button" aria-expanded="false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V7m5 12V3m6 16v-8m5 8V5M2 21h20"/></svg>
+            <span>Comparativo GIO</span><span class="nav-chevron">⌄</span>
+          </button>
+          <div class="nav-submenu">
+            <button class="nav-button nav-subitem" data-page="comparativo" data-comparison-page="overview" data-permission="resultados" type="button">Visão comparativa</button>
+            <button class="nav-button nav-subitem" data-page="comparativo" data-comparison-page="results" data-permission="resultados" type="button">Resultados</button>
+            <button class="nav-button nav-subitem" data-page="comparativo" data-comparison-page="risk" data-permission="resultados" type="button">Risco e estabilidade</button>
+            <button class="nav-button nav-subitem" data-page="comparativo" data-comparison-page="data" data-permission="resultados" type="button">Operações e dados</button>
+          </div>
+        </div>
         <a class="nav-button nav-link" data-permission="robustez" href="robustez/index.html?view=site">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 4 6v5c0 5 3.4 8.2 8 10 4.6-1.8 8-5 8-10V6l-8-3Z"/><path d="m7 15 3-3 2 2 5-5"/></svg>
           Teste de Robustez
@@ -594,6 +606,11 @@
         <p class="risk-disclaimer">Simulação descritiva baseada no histórico selecionado. Não prevê resultados futuros nem garante suficiência de capital.</p>
       </section>
 
+      <section class="page" id="page-comparativo" aria-label="Comparativo GIO">
+        <button class="menu-toggle" type="button" aria-label="Abrir menu" aria-expanded="false">☰ Menu</button>
+        <p class="comparison-loading" id="comparisonLoading" role="status">Carregando comparativo…</p>
+        <iframe id="comparisonFrame" title="Comparativo GIO — métodos original e protegido" data-src="comparativo/index.html?v=1.0" sandbox="allow-scripts allow-same-origin allow-downloads" style="width:100%;border:0;min-height:800px;display:block"></iframe>
+      </section>
       <section class="page" id="page-operacoes">
         <header class="page-header">
           <div class="page-heading-wrap">
@@ -614,6 +631,7 @@
 
   <script src="config.js?v=5.0"></script>
   <script src="auth.js?v=6.2"></script>
-  <script src="app.js?v=5.7"></script>
+  <script src="comparativo/bridge.js?v=1.0"></script>
+  <script src="app.js?v=5.8"></script>
 </body>
 </html>

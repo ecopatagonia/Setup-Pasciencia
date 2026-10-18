@@ -726,3 +726,9 @@ tbody tr:hover { background: rgba(255,255,255,.02); }
   .table-toolbar { display: grid; }
   .search-input { min-width: 0; width: 100%; }
 }
+
+/* Comparativo has its own paired-sample controls; keep the common sidebar and theme. */
+body.comparison-active .analysis-toolbar { display: none; }
+#page-comparativo { min-width: 0; }
+#page-comparativo .menu-toggle { margin-bottom: 12px; }
+#comparisonFrame { background: transparent; }

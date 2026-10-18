@@ -812,6 +812,7 @@ function formatIntegerInput(event) {
 function syncModeVisibility(pageName) {
   const toolbar = document.querySelector('.analysis-toolbar');
   toolbar.classList.toggle('no-mode', !MODE_PAGES.has(pageName));
+  document.body.classList.toggle('comparison-active', pageName === 'comparativo');
 }
 
 function updatePatrimony() {
@@ -1555,6 +1556,7 @@ async function loadData() {
       throw new Error(payload.mensagem || 'A API não devolveu operações válidas.');
     }
     cacheBaseForRobustez(payload);
+    window.PuloComparativoBridge?.setPayload(payload);
 
     state.all = payload.operacoes.sort((a, b) => a.dataHoraIso.localeCompare(b.dataHoraIso));
     if (state.all.length) {
@@ -1611,6 +1613,7 @@ document.querySelectorAll('.nav-button[data-page]').forEach(button => {
     document.querySelectorAll('.nav-button').forEach(b => b.classList.toggle('active', b === button));
     document.querySelectorAll('.page').forEach(page => page.classList.toggle('active', page.id === `page-${button.dataset.page}`));
     syncModeVisibility(button.dataset.page);
+    if (button.dataset.comparisonPage) window.PuloComparativoBridge?.activate(button.dataset.comparisonPage);
     document.getElementById('sidebar').classList.remove('open');
     document.querySelectorAll('.nav-group').forEach(group => group.classList.toggle('open', group.contains(button)));
     document.querySelectorAll('.nav-group-toggle').forEach(toggle => toggle.setAttribute('aria-expanded', String(toggle.parentElement.classList.contains('open'))));
@@ -1766,6 +1769,7 @@ function setTheme(theme) {
     button.classList.toggle('active', active);
     button.setAttribute('aria-pressed', String(active));
   });
+  window.PuloComparativoBridge?.setTheme(selectedTheme);
   requestAnimationFrame(drawAll);
 }
 document.querySelectorAll('.theme-switch button[data-theme-option]').forEach(button => {
