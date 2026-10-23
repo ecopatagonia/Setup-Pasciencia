@@ -3,3 +3,6 @@
 @media(max-width:850px){#gio-order-lab .cards{grid-template-columns:1fr}#gio-order-lab .plots{grid-template-columns:1fr}}@media(max-width:580px){#gio-order-lab .detail-summary,#gio-order-lab .month-grid{grid-template-columns:1fr}#gio-order-lab header,#gio-order-lab main{padding:18px}#gio-order-lab nav{padding:10px}#gio-order-lab h1{font-size:23px}}
 
 #gio-order-lab{--bg:var(--panel);--panel2:color-mix(in srgb,var(--panel) 92%,var(--text));--loss:var(--red);--good:var(--b);background:transparent;border-radius:0}#gio-order-lab main{padding:0;max-width:none}#gio-order-lab button,#gio-order-lab select{border-color:var(--line)}#gio-order-lab button[aria-pressed=true]{background:var(--text);color:var(--bg)}#gio-order-lab .toolbar{background:transparent;border:0;margin:0}#gio-order-lab .op-card{min-width:0}#gio-order-lab .pair{display:grid}#gio-order-lab .spark{min-height:205px}#gio-order-lab .delta{font-size:inherit}
+
+
+#gio-order-lab .history-section{margin-top:22px}#gio-order-lab .history-chart{min-height:330px;margin:16px 0}#gio-order-lab .coincident-note{font-size:12px;color:var(--muted);margin:7px 0 0;padding:6px 0}
