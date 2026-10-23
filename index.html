@@ -62,6 +62,7 @@
             <button class="nav-button nav-subitem" data-page="comparativo" data-comparison-page="results" data-permission="resultados" type="button">Resultados</button>
             <button class="nav-button nav-subitem" data-page="comparativo" data-comparison-page="risk" data-permission="resultados" type="button">Risco e estabilidade</button>
             <button class="nav-button nav-subitem" data-page="comparativo" data-comparison-page="profit" data-permission="resultados" type="button">Evolução do lucro</button>
+            <button class="nav-button nav-subitem" data-page="comparativo" data-comparison-page="order-performance" data-permission="resultados" type="button">Desempenho por operação</button>
             <button class="nav-button nav-subitem" data-page="comparativo" data-comparison-page="data" data-permission="resultados" type="button">Operações e dados</button>
           </div>
         </div>
@@ -610,7 +611,7 @@
       <section class="page" id="page-comparativo" aria-label="Comparativo GIO">
         <button class="menu-toggle" type="button" aria-label="Abrir menu" aria-expanded="false">☰ Menu</button>
         <p class="comparison-loading" id="comparisonLoading" role="status">Carregando comparativo…</p>
-        <iframe id="comparisonFrame" title="Comparativo GIO — métodos original e protegido" data-src="comparativo/index.html?v=1.1" sandbox="allow-scripts allow-same-origin allow-downloads" style="width:100%;border:0;min-height:800px;display:block"></iframe>
+        <iframe id="comparisonFrame" title="Comparativo GIO — métodos original e protegido" data-src="comparativo/index.html?v=1.2" sandbox="allow-scripts allow-same-origin allow-downloads" style="width:100%;border:0;min-height:800px;display:block"></iframe>
       </section>
       <section class="page" id="page-operacoes">
         <header class="page-header">
@@ -632,8 +633,9 @@
 
   <script src="config.js?v=5.0"></script>
   <script src="auth.js?v=6.2"></script>
-  <script src="comparativo/bridge.js?v=1.1"></script>
+  <script src="comparativo/bridge.js?v=1.2"></script>
   <script src="app.js?v=5.8"></script>
 </body>
 </html>
+
 

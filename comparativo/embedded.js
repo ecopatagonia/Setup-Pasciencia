@@ -1,6 +1,6 @@
 (() => {
   'use strict';
-  const pages = { overview: 'Visão comparativa', results: 'Resultados', risk: 'Risco e estabilidade', profit: 'Evolução do lucro', data: 'Operações e dados' };
+  const pages = { overview: 'Visão comparativa', results: 'Resultados', risk: 'Risco e estabilidade', profit: 'Evolução do lucro', 'order-performance': 'Desempenho por operação', data: 'Operações e dados' };
   if (window.parent === window) {
     window.location.replace('../index.html?view=site&comparativo=overview');
     return;
@@ -87,4 +87,5 @@
   window.addEventListener('resize', requestHeight);
   requestHeight();
 })();
+
 
