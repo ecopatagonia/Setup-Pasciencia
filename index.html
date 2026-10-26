@@ -46,6 +46,7 @@
           <div class="nav-submenu">
             <button class="nav-button nav-subitem" data-page="risco" data-permission="calibragem" type="button">Calibragem</button>
             <button class="nav-button nav-subitem" data-page="projecao" data-permission="projecao_risco" type="button">Projeção de risco</button>
+            <button class="nav-button nav-subitem" data-page="escalada" data-permission="calibragem" type="button">Laboratório de escalada</button>
           </div>
         </div>
         <button class="nav-button" data-page="operacoes" type="button">
@@ -608,6 +609,17 @@
         <p class="risk-disclaimer">Simulação descritiva baseada no histórico selecionado. Não prevê resultados futuros nem garante suficiência de capital.</p>
       </section>
 
+      <section class="page" id="page-escalada" aria-label="Laboratório de escalada">
+        <header class="page-header">
+          <div class="page-heading-wrap">
+            <button class="menu-toggle" type="button" aria-label="Abrir menu" aria-expanded="false">☰</button>
+            <div><p class="eyebrow">Controle de risco</p><h1>Laboratório de escalada</h1><p class="subtitle">Versão 2.0 · base histórica incorporada do Setup da Paciência · sem atualização automática.</p></div>
+          </div>
+        </header>
+        <p id="escaladaLoading" role="status" hidden>Carregando laboratório…</p>
+        <iframe id="escaladaFrame" title="Laboratório de escalada de contratos 2.0" data-src="escalada/index.html?v=2.0.5" sandbox="allow-scripts allow-same-origin allow-downloads" style="width:100%;height:calc(100dvh - 180px);min-height:720px;border:1px solid var(--border);border-radius:12px;display:block"></iframe>
+      </section>
+
       <section class="page" id="page-comparativo" aria-label="Comparativo GIO">
         <button class="menu-toggle" type="button" aria-label="Abrir menu" aria-expanded="false">☰ Menu</button>
         <p class="comparison-loading" id="comparisonLoading" role="status">Carregando comparativo…</p>
@@ -634,7 +646,8 @@
   <script src="config.js?v=5.0"></script>
   <script src="auth.js?v=6.2"></script>
   <script src="comparativo/bridge.js?v=1.2"></script>
-  <script src="app.js?v=5.8"></script>
+  <script src="app.js?v=5.9"></script>
+  <script src="escalada/bridge.js?v=1.0"></script>
 </body>
 </html>
 
