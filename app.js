@@ -812,7 +812,7 @@ function formatIntegerInput(event) {
 function syncModeVisibility(pageName) {
   const toolbar = document.querySelector('.analysis-toolbar');
   toolbar.classList.toggle('no-mode', !MODE_PAGES.has(pageName));
-  document.body.classList.toggle('comparison-active', pageName === 'comparativo');
+  document.body.classList.toggle('comparison-active', pageName === 'comparativo' || pageName === 'escalada');
 }
 
 function updatePatrimony() {
