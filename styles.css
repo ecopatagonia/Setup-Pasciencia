@@ -732,3 +732,5 @@ body.comparison-active .analysis-toolbar { display: none; }
 #page-comparativo { min-width: 0; }
 #page-comparativo .menu-toggle { margin-bottom: 12px; }
 #comparisonFrame { background: transparent; }
+
+.dataset-context{margin-right:auto;align-self:center;padding:7px 11px;border:1px solid var(--line);border-radius:8px;color:var(--muted);font-size:12px;font-weight:650;letter-spacing:.03em}.dataset-context[hidden]{display:none}.gio-hours-note{margin:8px 0 16px;padding:12px 14px;border-left:3px solid var(--accent);border-radius:6px;background:var(--panel);color:var(--muted)}.gio-data-unavailable>.nav-group-toggle{opacity:.65}
