@@ -113,9 +113,12 @@ body.mode-days [data-mode-only="operations"] { display: none; }
 .nav-group-toggle:hover, .nav-group.open > .nav-group-toggle { color: var(--text); background: rgba(255,255,255,.035); }
 .nav-group-toggle svg { width: 18px; height: 18px; }
 .nav-chevron { transition: transform .2s ease; }
-.nav-group.open .nav-chevron { transform: rotate(180deg); }
+.nav-group.open > .nav-group-toggle .nav-chevron { transform: rotate(180deg); }
 .nav-submenu { display: none; gap: 4px; padding-left: 22px; }
-.nav-group.open .nav-submenu { display: grid; }
+.nav-group.open > .nav-submenu { display: grid; }
+.nav-submenu > .nav-group > .nav-group-toggle { grid-template-columns: 1fr auto; padding: 9px 12px; font-size: 13px; }
+.nav-button.upcoming-item { justify-content: space-between; cursor: not-allowed; opacity: .55; }
+.nav-button.upcoming-item small { color: var(--muted-2); font-size: 10px; font-weight: 600; }
 .nav-button.nav-subitem { padding: 9px 12px; font-size: 13px; }
 .nav-button {
   width: 100%;
