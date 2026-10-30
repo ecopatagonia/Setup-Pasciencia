@@ -793,7 +793,6 @@ function renderResultsDashboard() {
   if (dd && recoveryTrack) recoveryTrack.setAttribute('aria-valuenow', String(dd.recovery));
 }
 
-
 function lineOperations(ops) {
   const grouped = new Map();
   ops.forEach((op, index) => {
@@ -885,15 +884,46 @@ function renderLineByLinePage() {
   drawCurrentDrawdownChart('lineCurrentDrawdownChart',selected,lineStatsObj);
   const ep=currentDrawdownEpisode(selected,lineStatsObj);
   const met=document.getElementById('lineCurrentDrawdownMetrics');
-  if(met) met.innerHTML=ep?'<div><small>Drawdown atual</small><strong>'+money.format(-ep.currentDrawdown)+'</strong></div><div><small>Drawdown máximo</small><strong>'+money.format(-ep.maxDrawdown)+'</strong></div><div><small>Dias em drawdown</small><strong>'+ep.calendarDays+'</strong></div><div><small>Operações</small><strong>'+ep.episodeOperations+'</strong></div>':'<p>Sem drawdown vigente.</p>';
-  setText('lineRecoveryPercent',ep?number2.format(ep.recoveryPercent)+'%':'100%');
-  const fill=document.getElementById('lineRecoveryFill');if(fill)fill.style.width=(ep?Math.max(0,Math.min(100,ep.recoveryPercent)):100)+'%';
+  const ddSummary=document.getElementById('lineDrawdownSummary');
+  if(met) met.innerHTML=ep ? [
+    resultsStatMarkup('Início',formatDate(ep.peakDate)),
+    resultsStatMarkup('Dias corridos',String(ep.calendarDays)),
+    resultsStatMarkup('Pregões',String(ep.tradingDays)),
+    resultsStatMarkup('Operações',String(ep.episodeOperations)),
+    resultsStatMarkup('DD máximo do episódio',money.format(-ep.maxDrawdown)),
+    resultsStatMarkup('DD atual',money.format(-ep.currentDrawdown))
+  ].join('') : '<p>Sem drawdown vigente.</p>';
+  if(ddSummary) ddSummary.innerHTML=ep ? [
+    resultsStatMarkup('Recuperado em R$',money.format(ep.recovered)),
+    resultsStatMarkup('Falta para o pico',money.format(ep.currentDrawdown)),
+    resultsStatMarkup('Dias desde o fundo',String(ep.daysSinceTrough)),
+    resultsStatMarkup('Valor do pico',money.format(ep.peak.value)),
+    resultsStatMarkup('Valor atual',money.format(ep.current.value))
+  ].join('') : '';
+  const recoveryText=document.getElementById('lineRecoveryPercent');
+  const fill=document.getElementById('lineRecoveryFill');
+  const track=fill?.parentElement;
+  const recovery=ep ? Math.max(0,Math.min(100,ep.recovery)) : 100;
+  if(recoveryText) recoveryText.textContent=number2.format(recovery)+'%';
+  if(fill) fill.style.width=recovery+'%';
+  if(track) track.setAttribute('aria-valuenow',String(recovery));
+  if(!ep){const canvas=document.getElementById('lineCurrentDrawdownChart');if(canvas){const ctx=canvas.getContext('2d');ctx.clearRect(0,0,canvas.width,canvas.height);}}
   const month=groupPeriods('month',selected), week=groupPeriods('week',selected);
   drawBarChart(document.getElementById('lineMonthlyChart'),month,v=>money.format(v).replace(',00',''),{cumulativeAverage:true});
   drawBarChart(document.getElementById('lineWeeklyChart'),week,v=>money.format(v).replace(',00',''),{cumulativeAverage:true});
   renderPeriodSummary('lineMonthlySummary',month);renderPeriodSummary('lineWeeklySummary',week);renderPeriodSummary('lineWeeklySummarySecondary',week);
-  const byYear=new Map();selected.forEach(o=>{const y=String(o.dataHoraIso).slice(0,4);byYear.set(y,(byYear.get(y)||0)+(Number(o.financeiro)||0));});
-  const annual=document.getElementById('lineAnnualResults');if(annual)annual.innerHTML=[...byYear].sort((a,b)=>a[0].localeCompare(b[0])).map(([y,v])=>'<div class="annual-result"><strong>'+y+'</strong><span class="'+(v>=0?'positive':'negative')+'">'+money.format(v)+'</span></div>').join('')||'<p>Sem operações.</p>';
+  const byYear=new Map();
+  selected.forEach(o=>{const y=String(o.dataHoraIso).slice(0,4);if(!byYear.has(y))byYear.set(y,[]);byYear.get(y).push(Number(o.financeiro)||0);});
+  const annual=document.getElementById('lineAnnualResults');
+  if(annual){
+    const years=[...byYear.keys()].sort();
+    annual.innerHTML=years.map(y=>{
+      const values=byYear.get(y),total=values.reduce((sum,v)=>sum+v,0);
+      const monthCount=new Set(selected.filter(o=>String(o.dataHoraIso).startsWith(y)).map(o=>String(o.dataHoraIso).slice(0,7))).size;
+      const average=monthCount?total/monthCount:0;
+      return '<article><small>'+y+'</small><strong>'+money.format(total)+'</strong><span>'+number2.format(resultsReturn(total))+'% · média mensal '+number2.format(resultsReturn(average))+'%</span></article>';
+    }).join('')||'<p>Sem operações.</p>';
+  }
 }
 
 function renderPeriodSummary(id, rows) {
@@ -901,6 +931,7 @@ function renderPeriodSummary(id, rows) {
   const s=resultsPeriodStats(rows);
   el.innerHTML='<span>Períodos: '+rows.length+'</span><span>Positivos: '+s.positive+' · negativos: '+s.negative+'</span><span>Total: <strong class="'+(s.total>=0?'positive':'negative')+'">'+money.format(s.total)+'</strong></span>';
 }
+
 
 function renderPeriodTable(id, rows) {
   const el = document.getElementById(id); if (!el) return;
