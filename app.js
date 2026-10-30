@@ -561,7 +561,7 @@ function renderHours() {
   if (state.dataset === 'gio') {
     for (const key of ['melhor-hora', 'pior-hora', 'mais-operado', 'primeira-hora']) setText(key, 'N/D');
     for (const key of ['melhor-hora-res', 'pior-hora-res', 'mais-operado-count']) setText(key, '—');
-    const unavailable = '<p class="empty">A base GIO não traz horário nem candle de entrada/saída.</p>';
+    const unavailable = '<p class="empty">A carga GIO recebida pelo site não inclui horário nem candles de entrada/saída.</p>';
     for (const id of ['hourList', 'durationProfiles', 'durationBands']) {
       const element = document.getElementById(id);
       if (element) element.innerHTML = unavailable;
