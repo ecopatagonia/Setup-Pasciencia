@@ -2,7 +2,7 @@
 
 const API_URL = 'https://script.google.com/macros/s/AKfycby1rs6UObGzUGgp2I-vLt4W48V1tu2Jk8MIB066GdBynFTKjJXgBZHl8uptw3Gx_jLd/exec';
 const state = { all: [], filtered: [], period: 'custom', selectedYear: null, customFrom: '', customTo: '', mode: 'operations', stats: null, resultFilter: 'all' };
-const MODE_PAGES = new Set(['visao', 'resultados', 'pontos', 'operacoes']);
+const MODE_PAGES = new Set(['resultados', 'pontos', 'operacoes']);
 const money = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 const money0 = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
 const points0 = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 });
@@ -1782,7 +1782,7 @@ window.addEventListener('resize', () => {
   resizeTimer = setTimeout(drawAll, 100);
 });
 
-syncModeVisibility('visao');
+syncModeVisibility('resultados');
 let savedTheme = 'dark';
 try {
   savedTheme = localStorage.getItem('pulo-theme') === 'light' ? 'light' : 'dark';
