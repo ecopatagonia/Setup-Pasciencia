@@ -23,15 +23,21 @@ function normalizeGioOperations(rows) {
       return new Date(Math.round((value - 25569) * 86400000)).toISOString().slice(0, 10);
     }
     const raw = String(value ?? '').trim();
-    if (/^\\d{4}-\\d{2}-\\d{2}/.test(raw)) return raw.slice(0, 10);
-    const br = raw.match(/^(\\d{2})\\/(\\d{2})\\/(\\d{4})$/);
-    return br ? `${br[3]}-${br[2]}-${br[1]}` : '';
+    if (raw.length >= 10 && raw[4] === '-' && raw[7] === '-') return raw.slice(0, 10);
+    const parts = raw.split('/');
+    return parts.length === 3 && parts[0].length === 2 && parts[1].length === 2 && parts[2].length === 4
+      ? `${parts[2]}-${parts[1]}-${parts[0]}`
+      : '';
   };
   const parseNumber = value => {
     if (typeof value === 'number') return Number.isFinite(value) ? value : null;
-    let raw = String(value ?? '').trim().replace(/R\\$|pts|\\s/gi, '');
+    let raw = String(value ?? '').trim().replace('R$', '').replace('pts', '').replaceAll(' ', '');
     if (!raw) return null;
-    if (raw.includes(',')) raw = raw.replace(/\\./g, '').replace(',', '.');
+    if (raw.includes(',')) raw = raw.split('.').join('').replace(',', '.');
+    else {
+      const parts = raw.split('.');
+      if (parts.length > 1 && parts.at(-1).length === 3) raw = parts.join('');
+    }
     const number = Number(raw);
     return Number.isFinite(number) ? number : null;
   };
@@ -47,7 +53,7 @@ function normalizeGioOperations(rows) {
     const date = parseDate(dateValue);
     const points = parseNumber(pointsValue);
     const side = String(sideValue ?? '').trim().toUpperCase();
-    const order = Number(String(id ?? '').match(/__(\\d+)$/)?.[1]) || index + 1;
+    const order = Number(String(id ?? '').split('__').at(-1)) || index + 1;
     return {
       id: String(id ?? ''),
       dataHoraIso: date ? `${date}T12:00:00` : '',
@@ -63,7 +69,6 @@ function normalizeGioOperations(rows) {
   }).filter(operation => operation.dataHoraIso && ['COMPRA', 'VENDA'].includes(operation.lado) && Number.isFinite(operation.financeiro))
     .sort((a, b) => a.dataHoraIso.localeCompare(b.dataHoraIso) || a.order - b.order);
 }
-
 function configureDatasetRange(preserve = false) {
   if (!state.all.length) return;
   const first = state.all[0].dataHoraIso.slice(0, 10);
