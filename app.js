@@ -1,7 +1,7 @@
 'use strict';
 
 const API_URL = 'https://script.google.com/macros/s/AKfycby1rs6UObGzUGgp2I-vLt4W48V1tu2Jk8MIB066GdBynFTKjJXgBZHl8uptw3Gx_jLd/exec';
-const state = { all: [], filtered: [], period: 'custom', selectedYear: null, customFrom: '', customTo: '', mode: 'operations', stats: null, resultFilter: 'all' };
+const state = { all: [], filtered: [], gattoAll: [], gioAll: [], dataset: 'gatto', activePage: 'resultados', period: 'custom', selectedYear: null, customFrom: '', customTo: '', mode: 'operations', stats: null, resultFilter: 'all' };
 const MODE_PAGES = new Set(['resultados', 'pontos', 'operacoes']);
 const money = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 const money0 = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
@@ -15,6 +15,120 @@ const REAL_OPERATIONS_COLOR = '#35d8ca';
 const riskConfig = { contracts: 1, maxOperations: 3, lastLimitEdited: 'points' };
 const cssColor = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 const ROBUSTEZ_BASE_CACHE_KEY = 'pulo_robustez_base_cache_v1';
+
+function normalizeGioOperations(rows) {
+  if (!Array.isArray(rows)) return [];
+  const parseDate = value => {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return new Date(Math.round((value - 25569) * 86400000)).toISOString().slice(0, 10);
+    }
+    const raw = String(value ?? '').trim();
+    if (/^\\d{4}-\\d{2}-\\d{2}/.test(raw)) return raw.slice(0, 10);
+    const br = raw.match(/^(\\d{2})\\/(\\d{2})\\/(\\d{4})$/);
+    return br ? `${br[3]}-${br[2]}-${br[1]}` : '';
+  };
+  const parseNumber = value => {
+    if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+    let raw = String(value ?? '').trim().replace(/R\\$|pts|\\s/gi, '');
+    if (!raw) return null;
+    if (raw.includes(',')) raw = raw.replace(/\\./g, '').replace(',', '.');
+    const number = Number(raw);
+    return Number.isFinite(number) ? number : null;
+  };
+  return rows.map((row, index) => {
+    const field = (...keys) => {
+      for (const key of keys) if (row?.[key] !== undefined) return row[key];
+      return undefined;
+    };
+    const id = Array.isArray(row) ? row[0] : field('id', 'ID');
+    const dateValue = Array.isArray(row) ? row[1] : field('date', 'data', 'DATA');
+    const sideValue = Array.isArray(row) ? row[2] : field('side', 'lado', 'LADO');
+    const pointsValue = Array.isArray(row) ? row[5] : field('executadoProtegendo', 'protected', 'EXECUTADO PROTEGENDO');
+    const date = parseDate(dateValue);
+    const points = parseNumber(pointsValue);
+    const side = String(sideValue ?? '').trim().toUpperCase();
+    const order = Number(String(id ?? '').match(/__(\\d+)$/)?.[1]) || index + 1;
+    return {
+      id: String(id ?? ''),
+      dataHoraIso: date ? `${date}T12:00:00` : '',
+      lado: side,
+      financeiro: points === null ? null : points * POINT_VALUE,
+      pontos: points,
+      resultado: points === null ? '' : points > 0 ? 'GAIN' : points < 0 ? 'STOP' : 'BREAKEVEN',
+      order,
+      hora: '',
+      candleEntrada: null,
+      candleSaida: null
+    };
+  }).filter(operation => operation.dataHoraIso && ['COMPRA', 'VENDA'].includes(operation.lado) && Number.isFinite(operation.financeiro))
+    .sort((a, b) => a.dataHoraIso.localeCompare(b.dataHoraIso) || a.order - b.order);
+}
+
+function configureDatasetRange(preserve = false) {
+  if (!state.all.length) return;
+  const first = state.all[0].dataHoraIso.slice(0, 10);
+  const latest = state.all[state.all.length - 1].dataHoraIso.slice(0, 10);
+  if (!preserve) {
+    state.customFrom = first;
+    state.customTo = latest;
+  } else {
+    const clip = value => !value || value < first ? first : value > latest ? latest : value;
+    state.customFrom = clip(state.customFrom);
+    state.customTo = clip(state.customTo);
+    if (state.customFrom > state.customTo) {
+      state.customFrom = first;
+      state.customTo = latest;
+    }
+  }
+  const customFrom = document.getElementById('customFrom');
+  const customTo = document.getElementById('customTo');
+  if (customFrom && customTo) {
+    customFrom.value = state.customFrom;
+    customTo.value = state.customTo;
+    customFrom.min = customTo.min = first;
+    customFrom.max = customTo.max = latest;
+  }
+  const years = [...new Set(state.all.map(operation => operation.dataHoraIso.slice(0, 4)))].sort();
+  const latestYear = years.at(-1);
+  if (!years.includes(String(state.selectedYear))) state.selectedYear = latestYear;
+  for (const id of ['yearSelector', 'resultsYearSelector']) {
+    const selector = document.getElementById(id);
+    if (!selector) continue;
+    selector.innerHTML = years.map(year => `<option value="${year}">${year}${year === latestYear ? ' (parcial)' : ''}</option>`).join('');
+    selector.value = state.selectedYear;
+  }
+}
+
+function updateDatasetContext() {
+  const name = state.dataset === 'gio' ? 'GIO' : 'GATTO';
+  const heading = document.getElementById('resultsHeading');
+  if (heading) heading.textContent = `Resultados ${name}`;
+  const context = document.getElementById('datasetContext');
+  if (context) {
+    context.textContent = state.dataset === 'gio'
+      ? 'Base GIO · EXECUTADO PROTEGENDO × R$ 0,20/pt'
+      : 'Base de resultados: GATTO';
+    context.hidden = state.activePage === 'comparativo' || state.activePage === 'escalada';
+  }
+}
+
+function activateDataset(dataset) {
+  const next = dataset === 'gio' ? 'gio' : 'gatto';
+  const records = next === 'gio' ? state.gioAll : state.gattoAll;
+  if (next === 'gio' && !records.length) {
+    const notice = document.getElementById('notice');
+    notice.textContent = 'A API não entregou resultados numéricos de EXECUTADO PROTEGENDO para Resultados GIO. Confira a carga GIO_SITE.';
+    notice.classList.add('visible');
+    return false;
+  }
+  document.getElementById('notice').classList.remove('visible');
+  state.dataset = next;
+  state.all = records;
+  configureDatasetRange(true);
+  updateDatasetContext();
+  applyPeriod();
+  return true;
+}
 
 function setText(key, value) {
   document.querySelectorAll(`[data-metric="${key}"]`).forEach(el => {
@@ -437,6 +551,18 @@ function durationBandFor(minutes) {
 }
 
 function renderHours() {
+  const gioNotice = document.getElementById('gioHoursNote');
+  if (gioNotice) gioNotice.hidden = state.dataset !== 'gio';
+  if (state.dataset === 'gio') {
+    for (const key of ['melhor-hora', 'pior-hora', 'mais-operado', 'primeira-hora']) setText(key, 'N/D');
+    for (const key of ['melhor-hora-res', 'pior-hora-res', 'mais-operado-count']) setText(key, '—');
+    const unavailable = '<p class="empty">A base GIO não traz horário nem candle de entrada/saída.</p>';
+    for (const id of ['hourList', 'durationProfiles', 'durationBands']) {
+      const element = document.getElementById(id);
+      if (element) element.innerHTML = unavailable;
+    }
+    return;
+  }
   const rows = groupByHour();
   const list = document.getElementById('hourList');
   if (!list) return;
@@ -1309,6 +1435,16 @@ function renderEvolution() {
 function drawHourDurationHeatmap() {
   const canvas = document.getElementById('hourDurationChart');
   if (!canvas) return;
+  if (state.dataset === 'gio') {
+    const { ctx, width, height } = setupCanvas(canvas);
+    ctx.clearRect(0, 0, width, height);
+    ctx.fillStyle = cssColor('--muted');
+    ctx.font = '13px Inter, system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('Horários e duração indisponíveis na base GIO', width / 2, height / 2);
+    return;
+  }
   const hours = [...new Set(state.filtered.map(op => `${String(op.hora || op.dataHoraIso.slice(11,16)).slice(0,2)}:00`))].sort();
   if (!hours.length) return;
   const { ctx, width, height } = setupCanvas(canvas);
@@ -1558,41 +1694,16 @@ async function loadData() {
     cacheBaseForRobustez(payload);
     window.PuloComparativoBridge?.setPayload(payload);
 
-    state.all = payload.operacoes.sort((a, b) => a.dataHoraIso.localeCompare(b.dataHoraIso));
-    if (state.all.length) {
-      state.customFrom = state.all[0].dataHoraIso.slice(0, 10);
-      state.customTo = state.all[state.all.length - 1].dataHoraIso.slice(0, 10);
-      const customFrom = document.getElementById('customFrom');
-      const customTo = document.getElementById('customTo');
-      customFrom.value = state.customFrom;
-      customTo.value = state.customTo;
-      customFrom.min = state.customFrom;
-      customFrom.max = state.customTo;
-      customTo.min = state.customFrom;
-      customTo.max = state.customTo;
-      const availableYears = [...new Set(state.all.map(operation => operation.dataHoraIso.slice(0, 4)))].sort();
-      const latestYear = availableYears[availableYears.length - 1];
-      state.selectedYear = latestYear;
-      const yearSelector = document.getElementById('yearSelector');
-      if (yearSelector) {
-        yearSelector.innerHTML = availableYears.map(year => {
-          const partial = year === latestYear ? ' (parcial)' : '';
-          return `<option value="${year}">${year}${partial}</option>`;
-        }).join('');
-        yearSelector.value = state.selectedYear;
-      }
-      const resultsYearSelector = document.getElementById('resultsYearSelector');
-      if (resultsYearSelector) {
-        resultsYearSelector.innerHTML = availableYears.map(year => {
-          const partial = year === latestYear ? ' (parcial)' : '';
-          return `<option value="${year}">${year}${partial}</option>`;
-        }).join('');
-        resultsYearSelector.value = state.selectedYear;
-      }
-    }
+    state.gattoAll = payload.operacoes.sort((a, b) => a.dataHoraIso.localeCompare(b.dataHoraIso));
+    state.gioAll = normalizeGioOperations(payload.comparativoGio ?? payload.comparativoProtegido);
+    state.dataset = 'gatto';
+    state.all = state.gattoAll;
+    configureDatasetRange(false);
+    updateDatasetContext();
+    document.getElementById('gioResultsNav')?.classList.toggle('gio-data-unavailable', !state.gioAll.length);
     statusDot.className = 'status-dot ok';
     statusText.textContent = 'Dados atualizados';
-    statusDetail.textContent = `${payload.meta.total} operações · ${payload.geradoEm.slice(0, 10)}`;
+    statusDetail.textContent = `${payload.meta.total} operações GATTO · ${state.gioAll.length} GIO · ${payload.geradoEm.slice(0, 10)}`;
     loadingState?.classList.add('loaded');
     applyPeriod();
   } catch (error) {
@@ -1610,6 +1721,9 @@ async function loadData() {
 
 document.querySelectorAll('.nav-button[data-page]').forEach(button => {
   button.addEventListener('click', () => {
+    if (!activateDataset(button.dataset.dataset || 'gatto')) return;
+    state.activePage = button.dataset.page;
+    updateDatasetContext();
     document.querySelectorAll('.nav-button').forEach(b => b.classList.toggle('active', b === button));
     document.querySelectorAll('.page').forEach(page => page.classList.toggle('active', page.id === `page-${button.dataset.page}`));
     syncModeVisibility(button.dataset.page);
@@ -1783,6 +1897,7 @@ window.addEventListener('resize', () => {
 });
 
 syncModeVisibility('resultados');
+updateDatasetContext();
 let savedTheme = 'dark';
 try {
   savedTheme = localStorage.getItem('pulo-theme') === 'light' ? 'light' : 'dark';
@@ -1790,6 +1905,14 @@ try {
   console.warn('Preferência visual indisponível.', error);
 }
 setTheme(savedTheme);
-document.addEventListener('pulo:session', () => {
+document.addEventListener('pulo:session', event => {
+  const user = event.detail || {};
+  const permissions = new Set(user.permissions || []);
+  if (user.role === 'ALUNO' && !permissions.has('resultados')) {
+    const fallback = [...document.querySelectorAll('.nav-button[data-page]')].find(button =>
+      !button.dataset.permission || permissions.has(button.dataset.permission)
+    );
+    fallback?.click();
+  }
   if (!state.all.length) loadData();
 });
