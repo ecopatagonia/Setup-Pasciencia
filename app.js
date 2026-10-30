@@ -847,6 +847,27 @@ function drawLineComparison(sets) {
   ctx.fillStyle='#98a9bd';ctx.fillText(dates[0],pad.left,height-8);ctx.fillText(dates[dates.length-1],Math.max(pad.left,width-pad.right-70),height-8);
 }
 
+
+function drawSelectedLineCurve(canvasId, series, allDates) {
+  const canvas=document.getElementById(canvasId), tooltip=document.getElementById('lineEquityTooltip');
+  if(!canvas)return;
+  const points=allDates.map(date=>series.get(date)??null), valid=points.filter(v=>v!==null);
+  const {ctx,width,height}=setupCanvas(canvas), pad={top:32,right:92,bottom:38,left:76}, pw=width-pad.left-pad.right, ph=height-pad.top-pad.bottom;
+  ctx.clearRect(0,0,width,height);
+  if(!valid.length){ctx.fillStyle='#9aaabd';ctx.fillText('Sem operações nesta linha',pad.left,48);return;}
+  let lo=Math.min(0,...valid), hi=Math.max(0,...valid); const peak=Math.max(0,...valid), limit=peak-2500;
+  lo=Math.min(lo,limit); if(lo===hi)hi=lo+1; const x=i=>pad.left+(points.length<2?0:i/(points.length-1)*pw), y=v=>pad.top+(hi-v)/(hi-lo)*ph;
+  ctx.font='11px Inter,system-ui,sans-serif';ctx.textBaseline='middle';ctx.fillStyle='#98a9bd';
+  for(let k=0;k<=4;k++){const v=lo+(hi-lo)*k/4,yy=y(v);ctx.strokeStyle='rgba(99,133,147,.2)';ctx.setLineDash([5,7]);ctx.beginPath();ctx.moveTo(pad.left,yy);ctx.lineTo(width-pad.right,yy);ctx.stroke();ctx.setLineDash([]);ctx.textAlign='right';ctx.fillText(money.format(v),pad.left-9,yy);}
+  const zero=y(0);ctx.strokeStyle='rgba(220,231,243,.8)';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(pad.left,zero);ctx.lineTo(width-pad.right,zero);ctx.stroke();
+  const ly=y(limit);if(ly>=pad.top&&ly<=pad.top+ph){ctx.strokeStyle='#ff5164';ctx.setLineDash([7,6]);ctx.beginPath();ctx.moveTo(pad.left,ly);ctx.lineTo(width-pad.right,ly);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#ff7180';ctx.textAlign='left';ctx.fillText('Pico − R$ 2.500',pad.left+8,ly-9);}
+  let prev=null, prevPeak=-Infinity;
+  points.forEach((v,i)=>{if(v===null){prev=null;return;}const hiWater=Math.max(prevPeak,v);if(prev!==null){ctx.beginPath();ctx.moveTo(x(i-1),y(prev));ctx.lineTo(x(i),y(v));ctx.strokeStyle=(prev<prevPeak||v<prevPeak)?'#ff5164':'#35d8ca';ctx.lineWidth=3.3;ctx.lineCap='round';ctx.stroke();}prev=v;prevPeak=hiWater;});
+  ctx.fillStyle='#98a9bd';ctx.textAlign='left';ctx.fillText(allDates[0]||'',pad.left,height-12);ctx.textAlign='right';ctx.fillText(allDates.at(-1)||'',width-pad.right,height-12);
+  const updateTip=event=>{if(!tooltip)return;const rect=canvas.getBoundingClientRect(),mx=(event.clientX-rect.left)*width/rect.width;let best=-1,dist=Infinity;points.forEach((v,i)=>{if(v===null)return;const d=Math.abs(x(i)-mx);if(d<dist){dist=d;best=i;}});if(best<0){tooltip.hidden=true;return;}let peakAt=0,peakI=0;for(let i=0;i<=best;i++)if(points[i]!==null&&points[i]>=peakAt){peakAt=points[i];peakI=i;}let count=0;for(let i=peakI;i<=best;i++)if(points[i]!==null)count++;const dd=Math.max(0,peakAt-points[best]), days=Math.max(0,Math.round((new Date(allDates[best]+'T12:00:00')-new Date(allDates[peakI]+'T12:00:00'))/86400000));tooltip.innerHTML='<strong>'+allDates[best]+'</strong><br>Resultado acumulado: '+money.format(points[best])+'<br>Drawdown: '+money.format(-dd)+'<br>Desde el pico: '+days+' días · '+count+' operaciones';tooltip.hidden=false;tooltip.style.left=Math.min(Math.max(10,event.clientX-rect.left+12,10),rect.width-220)+'px';tooltip.style.top=Math.min(Math.max(10,event.clientY-rect.top+12,10),rect.height-100)+'px';};
+  canvas.onpointermove=updateTip;canvas.onpointerleave=()=>{if(tooltip)tooltip.hidden=true;};
+}
+
 function renderLineByLinePage() {
   const lines=lineOperations(state.filtered), labels=['Op1','Op2','Op3'], colors=['#7d99ff','#2dd4bf','#f6b84a'];
   drawLineComparison(lines);
@@ -857,7 +878,9 @@ function renderLineByLinePage() {
   setText('lineKpiTotal',money.format(stats.total));setText('lineKpiOperations',points0.format(stats.count));setText('lineKpiExpectancy',money.format(stats.exp));setText('lineKpiPF',Number.isFinite(stats.pf)?number2.format(stats.pf):'∞');setText('lineKpiPayoff',Number.isFinite(stats.payoff)?number2.format(stats.payoff):'∞');setText('lineKpiDD',money.format(-stats.dd));
   document.querySelectorAll('#lineSelector button').forEach(b=>{const active=Number(b.dataset.line)===state.selectedLine;b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));});
   const curve=[];let total=0;selected.forEach(o=>{total+=Number(o.financeiro)||0;curve.push({value:total,date:o.dataHoraIso});});
-  drawLineChart(document.getElementById('lineEquityChart'),curve.map(p=>p.value),{dates:curve.map(p=>p.date),range:niceRange([...curve.map(p=>p.value),0]),referenceLines:[{value:0,color:'#dce7f3',width:1,label:'Zero'},{value:Math.max(0,...curve.map(p=>p.value))-2500,color:'#ff5164',width:2,dashed:true,label:'Pico − R$ 2.500'}],formatAxis:v=>money.format(v).replace(',00','')});
+  const allLineDates=[...new Set(state.filtered.map(o=>String(o.dataHoraIso).slice(0,10)))].sort();
+  const equitySeries=new Map();let equity=0;selected.forEach(o=>{const d=String(o.dataHoraIso).slice(0,10);equity+=Number(o.financeiro)||0;equitySeries.set(d,equity);});
+  drawSelectedLineCurve('lineEquityChart',equitySeries,allLineDates);
   const previousMode=state.mode; state.mode='operations'; const lineStatsObj=calculateStats(selected); state.mode=previousMode;
   drawCurrentDrawdownChart('lineCurrentDrawdownChart',selected,lineStatsObj);
   const ep=currentDrawdownEpisode(selected,lineStatsObj);
