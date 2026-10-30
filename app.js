@@ -1,7 +1,7 @@
 'use strict';
 
 const API_URL = 'https://script.google.com/macros/s/AKfycby1rs6UObGzUGgp2I-vLt4W48V1tu2Jk8MIB066GdBynFTKjJXgBZHl8uptw3Gx_jLd/exec';
-const state = { all: [], filtered: [], gattoAll: [], gioAll: [], dataset: 'gatto', activePage: 'resultados', period: 'custom', selectedYear: null, customFrom: '', customTo: '', mode: 'operations', stats: null, resultFilter: 'all' };
+const state = { all: [], filtered: [], gattoAll: [], gioAll: [], dataset: 'gatto', activePage: 'resultados', period: 'custom', selectedYear: null, customFrom: '', customTo: '', mode: 'operations', stats: null, resultFilter: 'all', selectedLine: 1 };
 const MODE_PAGES = new Set(['resultados', 'pontos', 'operacoes']);
 const money = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 const money0 = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
@@ -625,9 +625,9 @@ function streakRuns(values, isMatch) {
   return runs;
 }
 
-function groupPeriods(type) {
+function groupPeriods(type, operations = state.filtered) {
   const map = new Map();
-  state.filtered.forEach(op => {
+  operations.forEach(op => {
     const date = new Date(`${op.dataHoraIso.slice(0, 10)}T12:00:00`);
     let key, label;
     if (type === 'month') {
@@ -671,8 +671,8 @@ function resultsStatMarkup(label, value) {
   return `<div class="result-summary-item"><span>${label}</span><strong>${value}</strong></div>`;
 }
 
-function currentDrawdownEpisode() {
-  const curve = state.stats?.curve || [];
+function currentDrawdownEpisode(operations = state.filtered, stats = state.stats) {
+  const curve = stats?.curve || [];
   if (curve.length < 2) return null;
   const peakValue = Math.max(...curve.map(point => point.value));
   let peakIndex = curve.findIndex(point => point.value === peakValue);
@@ -695,8 +695,8 @@ function currentDrawdownEpisode() {
   const calendarDays = peakDate && currentDate
     ? Math.round((new Date(`${currentDate}T12:00:00`) - new Date(`${peakDate}T12:00:00`)) / 86400000)
     : 0;
-  const episodeOperations = state.filtered.filter(op => op.dataHoraIso.slice(0, 10) >= peakDate).length;
-  const tradingDays = groupByDay(state.filtered.filter(op => op.dataHoraIso.slice(0, 10) >= peakDate)).length;
+  const episodeOperations = operations.filter(op => op.dataHoraIso.slice(0, 10) >= peakDate).length;
+  const tradingDays = groupByDay(operations.filter(op => op.dataHoraIso.slice(0, 10) >= peakDate)).length;
   const daysSinceTrough = troughDate && currentDate
     ? Math.round((new Date(`${currentDate}T12:00:00`) - new Date(`${troughDate}T12:00:00`)) / 86400000)
     : 0;
@@ -792,6 +792,145 @@ function renderResultsDashboard() {
   if (dd && recoveryFill) recoveryFill.style.width = `${dd.recovery}%`;
   if (dd && recoveryTrack) recoveryTrack.setAttribute('aria-valuenow', String(dd.recovery));
 }
+
+function lineOperations(ops) {
+  const grouped=new Map();
+  ops.forEach((op,index)=>{
+    const date=String(op.dataHoraIso||'').slice(0,10);if(!date)return;
+    if(!grouped.has(date))grouped.set(date,[]);
+    const idMatch=String(op.id||'').match(/(?:__|[-_])(\\d+)$/);
+    const explicit=idMatch?Number(idMatch[1]):Number(op.order);
+    const candle=Number(op.candleEntrada);
+    grouped.get(date).push({op,index,explicit:Number.isInteger(explicit)&&explicit>=1&&explicit<=3?explicit:null,candle:Number.isFinite(candle)?candle:null});
+  });
+  const lines=[[],[],[]];
+  [...grouped.keys()].sort().forEach(date=>{
+    const entries=grouped.get(date),usesCandle=entries.some(entry=>entry.candle!==null);
+    entries.sort((a,b)=>{
+      if(usesCandle){
+        const ac=a.candle===null?Infinity:a.candle,bc=b.candle===null?Infinity:b.candle;
+        if(ac!==bc)return ac-bc;
+      }else if(a.explicit!==null&&b.explicit!==null&&a.explicit!==b.explicit){return a.explicit-b.explicit;}
+      const time=String(a.op.dataHoraIso||'').localeCompare(String(b.op.dataHoraIso||''));
+      return time||a.index-b.index;
+    });
+    entries.forEach((entry,index)=>{const order=usesCandle?index+1:(entry.explicit??index+1);if(order>=1&&order<=3)lines[order-1].push(entry.op);});
+  });
+  return lines;
+}
+function lineStats(ops) {
+  const values = ops.map(op => Number(op.financeiro) || 0);
+  let total = 0, peak = 0, dd = 0, wins = 0, grossWin = 0, grossLoss = 0;
+  values.forEach(v => { total += v; peak = Math.max(peak, total); dd = Math.max(dd, peak - total); if (v > 0) {wins++; grossWin += v;} else if (v < 0) grossLoss += Math.abs(v); });
+  const losses = values.length - wins - values.filter(v => v === 0).length;
+  const avgWin = wins ? grossWin / wins : 0, avgLoss = losses ? grossLoss / losses : 0;
+  return {total, count: values.length, dd, hit: values.length ? wins / values.length * 100 : 0, exp: values.length ? total / values.length : 0, pf: grossLoss ? grossWin / grossLoss : grossWin ? Infinity : 0, payoff: avgLoss ? avgWin / avgLoss : avgWin ? Infinity : 0};
+}
+
+function drawLineComparison(sets) {
+  const canvas = document.getElementById('lineComparisonChart');
+  if (!canvas) return;
+  const {ctx,width,height}=setupCanvas(canvas), pad={top:24,right:24,bottom:36,left:68}, w=width-pad.left-pad.right, h=height-pad.top-pad.bottom;
+  ctx.clearRect(0,0,width,height);
+  const dates=[...new Set(sets.flat().map(o=>String(o.dataHoraIso).slice(0,10)))].sort();
+  if (!dates.length) { ctx.fillStyle='#9aaabd'; ctx.fillText('Sem operações neste período',pad.left,40); return; }
+  const colors=['#7d99ff','#2dd4bf','#f6b84a'];
+  const series=sets.map(ops=>{let sum=0;const map=new Map(); ops.forEach(o=>{sum+=Number(o.financeiro)||0;map.set(String(o.dataHoraIso).slice(0,10),sum)});return map;});
+  const vals=series.flatMap(m=>[...m.values()]); let lo=Math.min(0,...vals), hi=Math.max(0,...vals); if(lo===hi){lo-=1;hi+=1;}
+  const x=i=>pad.left+(dates.length<2?0:i/(dates.length-1)*w), y=v=>pad.top+(hi-v)/(hi-lo)*h;
+  ctx.strokeStyle='rgba(150,170,190,.18)';ctx.fillStyle='#98a9bd';ctx.font='12px sans-serif';
+  for(let k=0;k<=4;k++){const v=lo+(hi-lo)*k/4, yy=y(v);ctx.beginPath();ctx.moveTo(pad.left,yy);ctx.lineTo(width-pad.right,yy);ctx.stroke();ctx.fillText(money0.format(v),4,yy+4);}
+  const zy=y(0);ctx.strokeStyle='rgba(240,245,250,.65)';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(pad.left,zy);ctx.lineTo(width-pad.right,zy);ctx.stroke();
+  series.forEach((map,j)=>{ctx.strokeStyle=colors[j];ctx.lineWidth=2.5;ctx.beginPath();let active=false;dates.forEach((d,i)=>{if(!map.has(d)){active=false;return;}const xx=x(i), yy=y(map.get(d));if(!active){ctx.moveTo(xx,yy);active=true;}else ctx.lineTo(xx,yy);});ctx.stroke();});
+  ctx.fillStyle='#98a9bd';ctx.fillText(dates[0],pad.left,height-8);ctx.fillText(dates[dates.length-1],Math.max(pad.left,width-pad.right-70),height-8);
+}
+
+
+function drawSelectedLineCurve(canvasId, series, allDates) {
+  const canvas=document.getElementById(canvasId), tooltip=document.getElementById('lineEquityTooltip');
+  if(!canvas)return;
+  const points=allDates.map(date=>series.get(date)??null), valid=points.filter(v=>v!==null);
+  const {ctx,width,height}=setupCanvas(canvas), pad={top:32,right:92,bottom:38,left:76}, pw=width-pad.left-pad.right, ph=height-pad.top-pad.bottom;
+  ctx.clearRect(0,0,width,height);
+  if(!valid.length){ctx.fillStyle='#9aaabd';ctx.fillText('Sem operações nesta linha',pad.left,48);return;}
+  let lo=Math.min(0,...valid), hi=Math.max(0,...valid); const peak=Math.max(0,...valid), limit=peak-2500;
+  lo=Math.min(lo,limit); if(lo===hi)hi=lo+1; const x=i=>pad.left+(points.length<2?0:i/(points.length-1)*pw), y=v=>pad.top+(hi-v)/(hi-lo)*ph;
+  ctx.font='11px Inter,system-ui,sans-serif';ctx.textBaseline='middle';ctx.fillStyle='#98a9bd';
+  for(let k=0;k<=4;k++){const v=lo+(hi-lo)*k/4,yy=y(v);ctx.strokeStyle='rgba(99,133,147,.2)';ctx.setLineDash([5,7]);ctx.beginPath();ctx.moveTo(pad.left,yy);ctx.lineTo(width-pad.right,yy);ctx.stroke();ctx.setLineDash([]);ctx.textAlign='right';ctx.fillText(money.format(v),pad.left-9,yy);}
+  const zero=y(0);ctx.strokeStyle='rgba(220,231,243,.8)';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(pad.left,zero);ctx.lineTo(width-pad.right,zero);ctx.stroke();
+  const ly=y(limit);if(ly>=pad.top&&ly<=pad.top+ph){ctx.strokeStyle='#ff5164';ctx.setLineDash([7,6]);ctx.beginPath();ctx.moveTo(pad.left,ly);ctx.lineTo(width-pad.right,ly);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#ff7180';ctx.textAlign='left';ctx.fillText('Pico − R$ 2.500',pad.left+8,ly-9);}
+  let prev=null, prevPeak=-Infinity;
+  points.forEach((v,i)=>{if(v===null){prev=null;return;}const hiWater=Math.max(prevPeak,v);if(prev!==null){ctx.beginPath();ctx.moveTo(x(i-1),y(prev));ctx.lineTo(x(i),y(v));ctx.strokeStyle=(prev<prevPeak||v<prevPeak)?'#ff5164':'#35d8ca';ctx.lineWidth=3.3;ctx.lineCap='round';ctx.stroke();}prev=v;prevPeak=hiWater;});
+  ctx.fillStyle='#98a9bd';ctx.textAlign='left';ctx.fillText(allDates[0]||'',pad.left,height-12);ctx.textAlign='right';ctx.fillText(allDates.at(-1)||'',width-pad.right,height-12);
+  const updateTip=event=>{if(!tooltip)return;const rect=canvas.getBoundingClientRect(),mx=(event.clientX-rect.left)*width/rect.width;let best=-1,dist=Infinity;points.forEach((v,i)=>{if(v===null)return;const d=Math.abs(x(i)-mx);if(d<dist){dist=d;best=i;}});if(best<0){tooltip.hidden=true;return;}let peakAt=0,peakI=0;for(let i=0;i<=best;i++)if(points[i]!==null&&points[i]>=peakAt){peakAt=points[i];peakI=i;}let count=0;for(let i=peakI;i<=best;i++)if(points[i]!==null)count++;const dd=Math.max(0,peakAt-points[best]), days=Math.max(0,Math.round((new Date(allDates[best]+'T12:00:00')-new Date(allDates[peakI]+'T12:00:00'))/86400000));tooltip.innerHTML='<strong>'+allDates[best]+'</strong><br>Resultado acumulado: '+money.format(points[best])+'<br>Drawdown: '+money.format(-dd)+'<br>Desde el pico: '+days+' días · '+count+' operaciones';tooltip.hidden=false;tooltip.style.left=Math.min(Math.max(10,event.clientX-rect.left+12,10),rect.width-220)+'px';tooltip.style.top=Math.min(Math.max(10,event.clientY-rect.top+12,10),rect.height-100)+'px';};
+  canvas.onpointermove=updateTip;canvas.onpointerleave=()=>{if(tooltip)tooltip.hidden=true;};
+}
+
+function renderLineByLinePage() {
+  const lines=lineOperations(state.filtered), labels=['Op1','Op2','Op3'], colors=['#7d99ff','#2dd4bf','#f6b84a'];
+  drawLineComparison(lines);
+  const body=document.getElementById('lineComparisonRows');
+  if(body) body.innerHTML=lines.map((ops,i)=>{const s=lineStats(ops);return '<tr><td><span style="color:'+colors[i]+'">'+labels[i]+'</span></td><td>'+s.count+'</td><td>'+money.format(s.total)+'</td><td>'+money.format(-s.dd)+'</td><td>'+number2.format(s.hit)+'%</td><td>'+money.format(s.exp)+'</td></tr>';}).join('');
+  const selected=lines[state.selectedLine-1]||[], stats=lineStats(selected);
+  setText('lineSelectedTitle',labels[state.selectedLine-1]+' · '+(state.dataset==='gio'?'GIO':'GATTO'));
+  setText('lineKpiTotal',money.format(stats.total));setText('lineKpiOperations',points0.format(stats.count));setText('lineKpiExpectancy',money.format(stats.exp));setText('lineKpiPF',Number.isFinite(stats.pf)?number2.format(stats.pf):'∞');setText('lineKpiPayoff',Number.isFinite(stats.payoff)?number2.format(stats.payoff):'∞');setText('lineKpiDD',money.format(-stats.dd));
+  document.querySelectorAll('#lineSelector button').forEach(b=>{const active=Number(b.dataset.line)===state.selectedLine;b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));});
+  const curve=[];let total=0;selected.forEach(o=>{total+=Number(o.financeiro)||0;curve.push({value:total,date:o.dataHoraIso});});
+  const allLineDates=[...new Set(state.filtered.map(o=>String(o.dataHoraIso).slice(0,10)))].sort();
+  const equitySeries=new Map();let equity=0;selected.forEach(o=>{const d=String(o.dataHoraIso).slice(0,10);equity+=Number(o.financeiro)||0;equitySeries.set(d,equity);});
+  drawSelectedLineCurve('lineEquityChart',equitySeries,allLineDates);
+  const previousMode=state.mode; state.mode='operations'; const lineStatsObj=calculateStats(selected); state.mode=previousMode;
+  drawCurrentDrawdownChart('lineCurrentDrawdownChart',selected,lineStatsObj);
+  const ep=currentDrawdownEpisode(selected,lineStatsObj);
+  const met=document.getElementById('lineCurrentDrawdownMetrics');
+  const ddSummary=document.getElementById('lineDrawdownSummary');
+  if(met) met.innerHTML=ep ? [
+    resultsStatMarkup('Início',formatDate(ep.peakDate)),
+    resultsStatMarkup('Dias corridos',String(ep.calendarDays)),
+    resultsStatMarkup('Pregões',String(ep.tradingDays)),
+    resultsStatMarkup('Operações',String(ep.episodeOperations)),
+    resultsStatMarkup('DD máximo do episódio',money.format(-ep.maxDrawdown)),
+    resultsStatMarkup('DD atual',money.format(-ep.currentDrawdown))
+  ].join('') : '<p>Sem drawdown vigente.</p>';
+  if(ddSummary) ddSummary.innerHTML=ep ? [
+    resultsStatMarkup('Recuperado em R$',money.format(ep.recovered)),
+    resultsStatMarkup('Falta para o pico',money.format(ep.currentDrawdown)),
+    resultsStatMarkup('Dias desde o fundo',String(ep.daysSinceTrough)),
+    resultsStatMarkup('Valor do pico',money.format(ep.peak.value)),
+    resultsStatMarkup('Valor atual',money.format(ep.current.value))
+  ].join('') : '';
+  const recoveryText=document.getElementById('lineRecoveryPercent');
+  const fill=document.getElementById('lineRecoveryFill');
+  const track=fill?.parentElement;
+  const recovery=ep ? Math.max(0,Math.min(100,ep.recovery)) : 100;
+  if(recoveryText) recoveryText.textContent=number2.format(recovery)+'%';
+  if(fill) fill.style.width=recovery+'%';
+  if(track) track.setAttribute('aria-valuenow',String(recovery));
+  if(!ep){const canvas=document.getElementById('lineCurrentDrawdownChart');if(canvas){const ctx=canvas.getContext('2d');ctx.clearRect(0,0,canvas.width,canvas.height);}}
+  const month=groupPeriods('month',selected), week=groupPeriods('week',selected);
+  drawBarChart(document.getElementById('lineMonthlyChart'),month,v=>money.format(v).replace(',00',''),{cumulativeAverage:true});
+  drawBarChart(document.getElementById('lineWeeklyChart'),week,v=>money.format(v).replace(',00',''),{cumulativeAverage:true});
+  renderPeriodSummary('lineMonthlySummary',month);renderPeriodSummary('lineWeeklySummary',week);renderPeriodSummary('lineWeeklySummarySecondary',week);
+  const byYear=new Map();
+  selected.forEach(o=>{const y=String(o.dataHoraIso).slice(0,4);if(!byYear.has(y))byYear.set(y,[]);byYear.get(y).push(Number(o.financeiro)||0);});
+  const annual=document.getElementById('lineAnnualResults');
+  if(annual){
+    const years=[...byYear.keys()].sort();
+    annual.innerHTML=years.map(y=>{
+      const values=byYear.get(y),total=values.reduce((sum,v)=>sum+v,0);
+      const monthCount=new Set(selected.filter(o=>String(o.dataHoraIso).startsWith(y)).map(o=>String(o.dataHoraIso).slice(0,7))).size;
+      const average=monthCount?total/monthCount:0;
+      return '<article><small>'+y+'</small><strong>'+money.format(total)+'</strong><span>'+number2.format(resultsReturn(total))+'% · média mensal '+number2.format(resultsReturn(average))+'%</span></article>';
+    }).join('')||'<p>Sem operações.</p>';
+  }
+}
+
+function renderPeriodSummary(id, rows) {
+  const el=document.getElementById(id);if(!el)return;
+  const s=resultsPeriodStats(rows);
+  el.innerHTML='<span>Períodos: '+rows.length+'</span><span>Positivos: '+s.positive+' · negativos: '+s.negative+'</span><span>Total: <strong class="'+(s.total>=0?'positive':'negative')+'">'+money.format(s.total)+'</strong></span>';
+}
+
 
 function renderPeriodTable(id, rows) {
   const el = document.getElementById(id); if (!el) return;
@@ -1520,9 +1659,9 @@ function drawPoints() {
   drawBarChart(document.getElementById('pointsDailyChart'), rows, value => `${points0.format(value)} pts`, { tickBase: 50 });
 }
 
-function drawCurrentDrawdownChart() {
-  const canvas = document.getElementById('currentDrawdownChart');
-  const dd = currentDrawdownEpisode();
+function drawCurrentDrawdownChart(canvasId = 'currentDrawdownChart', operations = state.filtered, stats = state.stats) {
+  const canvas = document.getElementById(canvasId);
+  const dd = currentDrawdownEpisode(operations, stats);
   if (!canvas || !dd || !dd.episode.length) return;
   const { ctx, width, height } = setupCanvas(canvas);
   const pad = { top: 48, right: 34, bottom: 48, left: 78 };
@@ -1629,6 +1768,7 @@ function drawAll() {
   drawCoverage();
   drawAverages();
   drawResultsDashboard();
+  if (state.activePage === 'linea') renderLineByLinePage();
   drawHourDurationHeatmap();
   const weeks = groupPeriods('week'), months = groupPeriods('month');
   drawBarChart(document.getElementById('weeklyChart'), weeks, value => money.format(value).replace(',00',''), { cumulativeAverage: true });
@@ -1726,8 +1866,10 @@ async function loadData() {
 
 document.querySelectorAll('.nav-button[data-page]').forEach(button => {
   button.addEventListener('click', () => {
-    if (!activateDataset(button.dataset.dataset || 'gatto')) return;
+    const targetDataset = button.dataset.page === 'linea' && !button.dataset.dataset ? state.dataset : (button.dataset.dataset || 'gatto');
+    if (!activateDataset(targetDataset)) return;
     state.activePage = button.dataset.page;
+    document.body.classList.toggle('line-page-active', state.activePage === 'linea');
     updateDatasetContext();
     document.querySelectorAll('.nav-button').forEach(b => b.classList.toggle('active', b === button));
     document.querySelectorAll('.page').forEach(page => page.classList.toggle('active', page.id === `page-${button.dataset.page}`));
@@ -1869,6 +2011,17 @@ document.querySelectorAll('[data-stepper]').forEach(button => {
   });
 });
 
+document.querySelectorAll('#lineDatasetSelector button').forEach(button => {
+  button.addEventListener('click', () => {
+    if (!button.disabled && activateDataset(button.dataset.dataset)) {}
+  });
+});
+document.querySelectorAll('#lineSelector button').forEach(button => {
+  button.addEventListener('click', () => {
+    state.selectedLine = Number(button.dataset.line);
+    renderLineByLinePage();
+  });
+});
 document.querySelectorAll('#resultFilter button').forEach(button => {
   button.addEventListener('click', () => {
     state.resultFilter = button.dataset.result;
