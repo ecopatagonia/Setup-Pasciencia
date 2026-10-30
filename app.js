@@ -1,7 +1,7 @@
 'use strict';
 
 const API_URL = 'https://script.google.com/macros/s/AKfycby1rs6UObGzUGgp2I-vLt4W48V1tu2Jk8MIB066GdBynFTKjJXgBZHl8uptw3Gx_jLd/exec';
-const state = { all: [], filtered: [], gattoAll: [], gioAll: [], dataset: 'gatto', activePage: 'resultados', period: 'custom', selectedYear: null, customFrom: '', customTo: '', mode: 'operations', stats: null, resultFilter: 'all' };
+const state = { all: [], filtered: [], gattoAll: [], gioAll: [], dataset: 'gatto', activePage: 'resultados', period: 'custom', selectedYear: null, customFrom: '', customTo: '', mode: 'operations', stats: null, resultFilter: 'all', selectedLine: 1 };
 const MODE_PAGES = new Set(['resultados', 'pontos', 'operacoes']);
 const money = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 const money0 = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
@@ -625,9 +625,9 @@ function streakRuns(values, isMatch) {
   return runs;
 }
 
-function groupPeriods(type) {
+function groupPeriods(type, operations = state.filtered) {
   const map = new Map();
-  state.filtered.forEach(op => {
+  operations.forEach(op => {
     const date = new Date(`${op.dataHoraIso.slice(0, 10)}T12:00:00`);
     let key, label;
     if (type === 'month') {
@@ -671,8 +671,8 @@ function resultsStatMarkup(label, value) {
   return `<div class="result-summary-item"><span>${label}</span><strong>${value}</strong></div>`;
 }
 
-function currentDrawdownEpisode() {
-  const curve = state.stats?.curve || [];
+function currentDrawdownEpisode(operations = state.filtered, stats = state.stats) {
+  const curve = stats?.curve || [];
   if (curve.length < 2) return null;
   const peakValue = Math.max(...curve.map(point => point.value));
   let peakIndex = curve.findIndex(point => point.value === peakValue);
@@ -695,8 +695,8 @@ function currentDrawdownEpisode() {
   const calendarDays = peakDate && currentDate
     ? Math.round((new Date(`${currentDate}T12:00:00`) - new Date(`${peakDate}T12:00:00`)) / 86400000)
     : 0;
-  const episodeOperations = state.filtered.filter(op => op.dataHoraIso.slice(0, 10) >= peakDate).length;
-  const tradingDays = groupByDay(state.filtered.filter(op => op.dataHoraIso.slice(0, 10) >= peakDate)).length;
+  const episodeOperations = operations.filter(op => op.dataHoraIso.slice(0, 10) >= peakDate).length;
+  const tradingDays = groupByDay(operations.filter(op => op.dataHoraIso.slice(0, 10) >= peakDate)).length;
   const daysSinceTrough = troughDate && currentDate
     ? Math.round((new Date(`${currentDate}T12:00:00`) - new Date(`${troughDate}T12:00:00`)) / 86400000)
     : 0;
@@ -791,6 +791,92 @@ function renderResultsDashboard() {
   if (dd && recoveryPercent) recoveryPercent.textContent = `${number2.format(dd.recovery)}%`;
   if (dd && recoveryFill) recoveryFill.style.width = `${dd.recovery}%`;
   if (dd && recoveryTrack) recoveryTrack.setAttribute('aria-valuenow', String(dd.recovery));
+}
+
+
+function lineOperations(ops) {
+  const grouped = new Map();
+  ops.forEach((op, index) => {
+    const date = String(op.dataHoraIso || '').slice(0, 10);
+    if (!date) return;
+    if (!grouped.has(date)) grouped.set(date, []);
+    grouped.get(date).push({op, index});
+  });
+  const lines = [[], [], []];
+  [...grouped.keys()].sort().forEach(date => {
+    const entries = grouped.get(date).sort((a,b) => {
+      const ta = String(a.op.dataHoraIso || ''), tb = String(b.op.dataHoraIso || '');
+      return ta.localeCompare(tb) || a.index - b.index;
+    });
+    entries.forEach((entry, i) => {
+      let order = Number(entry.op.order);
+      if (!(order >= 1 && order <= 3)) {
+        const match = String(entry.op.id || '').match(/(?:op|gio)[-_ ]?(\d+)$/i);
+        order = match ? Number(match[1]) : i + 1;
+      }
+      if (order >= 1 && order <= 3) lines[order - 1].push(entry.op);
+    });
+  });
+  return lines;
+}
+
+function lineStats(ops) {
+  const values = ops.map(op => Number(op.financeiro) || 0);
+  let total = 0, peak = 0, dd = 0, wins = 0, grossWin = 0, grossLoss = 0;
+  values.forEach(v => { total += v; peak = Math.max(peak, total); dd = Math.max(dd, peak - total); if (v > 0) {wins++; grossWin += v;} else if (v < 0) grossLoss += Math.abs(v); });
+  const losses = values.length - wins - values.filter(v => v === 0).length;
+  const avgWin = wins ? grossWin / wins : 0, avgLoss = losses ? grossLoss / losses : 0;
+  return {total, count: values.length, dd, hit: values.length ? wins / values.length * 100 : 0, exp: values.length ? total / values.length : 0, pf: grossLoss ? grossWin / grossLoss : grossWin ? Infinity : 0, payoff: avgLoss ? avgWin / avgLoss : avgWin ? Infinity : 0};
+}
+
+function drawLineComparison(sets) {
+  const canvas = document.getElementById('lineComparisonChart');
+  if (!canvas) return;
+  const {ctx,width,height}=setupCanvas(canvas), pad={top:24,right:24,bottom:36,left:68}, w=width-pad.left-pad.right, h=height-pad.top-pad.bottom;
+  ctx.clearRect(0,0,width,height);
+  const dates=[...new Set(sets.flat().map(o=>String(o.dataHoraIso).slice(0,10)))].sort();
+  if (!dates.length) { ctx.fillStyle='#9aaabd'; ctx.fillText('Sem operações neste período',pad.left,40); return; }
+  const colors=['#7d99ff','#2dd4bf','#f6b84a'];
+  const series=sets.map(ops=>{let sum=0;const map=new Map(); ops.forEach(o=>{sum+=Number(o.financeiro)||0;map.set(String(o.dataHoraIso).slice(0,10),sum)});return map;});
+  const vals=series.flatMap(m=>[...m.values()]); let lo=Math.min(0,...vals), hi=Math.max(0,...vals); if(lo===hi){lo-=1;hi+=1;}
+  const x=i=>pad.left+(dates.length<2?0:i/(dates.length-1)*w), y=v=>pad.top+(hi-v)/(hi-lo)*h;
+  ctx.strokeStyle='rgba(150,170,190,.18)';ctx.fillStyle='#98a9bd';ctx.font='12px sans-serif';
+  for(let k=0;k<=4;k++){const v=lo+(hi-lo)*k/4, yy=y(v);ctx.beginPath();ctx.moveTo(pad.left,yy);ctx.lineTo(width-pad.right,yy);ctx.stroke();ctx.fillText(money0.format(v),4,yy+4);}
+  const zy=y(0);ctx.strokeStyle='rgba(240,245,250,.65)';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(pad.left,zy);ctx.lineTo(width-pad.right,zy);ctx.stroke();
+  series.forEach((map,j)=>{ctx.strokeStyle=colors[j];ctx.lineWidth=2.5;ctx.beginPath();let active=false;dates.forEach((d,i)=>{if(!map.has(d)){active=false;return;}const xx=x(i), yy=y(map.get(d));if(!active){ctx.moveTo(xx,yy);active=true;}else ctx.lineTo(xx,yy);});ctx.stroke();});
+  ctx.fillStyle='#98a9bd';ctx.fillText(dates[0],pad.left,height-8);ctx.fillText(dates[dates.length-1],Math.max(pad.left,width-pad.right-70),height-8);
+}
+
+function renderLineByLinePage() {
+  const lines=lineOperations(state.filtered), labels=['Op1','Op2','Op3'], colors=['#7d99ff','#2dd4bf','#f6b84a'];
+  drawLineComparison(lines);
+  const body=document.getElementById('lineComparisonRows');
+  if(body) body.innerHTML=lines.map((ops,i)=>{const s=lineStats(ops);return '<tr><td><span style="color:'+colors[i]+'">'+labels[i]+'</span></td><td>'+s.count+'</td><td>'+money.format(s.total)+'</td><td>'+money.format(-s.dd)+'</td><td>'+number2.format(s.hit)+'%</td><td>'+money.format(s.exp)+'</td></tr>';}).join('');
+  const selected=lines[state.selectedLine-1]||[], stats=lineStats(selected);
+  setText('lineSelectedTitle',labels[state.selectedLine-1]+' · '+(state.dataset==='gio'?'GIO':'GATTO'));
+  setText('lineKpiTotal',money.format(stats.total));setText('lineKpiOperations',points0.format(stats.count));setText('lineKpiExpectancy',money.format(stats.exp));setText('lineKpiPF',Number.isFinite(stats.pf)?number2.format(stats.pf):'∞');setText('lineKpiPayoff',Number.isFinite(stats.payoff)?number2.format(stats.payoff):'∞');setText('lineKpiDD',money.format(-stats.dd));
+  document.querySelectorAll('#lineSelector button').forEach(b=>{const active=Number(b.dataset.line)===state.selectedLine;b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));});
+  const curve=[];let total=0;selected.forEach(o=>{total+=Number(o.financeiro)||0;curve.push({value:total,date:o.dataHoraIso});});
+  drawLineChart(document.getElementById('lineEquityChart'),curve.map(p=>p.value),{dates:curve.map(p=>p.date),range:niceRange([...curve.map(p=>p.value),0]),referenceLines:[{value:0,color:'#dce7f3',width:1,label:'Zero'},{value:Math.max(0,...curve.map(p=>p.value))-2500,color:'#ff5164',width:2,dashed:true,label:'Pico − R$ 2.500'}],formatAxis:v=>money.format(v).replace(',00','')});
+  const previousMode=state.mode; state.mode='operations'; const lineStatsObj=calculateStats(selected); state.mode=previousMode;
+  drawCurrentDrawdownChart('lineCurrentDrawdownChart',selected,lineStatsObj);
+  const ep=currentDrawdownEpisode(selected,lineStatsObj);
+  const met=document.getElementById('lineCurrentDrawdownMetrics');
+  if(met) met.innerHTML=ep?'<div><small>Drawdown atual</small><strong>'+money.format(-ep.currentDrawdown)+'</strong></div><div><small>Drawdown máximo</small><strong>'+money.format(-ep.maxDrawdown)+'</strong></div><div><small>Dias em drawdown</small><strong>'+ep.calendarDays+'</strong></div><div><small>Operações</small><strong>'+ep.episodeOperations+'</strong></div>':'<p>Sem drawdown vigente.</p>';
+  setText('lineRecoveryPercent',ep?number2.format(ep.recoveryPercent)+'%':'100%');
+  const fill=document.getElementById('lineRecoveryFill');if(fill)fill.style.width=(ep?Math.max(0,Math.min(100,ep.recoveryPercent)):100)+'%';
+  const month=groupPeriods('month',selected), week=groupPeriods('week',selected);
+  drawBarChart(document.getElementById('lineMonthlyChart'),month,v=>money.format(v).replace(',00',''),{cumulativeAverage:true});
+  drawBarChart(document.getElementById('lineWeeklyChart'),week,v=>money.format(v).replace(',00',''),{cumulativeAverage:true});
+  renderPeriodSummary('lineMonthlySummary',month);renderPeriodSummary('lineWeeklySummary',week);renderPeriodSummary('lineWeeklySummarySecondary',week);
+  const byYear=new Map();selected.forEach(o=>{const y=String(o.dataHoraIso).slice(0,4);byYear.set(y,(byYear.get(y)||0)+(Number(o.financeiro)||0));});
+  const annual=document.getElementById('lineAnnualResults');if(annual)annual.innerHTML=[...byYear].sort((a,b)=>a[0].localeCompare(b[0])).map(([y,v])=>'<div class="annual-result"><strong>'+y+'</strong><span class="'+(v>=0?'positive':'negative')+'">'+money.format(v)+'</span></div>').join('')||'<p>Sem operações.</p>';
+}
+
+function renderPeriodSummary(id, rows) {
+  const el=document.getElementById(id);if(!el)return;
+  const s=resultsPeriodStats(rows);
+  el.innerHTML='<span>Períodos: '+rows.length+'</span><span>Positivos: '+s.positive+' · negativos: '+s.negative+'</span><span>Total: <strong class="'+(s.total>=0?'positive':'negative')+'">'+money.format(s.total)+'</strong></span>';
 }
 
 function renderPeriodTable(id, rows) {
@@ -1520,9 +1606,9 @@ function drawPoints() {
   drawBarChart(document.getElementById('pointsDailyChart'), rows, value => `${points0.format(value)} pts`, { tickBase: 50 });
 }
 
-function drawCurrentDrawdownChart() {
-  const canvas = document.getElementById('currentDrawdownChart');
-  const dd = currentDrawdownEpisode();
+function drawCurrentDrawdownChart(canvasId = 'currentDrawdownChart', operations = state.filtered, stats = state.stats) {
+  const canvas = document.getElementById(canvasId);
+  const dd = currentDrawdownEpisode(operations, stats);
   if (!canvas || !dd || !dd.episode.length) return;
   const { ctx, width, height } = setupCanvas(canvas);
   const pad = { top: 48, right: 34, bottom: 48, left: 78 };
@@ -1629,6 +1715,7 @@ function drawAll() {
   drawCoverage();
   drawAverages();
   drawResultsDashboard();
+  if (state.activePage === 'linea') renderLineByLinePage();
   drawHourDurationHeatmap();
   const weeks = groupPeriods('week'), months = groupPeriods('month');
   drawBarChart(document.getElementById('weeklyChart'), weeks, value => money.format(value).replace(',00',''), { cumulativeAverage: true });
@@ -1726,8 +1813,10 @@ async function loadData() {
 
 document.querySelectorAll('.nav-button[data-page]').forEach(button => {
   button.addEventListener('click', () => {
-    if (!activateDataset(button.dataset.dataset || 'gatto')) return;
+    const targetDataset = button.dataset.page === 'linea' && !button.dataset.dataset ? state.dataset : (button.dataset.dataset || 'gatto');
+    if (!activateDataset(targetDataset)) return;
     state.activePage = button.dataset.page;
+    document.body.classList.toggle('line-page-active', state.activePage === 'linea');
     updateDatasetContext();
     document.querySelectorAll('.nav-button').forEach(b => b.classList.toggle('active', b === button));
     document.querySelectorAll('.page').forEach(page => page.classList.toggle('active', page.id === `page-${button.dataset.page}`));
@@ -1869,6 +1958,17 @@ document.querySelectorAll('[data-stepper]').forEach(button => {
   });
 });
 
+document.querySelectorAll('#lineDatasetSelector button').forEach(button => {
+  button.addEventListener('click', () => {
+    if (!button.disabled && activateDataset(button.dataset.dataset)) {}
+  });
+});
+document.querySelectorAll('#lineSelector button').forEach(button => {
+  button.addEventListener('click', () => {
+    state.selectedLine = Number(button.dataset.line);
+    renderLineByLinePage();
+  });
+});
 document.querySelectorAll('#resultFilter button').forEach(button => {
   button.addEventListener('click', () => {
     state.resultFilter = button.dataset.result;
