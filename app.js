@@ -800,26 +800,26 @@ function lineOperations(ops) {
     const date = String(op.dataHoraIso || '').slice(0, 10);
     if (!date) return;
     if (!grouped.has(date)) grouped.set(date, []);
-    grouped.get(date).push({op, index});
+    const idMatch = String(op.id || '').match(/(?:__|[-_])(\\d+)$/);
+    const explicit = idMatch ? Number(idMatch[1]) : Number(op.order);
+    const candle = Number(op.candleEntrada);
+    grouped.get(date).push({op,index,explicit:Number.isInteger(explicit)&&explicit>=1&&explicit<=3?explicit:null,candle:Number.isFinite(candle)?candle:null});
   });
-  const lines = [[], [], []];
-  [...grouped.keys()].sort().forEach(date => {
-    const entries = grouped.get(date).sort((a,b) => {
-      const ta = String(a.op.dataHoraIso || ''), tb = String(b.op.dataHoraIso || '');
-      return ta.localeCompare(tb) || a.index - b.index;
+  const lines=[[],[],[]];
+  [...grouped.keys()].sort().forEach(date=>{
+    const entries=grouped.get(date).sort((a,b)=>{
+      if(a.explicit!==null&&b.explicit!==null&&a.explicit!==b.explicit)return a.explicit-b.explicit;
+      if(a.candle!==null&&b.candle!==null&&a.candle!==b.candle)return a.candle-b.candle;
+      const time=String(a.op.dataHoraIso||'').localeCompare(String(b.op.dataHoraIso||''));
+      return time||a.index-b.index;
     });
-    entries.forEach((entry, i) => {
-      let order = Number(entry.op.order);
-      if (!(order >= 1 && order <= 3)) {
-        const match = String(entry.op.id || '').match(/(?:op|gio)[-_ ]?(\d+)$/i);
-        order = match ? Number(match[1]) : i + 1;
-      }
-      if (order >= 1 && order <= 3) lines[order - 1].push(entry.op);
+    entries.forEach((entry,i)=>{
+      const order=entry.explicit??(i+1);
+      if(order>=1&&order<=3)lines[order-1].push(entry.op);
     });
   });
   return lines;
 }
-
 function lineStats(ops) {
   const values = ops.map(op => Number(op.financeiro) || 0);
   let total = 0, peak = 0, dd = 0, wins = 0, grossWin = 0, grossLoss = 0;
