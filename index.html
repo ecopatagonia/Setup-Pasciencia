@@ -17,20 +17,13 @@
       </div>
 
       <nav class="nav" aria-label="Menu principal">
-        <button class="nav-button active" data-page="visao" type="button">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 13h6V4H4v9Zm0 7h6v-4H4v4Zm10 0h6v-9h-6v9Zm0-16v4h6V4h-6Z"/></svg>
-          Visão geral
-        </button>
-        <button class="nav-button" data-page="resultados" data-permission="resultados" type="button">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V9m5 10V5m6 14v-7m5 7V3"/><path d="M2 21h20"/></svg>
-          Resultados
-        </button>
-        <div class="nav-group">
-          <button class="nav-group-toggle" type="button" aria-expanded="false">
+        <div class="nav-group open" id="gattoResultsNav">
+          <button class="nav-group-toggle" type="button" aria-expanded="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V9m5 10V5m6 14v-7m5 7V3"/><path d="M2 21h20"/></svg>
-            <span>Estatísticas</span><span class="nav-chevron">⌄</span>
+            <span>Resultados GATTO</span><span class="nav-chevron">⌄</span>
           </button>
           <div class="nav-submenu">
+            <button class="nav-button nav-subitem active" data-page="resultados" data-permission="resultados" type="button">Resumo de resultados</button>
             <button class="nav-button nav-subitem" data-page="patrimonio" data-permission="patrimonio" type="button">Patrimônio</button>
             <button class="nav-button nav-subitem" data-page="pontos" data-permission="pontos" type="button">Pontos</button>
             <button class="nav-button nav-subitem" data-page="consistencia" data-permission="consistencia" type="button">Consistência</button>
@@ -137,7 +130,7 @@
         </div>
       </section>
 
-      <section class="page active" id="page-visao">
+      <section class="page" id="page-visao">
         <header class="page-header">
           <div class="page-heading-wrap">
             <button class="menu-toggle" type="button" aria-label="Abrir menu" aria-expanded="false">
@@ -323,11 +316,11 @@
         </article>
       </section>
 
-      <section class="page" id="page-resultados">
+      <section class="page active" id="page-resultados">
         <header class="page-header">
           <div class="page-heading-wrap">
             <button class="menu-toggle" type="button" aria-label="Abrir menu" aria-expanded="false"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
-            <div><p class="eyebrow">Resultados consolidados</p><h1>Desempenho do setup</h1><p class="subtitle">Leitura financeira, temporal e operacional da mesma base utilizada em Visão geral.</p></div>
+            <div><p class="eyebrow">Resultados consolidados</p><h1>Resultados GATTO</h1><p class="subtitle">Leitura financeira, temporal e operacional do setup GATTO.</p></div>
           </div>
         </header>
         <div class="metrics results-kpis">
@@ -649,7 +642,7 @@
   <script src="config.js?v=5.0"></script>
   <script src="auth.js?v=6.2"></script>
   <script src="comparativo/bridge.js?v=1.2"></script>
-  <script src="app.js?v=5.9"></script>
+  <script src="app.js?v=6.0"></script>
   <script src="escalada/bridge.js?v=1.0"></script>
 </body>
 </html>
