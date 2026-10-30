@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Painel de performance do O PULO DO GATTO.">
   <title>O PULO DO GATTO — Performance</title>
-  <link rel="stylesheet" href="styles.css?v=6.1">
+  <link rel="stylesheet" href="styles.css?v=6.2">
   <link rel="stylesheet" href="auth.css?v=6.2">
 </head>
 <body>
@@ -17,52 +17,62 @@
       </div>
 
       <nav class="nav" aria-label="Menu principal">
-        <div class="nav-group open" id="gattoResultsNav">
+        <div class="nav-group open" id="setupGattoNav">
           <button class="nav-group-toggle" type="button" aria-expanded="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V9m5 10V5m6 14v-7m5 7V3"/><path d="M2 21h20"/></svg>
-            <span>Resultados GATTO</span><span class="nav-chevron">⌄</span>
+            <span>Setup GATTO</span><span class="nav-chevron">⌄</span>
           </button>
           <div class="nav-submenu">
-            <button class="nav-button nav-subitem active" data-page="resultados" data-dataset="gatto" data-permission="resultados" type="button">Resumo de resultados</button>
-            <button class="nav-button nav-subitem" data-page="patrimonio" data-dataset="gatto" data-permission="patrimonio" type="button">Patrimônio</button>
-            <button class="nav-button nav-subitem" data-page="pontos" data-dataset="gatto" data-permission="pontos" type="button">Pontos</button>
-            <button class="nav-button nav-subitem" data-page="consistencia" data-dataset="gatto" data-permission="consistencia" type="button">Consistência</button>
-            <button class="nav-button nav-subitem" data-page="evolucao" data-dataset="gatto" data-permission="evolucao_temporal" type="button">Evolução temporal</button>
-            <button class="nav-button nav-subitem" data-page="horarios" data-dataset="gatto" data-permission="horarios" type="button">Horários</button>
+            <div class="nav-group open" id="gattoResultsNav">
+              <button class="nav-group-toggle" type="button" aria-expanded="true">
+                <span>Resultados GATTO</span><span class="nav-chevron">⌄</span>
+              </button>
+              <div class="nav-submenu">
+                <button class="nav-button nav-subitem active" data-page="resultados" data-dataset="gatto" data-permission="resultados" type="button">Resumo de resultados</button>
+                <button class="nav-button nav-subitem" data-page="patrimonio" data-dataset="gatto" data-permission="patrimonio" type="button">Patrimônio</button>
+                <button class="nav-button nav-subitem" data-page="pontos" data-dataset="gatto" data-permission="pontos" type="button">Pontos</button>
+                <button class="nav-button nav-subitem" data-page="consistencia" data-dataset="gatto" data-permission="consistencia" type="button">Consistência</button>
+                <button class="nav-button nav-subitem" data-page="evolucao" data-dataset="gatto" data-permission="evolucao_temporal" type="button">Evolução temporal</button>
+                <button class="nav-button nav-subitem" data-page="horarios" data-dataset="gatto" data-permission="horarios" type="button">Horários</button>
+              </div>
+            </div>
+            <a class="nav-button nav-subitem nav-link" data-permission="robustez" href="robustez/index.html?view=site">Teste de Robustez</a>
+            <div class="nav-group" id="riskNav">
+              <button class="nav-group-toggle" type="button" aria-expanded="false">
+                <span>Controle de Riscos</span><span class="nav-chevron">⌄</span>
+              </button>
+              <div class="nav-submenu">
+                <button class="nav-button nav-subitem" data-page="risco" data-permission="calibragem" type="button">Calibragem</button>
+                <button class="nav-button nav-subitem" data-page="projecao" data-permission="projecao_risco" type="button">Projeção de risco</button>
+              </div>
+            </div>
           </div>
         </div>
-        <div class="nav-group" id="gioResultsNav">
+        <div class="nav-group" id="setupGioNav">
           <button class="nav-group-toggle" type="button" aria-expanded="false">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V9m5 10V5m6 14v-7m5 7V3"/><path d="M2 21h20"/></svg>
-            <span>Resultados GIO</span><span class="nav-chevron">⌄</span>
+            <span>Setup GIO</span><span class="nav-chevron">⌄</span>
           </button>
           <div class="nav-submenu">
-            <button class="nav-button nav-subitem" data-page="resultados" data-dataset="gio" data-permission="resultados" type="button">Resumo de resultados</button>
-            <button class="nav-button nav-subitem" data-page="patrimonio" data-dataset="gio" data-permission="patrimonio" type="button">Patrimônio</button>
-            <button class="nav-button nav-subitem" data-page="pontos" data-dataset="gio" data-permission="pontos" type="button">Pontos</button>
-            <button class="nav-button nav-subitem" data-page="consistencia" data-dataset="gio" data-permission="consistencia" type="button">Consistência</button>
-            <button class="nav-button nav-subitem" data-page="evolucao" data-dataset="gio" data-permission="evolucao_temporal" type="button">Evolução temporal</button>
-            <button class="nav-button nav-subitem" data-page="horarios" data-dataset="gio" data-permission="horarios" type="button">Horários</button>
+            <div class="nav-group" id="gioResultsNav">
+              <button class="nav-group-toggle" type="button" aria-expanded="false">
+                <span>Resultados GIO</span><span class="nav-chevron">⌄</span>
+              </button>
+              <div class="nav-submenu">
+                <button class="nav-button nav-subitem" data-page="resultados" data-dataset="gio" data-permission="resultados" type="button">Resumo de resultados</button>
+                <button class="nav-button nav-subitem" data-page="patrimonio" data-dataset="gio" data-permission="patrimonio" type="button">Patrimônio</button>
+                <button class="nav-button nav-subitem" data-page="pontos" data-dataset="gio" data-permission="pontos" type="button">Pontos</button>
+                <button class="nav-button nav-subitem" data-page="consistencia" data-dataset="gio" data-permission="consistencia" type="button">Consistência</button>
+                <button class="nav-button nav-subitem" data-page="evolucao" data-dataset="gio" data-permission="evolucao_temporal" type="button">Evolução temporal</button>
+                <button class="nav-button nav-subitem" data-page="horarios" data-dataset="gio" data-permission="horarios" type="button">Horários</button>
+              </div>
+            </div>
           </div>
         </div>
-        <div class="nav-group">
-          <button class="nav-group-toggle" type="button" aria-expanded="false">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 4 6v5c0 5 3.4 8.2 8 10 4.6-1.8 8-5 8-10V6l-8-3Z"/><path d="M12 8v5m0 3h.01"/></svg>
-            <span>Controle de risco</span><span class="nav-chevron">⌄</span>
-          </button>
-          <div class="nav-submenu">
-            <button class="nav-button nav-subitem" data-page="risco" data-permission="calibragem" type="button">Calibragem</button>
-            <button class="nav-button nav-subitem" data-page="projecao" data-permission="projecao_risco" type="button">Projeção de risco</button>
-          </div>
-        </div>
-        <button class="nav-button" data-page="operacoes" type="button">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16M4 12h16M4 18h16"/><path d="M7 4v4m7 2v4m4 2v4"/></svg>
-          Operações
-        </button>
         <div class="nav-group" id="comparisonNav">
           <button class="nav-group-toggle" data-permission="resultados" type="button" aria-expanded="false">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V7m5 12V3m6 16v-8m5 8V5M2 21h20"/></svg>
-            <span>Comparativo GIO</span><span class="nav-chevron">⌄</span>
+            <span>Comparativo</span><span class="nav-chevron">⌄</span>
           </button>
           <div class="nav-submenu">
             <button class="nav-button nav-subitem" data-page="comparativo" data-comparison-page="overview" data-permission="resultados" type="button">Visão comparativa</button>
@@ -73,14 +83,16 @@
             <button class="nav-button nav-subitem" data-page="comparativo" data-comparison-page="data" data-permission="resultados" type="button">Operações e dados</button>
           </div>
         </div>
-        <button class="nav-button" data-page="escalada" data-permission="calibragem" type="button">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 20h18M5 17v-4h4V9h5V5h5"/><path d="m15 5 4 0 0 4"/></svg>
-          Laboratório de escalada
-        </button>
-        <a class="nav-button nav-link" data-permission="robustez" href="robustez/index.html?view=site">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 4 6v5c0 5 3.4 8.2 8 10 4.6-1.8 8-5 8-10V6l-8-3Z"/><path d="m7 15 3-3 2 2 5-5"/></svg>
-          Teste de Robustez
-        </a>
+        <div class="nav-group" id="escaladaNav">
+          <button class="nav-group-toggle" type="button" aria-expanded="false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 20h18M5 17v-4h4V9h5V5h5"/><path d="m15 5 4 0 0 4"/></svg>
+            <span>Escalada</span><span class="nav-chevron">⌄</span>
+          </button>
+          <div class="nav-submenu">
+            <button class="nav-button nav-subitem" data-page="escalada" data-permission="calibragem" type="button">Escalada GATTO</button>
+            <button class="nav-button nav-subitem upcoming-item" type="button" disabled aria-disabled="true">Escalada GIO <small>En preparación</small></button>
+          </div>
+        </div>
       </nav>
 
       <div class="nav-spacer"></div>
@@ -658,7 +670,7 @@
   <script src="config.js?v=5.0"></script>
   <script src="auth.js?v=6.2"></script>
   <script src="comparativo/bridge.js?v=1.2"></script>
-  <script src="app.js?v=6.2"></script>
+  <script src="app.js?v=6.3"></script>
   <script src="escalada/bridge.js?v=1.0"></script>
 </body>
 </html>

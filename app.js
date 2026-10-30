@@ -1744,7 +1744,8 @@ document.querySelectorAll('.nav-button[data-page]').forEach(button => {
 document.querySelectorAll('.nav-group-toggle').forEach(toggle => {
   toggle.addEventListener('click', () => {
     const group = toggle.closest('.nav-group');
-    document.querySelectorAll('.nav-group').forEach(other => {
+    const siblings = [...group.parentElement.children].filter(element => element.classList.contains('nav-group'));
+    siblings.forEach(other => {
       if (other !== group) other.classList.remove('open');
     });
     group.classList.toggle('open');
