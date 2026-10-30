@@ -794,28 +794,27 @@ function renderResultsDashboard() {
 }
 
 function lineOperations(ops) {
-  const grouped = new Map();
-  ops.forEach((op, index) => {
-    const date = String(op.dataHoraIso || '').slice(0, 10);
-    if (!date) return;
-    if (!grouped.has(date)) grouped.set(date, []);
-    const idMatch = String(op.id || '').match(/(?:__|[-_])(\\d+)$/);
-    const explicit = idMatch ? Number(idMatch[1]) : Number(op.order);
-    const candle = Number(op.candleEntrada);
+  const grouped=new Map();
+  ops.forEach((op,index)=>{
+    const date=String(op.dataHoraIso||'').slice(0,10);if(!date)return;
+    if(!grouped.has(date))grouped.set(date,[]);
+    const idMatch=String(op.id||'').match(/(?:__|[-_])(\\d+)$/);
+    const explicit=idMatch?Number(idMatch[1]):Number(op.order);
+    const candle=Number(op.candleEntrada);
     grouped.get(date).push({op,index,explicit:Number.isInteger(explicit)&&explicit>=1&&explicit<=3?explicit:null,candle:Number.isFinite(candle)?candle:null});
   });
   const lines=[[],[],[]];
   [...grouped.keys()].sort().forEach(date=>{
-    const entries=grouped.get(date).sort((a,b)=>{
-      if(a.explicit!==null&&b.explicit!==null&&a.explicit!==b.explicit)return a.explicit-b.explicit;
-      if(a.candle!==null&&b.candle!==null&&a.candle!==b.candle)return a.candle-b.candle;
+    const entries=grouped.get(date),usesCandle=entries.some(entry=>entry.candle!==null);
+    entries.sort((a,b)=>{
+      if(usesCandle){
+        const ac=a.candle===null?Infinity:a.candle,bc=b.candle===null?Infinity:b.candle;
+        if(ac!==bc)return ac-bc;
+      }else if(a.explicit!==null&&b.explicit!==null&&a.explicit!==b.explicit){return a.explicit-b.explicit;}
       const time=String(a.op.dataHoraIso||'').localeCompare(String(b.op.dataHoraIso||''));
       return time||a.index-b.index;
     });
-    entries.forEach((entry,i)=>{
-      const order=entry.explicit??(i+1);
-      if(order>=1&&order<=3)lines[order-1].push(entry.op);
-    });
+    entries.forEach((entry,index)=>{const order=usesCandle?index+1:(entry.explicit??index+1);if(order>=1&&order<=3)lines[order-1].push(entry.op);});
   });
   return lines;
 }
