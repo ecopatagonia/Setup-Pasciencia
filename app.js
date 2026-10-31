@@ -1861,7 +1861,7 @@ async function loadData() {
     document.getElementById('gioResultsNav')?.classList.toggle('gio-data-unavailable', !state.gioAll.length);
     statusDot.className = 'status-dot ok';
     statusText.textContent = 'Dados atualizados';
-    statusDetail.textContent = `${payload.meta.total} operações GATTO · ${state.gioAll.length} GIO · ${payload.geradoEm.slice(0, 10)}`;
+    statusDetail.textContent = `${payload.meta.total} operações GATTO · ${state.gioAll.length} GIO · ${payload.geradoEm.slice(0, 10)}${state.gioWarnings.length ? ` · ${state.gioWarnings.length} alerta(s) GIO` : ''}`;
     loadingState?.classList.add('loaded');
     applyPeriod();
   } catch (error) {
