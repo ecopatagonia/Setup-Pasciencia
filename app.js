@@ -120,8 +120,17 @@ function updateDatasetContext() {
 function showGioWarnings() {
   const notice = document.getElementById('notice');
   if (!notice) return;
-  if (state.dataset !== 'gio' || !state.gioWarnings.length) {
+  if (state.dataset !== 'gio') {
     notice.classList.remove('visible');
+    return;
+  }
+  if (!state.gioWarnings.length) {
+    if (!state.gioAll.length) {
+      notice.textContent = 'A API não retornou operações GIO válidas nem detalhes de conflito. Confira a implantação da API.';
+      notice.classList.add('visible');
+    } else {
+      notice.classList.remove('visible');
+    }
     return;
   }
   const lines = state.gioWarnings.slice(0, 5).map(warning => {
