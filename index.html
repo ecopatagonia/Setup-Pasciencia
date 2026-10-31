@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Painel de performance do O PULO DO GATTO.">
   <title>O PULO DO GATTO — Performance</title>
-  <link rel="stylesheet" href="styles.css?v=6.4">
+  <link rel="stylesheet" href="styles.css?v=5.2">
   <link rel="stylesheet" href="auth.css?v=6.2">
 </head>
 <body>
@@ -17,66 +17,45 @@
       </div>
 
       <nav class="nav" aria-label="Menu principal">
-        <div class="nav-group open" id="setupGattoNav">
-          <button class="nav-group-toggle" type="button" aria-expanded="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V9m5 10V5m6 14v-7m5 7V3"/><path d="M2 21h20"/></svg>
-            <span>Setup GATTO</span><span class="nav-chevron">⌄</span>
-          </button>
-          <div class="nav-submenu">
-            <div class="nav-group open" id="gattoResultsNav">
-              <button class="nav-group-toggle" type="button" aria-expanded="true">
-                <span>Resultados GATTO</span><span class="nav-chevron">⌄</span>
-              </button>
-              <div class="nav-submenu">
-                <button class="nav-button nav-subitem active" data-page="resultados" data-dataset="gatto" data-permission="resultados" type="button">Resumo de resultados</button>
-                <button class="nav-button nav-subitem" data-page="patrimonio" data-dataset="gatto" data-permission="patrimonio" type="button">Patrimônio</button>
-                <button class="nav-button nav-subitem" data-page="pontos" data-dataset="gatto" data-permission="pontos" type="button">Pontos</button>
-                <button class="nav-button nav-subitem" data-page="consistencia" data-dataset="gatto" data-permission="consistencia" type="button">Consistência</button>
-                <button class="nav-button nav-subitem" data-page="evolucao" data-dataset="gatto" data-permission="evolucao_temporal" type="button">Evolução temporal</button>
-                <button class="nav-button nav-subitem" data-page="horarios" data-dataset="gatto" data-permission="horarios" type="button">Horários</button>
-              </div>
-            </div>
-            <a class="nav-button nav-subitem nav-link" data-permission="robustez" href="robustez/index.html?view=site">Teste de Robustez</a>
-            <div class="nav-group" id="riskNav">
-              <button class="nav-group-toggle" type="button" aria-expanded="false">
-                <span>Controle de Riscos</span><span class="nav-chevron">⌄</span>
-              </button>
-              <div class="nav-submenu">
-                <button class="nav-button nav-subitem" data-page="risco" data-permission="calibragem" type="button">Calibragem</button>
-                <button class="nav-button nav-subitem" data-page="projecao" data-permission="projecao_risco" type="button">Projeção de risco</button>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="nav-group" id="setupGioNav">
+        <button class="nav-button active" data-page="visao" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 13h6V4H4v9Zm0 7h6v-4H4v4Zm10 0h6v-9h-6v9Zm0-16v4h6V4h-6Z"/></svg>
+          Visão geral
+        </button>
+        <button class="nav-button" data-page="resultados" data-permission="resultados" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V9m5 10V5m6 14v-7m5 7V3"/><path d="M2 21h20"/></svg>
+          Resultados
+        </button>
+        <div class="nav-group">
           <button class="nav-group-toggle" type="button" aria-expanded="false">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V9m5 10V5m6 14v-7m5 7V3"/><path d="M2 21h20"/></svg>
-            <span>Setup GIO</span><span class="nav-chevron">⌄</span>
+            <span>Estatísticas</span><span class="nav-chevron">⌄</span>
           </button>
           <div class="nav-submenu">
-            <div class="nav-group" id="gioResultsNav">
-              <button class="nav-group-toggle" type="button" aria-expanded="false">
-                <span>Resultados GIO</span><span class="nav-chevron">⌄</span>
-              </button>
-              <div class="nav-submenu">
-                <button class="nav-button nav-subitem" data-page="resultados" data-dataset="gio" data-permission="resultados" type="button">Resumo de resultados</button>
-                <button class="nav-button nav-subitem" data-page="patrimonio" data-dataset="gio" data-permission="patrimonio" type="button">Patrimônio</button>
-                <button class="nav-button nav-subitem" data-page="pontos" data-dataset="gio" data-permission="pontos" type="button">Pontos</button>
-                <button class="nav-button nav-subitem" data-page="consistencia" data-dataset="gio" data-permission="consistencia" type="button">Consistência</button>
-                <button class="nav-button nav-subitem" data-page="evolucao" data-dataset="gio" data-permission="evolucao_temporal" type="button">Evolução temporal</button>
-                <button class="nav-button nav-subitem" data-page="horarios" data-dataset="gio" data-permission="horarios" type="button">Horários</button>
-              </div>
-            </div>
+            <button class="nav-button nav-subitem" data-page="patrimonio" data-permission="patrimonio" type="button">Patrimônio</button>
+            <button class="nav-button nav-subitem" data-page="pontos" data-permission="pontos" type="button">Pontos</button>
+            <button class="nav-button nav-subitem" data-page="consistencia" data-permission="consistencia" type="button">Consistência</button>
+            <button class="nav-button nav-subitem" data-page="evolucao" data-permission="evolucao_temporal" type="button">Evolução temporal</button>
+            <button class="nav-button nav-subitem" data-page="horarios" data-permission="horarios" type="button">Horários</button>
           </div>
         </div>
-        <button class="nav-button nav-top-level" data-page="linea" data-permission="resultados" type="button">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 20h18M5 16l4-5 4 3 6-8"/><circle cx="19" cy="6" r="1.5"/></svg>
-          <span>Linha a linha</span>
+        <div class="nav-group">
+          <button class="nav-group-toggle" type="button" aria-expanded="false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 4 6v5c0 5 3.4 8.2 8 10 4.6-1.8 8-5 8-10V6l-8-3Z"/><path d="M12 8v5m0 3h.01"/></svg>
+            <span>Controle de risco</span><span class="nav-chevron">⌄</span>
+          </button>
+          <div class="nav-submenu">
+            <button class="nav-button nav-subitem" data-page="risco" data-permission="calibragem" type="button">Calibragem</button>
+            <button class="nav-button nav-subitem" data-page="projecao" data-permission="projecao_risco" type="button">Projeção de risco</button>
+          </div>
+        </div>
+        <button class="nav-button" data-page="operacoes" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16M4 12h16M4 18h16"/><path d="M7 4v4m7 2v4m4 2v4"/></svg>
+          Operações
         </button>
         <div class="nav-group" id="comparisonNav">
           <button class="nav-group-toggle" data-permission="resultados" type="button" aria-expanded="false">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V7m5 12V3m6 16v-8m5 8V5M2 21h20"/></svg>
-            <span>Comparativo</span><span class="nav-chevron">⌄</span>
+            <span>Comparativo GIO</span><span class="nav-chevron">⌄</span>
           </button>
           <div class="nav-submenu">
             <button class="nav-button nav-subitem" data-page="comparativo" data-comparison-page="overview" data-permission="resultados" type="button">Visão comparativa</button>
@@ -87,16 +66,14 @@
             <button class="nav-button nav-subitem" data-page="comparativo" data-comparison-page="data" data-permission="resultados" type="button">Operações e dados</button>
           </div>
         </div>
-        <div class="nav-group" id="escaladaNav">
-          <button class="nav-group-toggle" type="button" aria-expanded="false">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 20h18M5 17v-4h4V9h5V5h5"/><path d="m15 5 4 0 0 4"/></svg>
-            <span>Escalada</span><span class="nav-chevron">⌄</span>
-          </button>
-          <div class="nav-submenu">
-            <button class="nav-button nav-subitem" data-page="escalada" data-permission="calibragem" type="button">Escalada GATTO</button>
-            <button class="nav-button nav-subitem upcoming-item" type="button" disabled aria-disabled="true">Escalada GIO <small>En preparación</small></button>
-          </div>
-        </div>
+        <button class="nav-button" data-page="escalada" data-permission="calibragem" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 20h18M5 17v-4h4V9h5V5h5"/><path d="m15 5 4 0 0 4"/></svg>
+          Laboratório de escalada
+        </button>
+        <a class="nav-button nav-link" data-permission="robustez" href="robustez/index.html?view=site">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 4 6v5c0 5 3.4 8.2 8 10 4.6-1.8 8-5 8-10V6l-8-3Z"/><path d="m7 15 3-3 2 2 5-5"/></svg>
+          Teste de Robustez
+        </a>
       </nav>
 
       <div class="nav-spacer"></div>
@@ -111,7 +88,6 @@
 
     <main>
       <div class="topbar">
-        <div class="dataset-context" id="datasetContext">Base de resultados: GATTO</div>
         <div class="theme-switch" role="group" aria-label="Tema visual">
           <button type="button" data-theme-option="light" aria-pressed="false">
             <span aria-hidden="true">☀</span> Claro
@@ -161,7 +137,7 @@
         </div>
       </section>
 
-      <section class="page" id="page-visao">
+      <section class="page active" id="page-visao">
         <header class="page-header">
           <div class="page-heading-wrap">
             <button class="menu-toggle" type="button" aria-label="Abrir menu" aria-expanded="false">
@@ -347,11 +323,11 @@
         </article>
       </section>
 
-      <section class="page active" id="page-resultados">
+      <section class="page" id="page-resultados">
         <header class="page-header">
           <div class="page-heading-wrap">
             <button class="menu-toggle" type="button" aria-label="Abrir menu" aria-expanded="false"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
-            <div><p class="eyebrow">Resultados consolidados</p><h1 id="resultsHeading">Resultados GATTO</h1><p class="subtitle">Leitura financeira, temporal e operacional do setup GATTO.</p></div>
+            <div><p class="eyebrow">Resultados consolidados</p><h1>Desempenho do setup</h1><p class="subtitle">Leitura financeira, temporal e operacional da mesma base utilizada em Visão geral.</p></div>
           </div>
         </header>
         <div class="metrics results-kpis">
@@ -391,59 +367,6 @@
           <div class="results-summary" id="weeklySummary"></div>
           <div class="results-summary" id="weeklySummarySecondary"></div>
         </article>
-      </section>
-
-      <section class="page" id="page-linea">
-        <header class="page-header">
-          <div class="page-heading-wrap">
-            <button class="menu-toggle" type="button" aria-label="Abrir menu" aria-expanded="false"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
-            <div><p class="eyebrow">Comparação por ordem de entrada</p><h1>Linha a linha</h1><p class="subtitle">Analise cada posição diária como uma curva independente, usando a base GATTO ou GIO.</p></div>
-          </div>
-        </header>
-        <div class="line-setup-controls">
-          <span class="toolbar-label">Base do setup</span>
-          <div class="segmented" id="lineDatasetSelector" role="group" aria-label="Escolher base do setup">
-            <button class="active" data-dataset="gatto" type="button" aria-pressed="true">Setup GATTO</button>
-            <button data-dataset="gio" type="button" aria-pressed="false">Setup GIO</button>
-          </div>
-          <span class="panel-copy">O período é o mesmo filtro selecionado acima.</span>
-        </div>
-        <article class="panel">
-          <div class="panel-heading"><div><p class="eyebrow">Visão comparativa</p><h2 class="panel-title">As três curvas independentes</h2><p class="panel-copy">Cada linha mostra o acumulado real das operações daquela ordem. Datas sem operação aparecem como intervalos sem linha, sem criar resultados zero.</p></div></div>
-          <div class="chart-wrap line-comparison-wrap"><canvas id="lineComparisonChart" aria-label="Comparación de las curvas Op1, Op2 y Op3"></canvas><div class="line-chart-tooltip" id="lineComparisonTooltip" role="status" hidden></div></div>
-          <div class="legend line-legend"><span class="legend-item"><i class="legend-line line-op1"></i>Op1</span><span class="legend-item"><i class="legend-line line-op2"></i>Op2</span><span class="legend-item"><i class="legend-line line-op3"></i>Op3</span></div>
-          <div class="table-scroll"><table class="line-comparison-table"><thead><tr><th>Linha</th><th>Operações</th><th>Resultado</th><th>Drawdown máx. por operação</th><th>Winrate</th><th>Expectativa</th></tr></thead><tbody id="lineComparisonRows"></tbody></table></div>
-        </article>
-        <div class="line-selected-heading">
-          <div><p class="eyebrow">Resumo da linha selecionada</p><h2 id="lineSelectedTitle" data-metric="lineSelectedTitle">Op1 · GATTO</h2><p class="panel-copy">Selecione uma linha por vez. As métricas e gráficos abaixo usam somente essas operações.</p></div>
-          <div class="segmented line-selector" id="lineSelector" role="group" aria-label="Selecionar uma linha de operações">
-            <button class="active" data-line="1" type="button" aria-pressed="true">Op1</button><button data-line="2" type="button" aria-pressed="false">Op2</button><button data-line="3" type="button" aria-pressed="false">Op3</button>
-          </div>
-        </div>
-        <div class="metrics results-kpis line-kpis">
-          <article class="metric metric-emphasis"><div class="metric-label">Resultado líquido</div><div class="metric-value" id="lineKpiTotal" data-metric="lineKpiTotal">R$ 0,00</div><div class="metric-note">Acumulado no período</div></article>
-          <article class="metric"><div class="metric-label">Operações</div><div class="metric-value" id="lineKpiOperations" data-metric="lineKpiOperations">0</div><div class="metric-note">Da linha selecionada</div></article>
-          <article class="metric"><div class="metric-label">Expectativa</div><div class="metric-value" id="lineKpiExpectancy" data-metric="lineKpiExpectancy">R$ 0,00</div><div class="metric-note">Por operação</div></article>
-          <article class="metric"><div class="metric-label">Profit factor</div><div class="metric-value" id="lineKpiPF" data-metric="lineKpiPF">0,00</div><div class="metric-note">Ganhos brutos ÷ perdas brutas</div></article>
-          <article class="metric"><div class="metric-label">Payoff médio</div><div class="metric-value" id="lineKpiPayoff" data-metric="lineKpiPayoff">0,00</div><div class="metric-note">Gain médio ÷ loss médio</div></article>
-          <article class="metric"><div class="metric-label">Drawdown máximo</div><div class="metric-value negative" id="lineKpiDD" data-metric="lineKpiDD">R$ 0,00</div><div class="metric-note">Medido operação a operação</div></article>
-        </div>
-        <article class="panel">
-          <div class="panel-heading"><div><p class="eyebrow">Evolução acumulada</p><h2 class="panel-title">Evolução do lucro e colchão</h2><p class="panel-copy">A linha de zero fica visível; o trecho em drawdown aparece em vermelho. O cursor mostra resultado, profundidade e duração.</p></div><div class="legend"><span class="legend-item"><i class="legend-line line-positive"></i>Avanço / novo pico</span><span class="legend-item"><i class="legend-line negative"></i>Em drawdown</span><span class="legend-item"><i class="legend-line negative line-limit"></i>Limite: pico − R$ 2.500</span></div></div>
-          <div class="chart-wrap line-equity-wrap"><canvas id="lineEquityChart" aria-label="Curva de lucro acumulado de la línea seleccionada"></canvas><div class="line-chart-tooltip" id="lineEquityTooltip" role="status" hidden></div></div>
-        </article>
-        <article class="panel">
-          <div class="panel-heading"><div><p class="eyebrow">Drawdown vigente</p><h2 class="panel-title">Queda e recuperação desde o último pico</h2><p class="panel-copy">Mismo detalle de Resumo de resultados, calculado solo con la línea elegida.</p></div><div class="legend"><span class="legend-item"><i class="legend-line negative"></i>Queda</span><span class="legend-item"><i class="legend-line"></i>Recuperación</span><span class="legend-item"><i class="legend-line period-average"></i>Pico</span></div></div>
-          <div class="drawdown-metrics" id="lineCurrentDrawdownMetrics"></div>
-          <div class="chart-wrap results-drawdown-wrap"><canvas id="lineCurrentDrawdownChart" aria-label="Drawdown vigente de la línea seleccionada"></canvas></div>
-          <div class="recovery-heading"><span>Recuperación desde el fondo</span><strong id="lineRecoveryPercent">0%</strong></div><div class="recovery-track" role="progressbar" aria-label="Recuperação do drawdown da linha" aria-valuemin="0" aria-valuemax="100"><i id="lineRecoveryFill"></i></div>
-          <div class="results-summary" id="lineDrawdownSummary"></div>
-        </article>
-        <div class="results-grid">
-          <article class="panel"><div class="panel-heading"><div><p class="eyebrow">Consistência</p><h2 class="panel-title">Resultado mensal</h2><p class="panel-copy">Valores em R$ e retorno sobre R$ 2.500.</p></div></div><div class="chart-wrap small"><canvas id="lineMonthlyChart" aria-label="Resultado mensal da linha selecionada"></canvas></div><div class="results-summary" id="lineMonthlySummary"></div></article>
-          <article class="panel"><div class="panel-heading"><div><p class="eyebrow">Comparação anual</p><h2 class="panel-title">Resultado e ritmo mensal</h2></div></div><div class="annual-results" id="lineAnnualResults"></div></article>
-        </div>
-        <article class="panel"><div class="panel-heading"><div><p class="eyebrow">Consistência de curto prazo</p><h2 class="panel-title">Resultado semanal</h2><p class="panel-copy">Cada barra representa uma semana operacional.</p></div></div><div class="chart-wrap results-weekly-wrap"><canvas id="lineWeeklyChart" aria-label="Resultado semanal da linha selecionada"></canvas></div><div class="results-summary" id="lineWeeklySummary"></div><div class="results-summary" id="lineWeeklySummarySecondary"></div></article>
       </section>
 
       <section class="page" id="page-consistencia">
@@ -546,7 +469,6 @@
             <div><p class="eyebrow">Janelas operacionais</p><h1>Horários</h1><p class="subtitle">Relação entre hora de entrada, duração e qualidade dos resultados.</p></div>
           </div>
         </header>
-        <p class="panel-copy gio-hours-note" id="gioHoursNote" hidden>O bloco GIO recebido pelo site contém data e resultado protegido, mas não envia horários nem candles de entrada/saída. As análises por horário e duração ficam indisponíveis até esses campos serem incluídos no feed.</p>
         <div class="metrics">
           <article class="metric"><div class="metric-label">Melhor horário</div><div class="metric-value positive" data-metric="melhor-hora">—</div><div class="metric-note" data-metric="melhor-hora-res">R$ 0,00</div></article>
           <article class="metric"><div class="metric-label">Pior horário</div><div class="metric-value negative" data-metric="pior-hora">—</div><div class="metric-note" data-metric="pior-hora-res">R$ 0,00</div></article>
@@ -698,13 +620,13 @@
           </div>
         </header>
         <p id="escaladaLoading" role="status" hidden>Carregando laboratório…</p>
-        <iframe id="escaladaFrame" title="Laboratório de escalada de contratos 2.0" data-src="escalada/index.html?v=2.0.5" sandbox="allow-scripts allow-same-origin allow-downloads" style="width:100%;height:calc(100dvh - 180px);min-height:720px;border:1px solid var(--border);border-radius:12px;display:block"></iframe>
+        <iframe id="escaladaFrame" title="Laboratório de escalada de contratos 2.0" data-src="escalada/index.html?v=2.0.6" sandbox="allow-scripts allow-same-origin allow-downloads" style="width:100%;height:calc(100dvh - 180px);min-height:720px;border:1px solid var(--border);border-radius:12px;display:block"></iframe>
       </section>
 
       <section class="page" id="page-comparativo" aria-label="Comparativo GIO">
         <button class="menu-toggle" type="button" aria-label="Abrir menu" aria-expanded="false">☰ Menu</button>
         <p class="comparison-loading" id="comparisonLoading" role="status">Carregando comparativo…</p>
-        <iframe id="comparisonFrame" title="Comparativo GIO — métodos original e protegido" data-src="comparativo/index.html?v=1.4" sandbox="allow-scripts allow-same-origin allow-downloads" style="width:100%;border:0;min-height:800px;display:block"></iframe>
+        <iframe id="comparisonFrame" title="Comparativo GIO — métodos original e protegido" data-src="comparativo/index.html?v=1.3" sandbox="allow-scripts allow-same-origin allow-downloads" style="width:100%;border:0;min-height:800px;display:block"></iframe>
       </section>
       <section class="page" id="page-operacoes">
         <header class="page-header">
@@ -727,7 +649,7 @@
   <script src="config.js?v=5.0"></script>
   <script src="auth.js?v=6.2"></script>
   <script src="comparativo/bridge.js?v=1.2"></script>
-  <script src="app.js?v=6.5"></script>
+  <script src="app.js?v=5.9"></script>
   <script src="escalada/bridge.js?v=1.0"></script>
 </body>
 </html>
