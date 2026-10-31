@@ -115,6 +115,8 @@ function updateDatasetContext() {
       : 'Base de resultados: GATTO';
     context.hidden = state.activePage === 'comparativo' || state.activePage === 'escalada';
   }
+  document.getElementById('setupGattoNav')?.classList.toggle('dataset-active', state.dataset === 'gatto');
+  document.getElementById('setupGioNav')?.classList.toggle('dataset-active', state.dataset === 'gio');
 }
 
 function activateDataset(dataset) {
