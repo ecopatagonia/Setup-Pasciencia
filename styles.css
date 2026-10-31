@@ -111,7 +111,6 @@ body.mode-days [data-mode-only="operations"] { display: none; }
   background: transparent; color: var(--muted); cursor: pointer; text-align: left; font-weight: 750;
 }
 .nav-group-toggle:hover, .nav-group.open > .nav-group-toggle { color: var(--text); background: rgba(255,255,255,.035); }
-.nav-group.dataset-active > .nav-group-toggle { color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); box-shadow: inset 3px 0 var(--accent); }
 .nav-group-toggle svg { width: 18px; height: 18px; }
 .nav-chevron { transition: transform .2s ease; }
 .nav-group.open > .nav-group-toggle .nav-chevron { transform: rotate(180deg); }
@@ -335,7 +334,7 @@ h1 { margin: 0; font-size: clamp(27px, 3vw, 39px); letter-spacing: -.04em; }
   letter-spacing: .12em;
   text-transform: uppercase;
 }
-.metric-value { margin-top: 8px; font-size: clamp(23px, 2.2vw, 33px); font-weight: 750; letter-spacing: -.035em; }
+.metric-value { margin-top: 8px; font-size: clamp(18px, 1.7vw, 27px); font-weight: 750; letter-spacing: -.045em; white-space: nowrap; }
 .metric-value.positive { color: var(--positive); }
 .metric-value.negative { color: var(--negative); }
 .metric-note { margin-top: 7px; color: var(--muted-2); font-size: 11px; }
@@ -430,7 +429,6 @@ h1 { margin: 0; font-size: clamp(27px, 3vw, 39px); letter-spacing: -.04em; }
 .line-selector button { min-width:64px; }
 .line-kpis { margin-top:0; }
 .line-kpis .metric { min-width:0; }
-.line-kpis .metric-value { font-size:clamp(18px,1.7vw,27px); white-space:nowrap; letter-spacing:-.045em; }
 .line-chart-tooltip { position:absolute; z-index:4; max-width:270px; min-width:190px; padding:10px 12px; border:1px solid var(--line); border-radius:9px; background:var(--panel-2); box-shadow:var(--shadow); color:var(--text); font-size:11px; line-height:1.55; pointer-events:none; }
 .line-chart-tooltip[hidden] { display:none; }
 .line-chart-tooltip strong { color:var(--accent); }
@@ -732,7 +730,7 @@ tbody tr:hover { background: rgba(255,255,255,.02); }
   .page-heading-wrap { display: flex; align-items: flex-start; gap: 12px; }
   .metrics { grid-template-columns: 1fr 1fr; gap: 9px; }
   .metric { min-height: 112px; padding: 14px; }
-  .metric-value { font-size: 23px; }
+  .metric-value { font-size: 18px; }
   .panel { padding: 17px 12px; }
   .chart-wrap { height: 315px; }
   .chart-wrap.distribution-chart-wrap { height: 370px; }
