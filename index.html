@@ -415,18 +415,18 @@
           <div class="table-scroll"><table class="line-comparison-table"><thead><tr><th>Linha</th><th>Operações</th><th>Resultado</th><th>Drawdown máx. por operação</th><th>Winrate</th><th>Expectativa</th></tr></thead><tbody id="lineComparisonRows"></tbody></table></div>
         </article>
         <div class="line-selected-heading">
-          <div><p class="eyebrow">Resumo da linha selecionada</p><h2 id="lineSelectedTitle">Op1 · GATTO</h2><p class="panel-copy">Selecione uma linha por vez. As métricas e gráficos abaixo usam somente essas operações.</p></div>
+          <div><p class="eyebrow">Resumo da linha selecionada</p><h2 id="lineSelectedTitle" data-metric="lineSelectedTitle">Op1 · GATTO</h2><p class="panel-copy">Selecione uma linha por vez. As métricas e gráficos abaixo usam somente essas operações.</p></div>
           <div class="segmented line-selector" id="lineSelector" role="group" aria-label="Selecionar uma linha de operações">
             <button class="active" data-line="1" type="button" aria-pressed="true">Op1</button><button data-line="2" type="button" aria-pressed="false">Op2</button><button data-line="3" type="button" aria-pressed="false">Op3</button>
           </div>
         </div>
         <div class="metrics results-kpis line-kpis">
-          <article class="metric metric-emphasis"><div class="metric-label">Resultado líquido</div><div class="metric-value" id="lineKpiTotal">R$ 0,00</div><div class="metric-note">Acumulado no período</div></article>
-          <article class="metric"><div class="metric-label">Operações</div><div class="metric-value" id="lineKpiOperations">0</div><div class="metric-note">Da linha selecionada</div></article>
-          <article class="metric"><div class="metric-label">Expectativa</div><div class="metric-value" id="lineKpiExpectancy">R$ 0,00</div><div class="metric-note">Por operação</div></article>
-          <article class="metric"><div class="metric-label">Profit factor</div><div class="metric-value" id="lineKpiPF">0,00</div><div class="metric-note">Ganhos brutos ÷ perdas brutas</div></article>
-          <article class="metric"><div class="metric-label">Payoff médio</div><div class="metric-value" id="lineKpiPayoff">0,00</div><div class="metric-note">Gain médio ÷ loss médio</div></article>
-          <article class="metric"><div class="metric-label">Drawdown máximo</div><div class="metric-value negative" id="lineKpiDD">R$ 0,00</div><div class="metric-note">Medido operação a operação</div></article>
+          <article class="metric metric-emphasis"><div class="metric-label">Resultado líquido</div><div class="metric-value" id="lineKpiTotal" data-metric="lineKpiTotal">R$ 0,00</div><div class="metric-note">Acumulado no período</div></article>
+          <article class="metric"><div class="metric-label">Operações</div><div class="metric-value" id="lineKpiOperations" data-metric="lineKpiOperations">0</div><div class="metric-note">Da linha selecionada</div></article>
+          <article class="metric"><div class="metric-label">Expectativa</div><div class="metric-value" id="lineKpiExpectancy" data-metric="lineKpiExpectancy">R$ 0,00</div><div class="metric-note">Por operação</div></article>
+          <article class="metric"><div class="metric-label">Profit factor</div><div class="metric-value" id="lineKpiPF" data-metric="lineKpiPF">0,00</div><div class="metric-note">Ganhos brutos ÷ perdas brutas</div></article>
+          <article class="metric"><div class="metric-label">Payoff médio</div><div class="metric-value" id="lineKpiPayoff" data-metric="lineKpiPayoff">0,00</div><div class="metric-note">Gain médio ÷ loss médio</div></article>
+          <article class="metric"><div class="metric-label">Drawdown máximo</div><div class="metric-value negative" id="lineKpiDD" data-metric="lineKpiDD">R$ 0,00</div><div class="metric-note">Medido operação a operação</div></article>
         </div>
         <article class="panel">
           <div class="panel-heading"><div><p class="eyebrow">Evolução acumulada</p><h2 class="panel-title">Evolução do lucro e colchão</h2><p class="panel-copy">A linha de zero fica visível; o trecho em drawdown aparece em vermelho. O cursor mostra resultado, profundidade e duração.</p></div><div class="legend"><span class="legend-item"><i class="legend-line line-positive"></i>Avanço / novo pico</span><span class="legend-item"><i class="legend-line negative"></i>Em drawdown</span><span class="legend-item"><i class="legend-line negative line-limit"></i>Limite: pico − R$ 2.500</span></div></div>
