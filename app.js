@@ -1,7 +1,7 @@
 'use strict';
 
 const API_URL = 'https://script.google.com/macros/s/AKfycby1rs6UObGzUGgp2I-vLt4W48V1tu2Jk8MIB066GdBynFTKjJXgBZHl8uptw3Gx_jLd/exec';
-const state = { all: [], filtered: [], gattoAll: [], gioAll: [], dataset: 'gatto', activePage: 'resultados', period: 'custom', selectedYear: null, customFrom: '', customTo: '', mode: 'operations', stats: null, resultFilter: 'all', selectedLine: 1 };
+const state = { all: [], filtered: [], gattoAll: [], gioAll: [], dataset: 'gatto', activePage: 'resultados', period: 'custom', selectedYear: null, customFrom: '', customTo: '', mode: 'operations', stats: null, resultFilter: 'all', selectedLine: 1, gioWarnings: [] };
 const MODE_PAGES = new Set(['resultados', 'pontos', 'operacoes']);
 const money = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 const money0 = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
@@ -117,20 +117,32 @@ function updateDatasetContext() {
   }
 }
 
+function showGioWarnings() {
+  const notice = document.getElementById('notice');
+  if (!notice) return;
+  if (state.dataset !== 'gio' || !state.gioWarnings.length) {
+    notice.classList.remove('visible');
+    return;
+  }
+  const lines = state.gioWarnings.slice(0, 5).map(warning => {
+    const source = warning.linha ? `GIOLVAN linha ${warning.linha}` : 'linha de origem não localizada';
+    const id = warning.id ? `${warning.id} · ` : '';
+    return `${id}${source}: ${warning.mensagem || warning.codigo || 'conflito'}`;
+  });
+  const remaining = state.gioWarnings.length - lines.length;
+  notice.textContent = `GIO carregado com ${state.gioAll.length} operação(ões) válida(s). ${state.gioWarnings.length} conflito(s) para corrigir: ${lines.join(' | ')}${remaining > 0 ? ` | e mais ${remaining}` : ''}`;
+  notice.classList.add('visible');
+}
+
 function activateDataset(dataset) {
   const next = dataset === 'gio' ? 'gio' : 'gatto';
   const records = next === 'gio' ? state.gioAll : state.gattoAll;
-  if (next === 'gio' && !records.length) {
-    const notice = document.getElementById('notice');
-    notice.textContent = 'A API não entregou resultados numéricos de EXECUTADO PROTEGENDO para Resultados GIO. Confira a carga GIO_SITE.';
-    notice.classList.add('visible');
-    return false;
-  }
-  document.getElementById('notice').classList.remove('visible');
   state.dataset = next;
   state.all = records;
   configureDatasetRange(true);
   updateDatasetContext();
+  if (next === 'gio') showGioWarnings();
+  else document.getElementById('notice')?.classList.remove('visible');
   applyPeriod();
   return true;
 }
@@ -1841,6 +1853,7 @@ async function loadData() {
 
     state.gattoAll = payload.operacoes.sort((a, b) => a.dataHoraIso.localeCompare(b.dataHoraIso));
     state.gioAll = normalizeGioOperations(payload.comparativoGio ?? payload.comparativoProtegido);
+    state.gioWarnings = Array.isArray(payload.meta?.avisosGio) ? payload.meta.avisosGio : [];
     state.dataset = 'gatto';
     state.all = state.gattoAll;
     configureDatasetRange(false);
