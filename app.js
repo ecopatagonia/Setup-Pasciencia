@@ -115,8 +115,11 @@ function updateDatasetContext() {
       : 'Base de resultados: GATTO';
     context.hidden = state.activePage === 'comparativo' || state.activePage === 'escalada';
   }
-  document.getElementById('setupGattoNav')?.classList.toggle('dataset-active', state.dataset === 'gatto');
-  document.getElementById('setupGioNav')?.classList.toggle('dataset-active', state.dataset === 'gio');
+  document.querySelectorAll('#lineDatasetSelector button').forEach(button => {
+    const active = button.dataset.dataset === state.dataset;
+    button.classList.toggle('active', active);
+    button.setAttribute('aria-pressed', String(active));
+  });
 }
 
 function activateDataset(dataset) {
