@@ -111,6 +111,7 @@ body.mode-days [data-mode-only="operations"] { display: none; }
   background: transparent; color: var(--muted); cursor: pointer; text-align: left; font-weight: 750;
 }
 .nav-group-toggle:hover, .nav-group.open > .nav-group-toggle { color: var(--text); background: rgba(255,255,255,.035); }
+.nav-group.dataset-active > .nav-group-toggle { color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); box-shadow: inset 3px 0 var(--accent); }
 .nav-group-toggle svg { width: 18px; height: 18px; }
 .nav-chevron { transition: transform .2s ease; }
 .nav-group.open > .nav-group-toggle .nav-chevron { transform: rotate(180deg); }
@@ -428,6 +429,8 @@ h1 { margin: 0; font-size: clamp(27px, 3vw, 39px); letter-spacing: -.04em; }
 .line-selected-heading h2 { margin:0; font-size:24px; }
 .line-selector button { min-width:64px; }
 .line-kpis { margin-top:0; }
+.line-kpis .metric { min-width:0; }
+.line-kpis .metric-value { font-size:clamp(18px,1.7vw,27px); white-space:nowrap; letter-spacing:-.045em; }
 .line-chart-tooltip { position:absolute; z-index:4; max-width:270px; min-width:190px; padding:10px 12px; border:1px solid var(--line); border-radius:9px; background:var(--panel-2); box-shadow:var(--shadow); color:var(--text); font-size:11px; line-height:1.55; pointer-events:none; }
 .line-chart-tooltip[hidden] { display:none; }
 .line-chart-tooltip strong { color:var(--accent); }
