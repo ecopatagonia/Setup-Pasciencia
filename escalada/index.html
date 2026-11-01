@@ -50,7 +50,8 @@ const years=[...new Set(DATA.operacoes.map(o=>o.dataHoraIso.slice(0,4)))];$('yea
 function periodUI(){$('yearbox').hidden=$('period').value!=='year';$('range').hidden=$('period').value!=='custom'}
 function markDirty(){dirty=true;$('dirty').hidden=false}
 function updateStartingCapital(){const field=$('startingCapital');if(!field)return;try{field.value=money(calculateInitialCapital(+$('capital').value,+$('lots').value))}catch(e){field.value='—'}}
-$('period').onchange=()=>{periodUI();markDirty()};periodUI();['capital','lots','year','from','to'].forEach(id=>$(id).oninput=()=>{markDirty();if(id==='capital'||id==='lots')updateStartingCapital()});updateStartingCapital();
+$('period').onchange=()=>{periodUI();markDirty()};periodUI();
+['capital','lots','year','from','to'].forEach(id=>{const el=$(id);el.oninput=()=>{markDirty();if(id==='capital'||id==='lots')updateStartingCapital()};el.onchange=()=>{markDirty();if(id==='capital'||id==='lots')updateStartingCapital();if((id==='year'&&$('period').value==='year')||((id==='from'||id==='to')&&$('period').value==='custom')){const w=getWindow();if(w.period==='year'||(w.from&&w.to&&w.from<=w.to))run()}}});updateStartingCapital();
 function getWindow(){return {period:$('period').value,year:$('year').value,from:$('from').value,to:$('to').value}}
 let appliedWindow=getWindow();
 function filterOps(w){return DATA.operacoes.filter(o=>{const d=o.dataHoraIso.slice(0,10);return w.period==='all'||(w.period==='year'?d.startsWith(w.year):d>=w.from&&d<=w.to)})}
