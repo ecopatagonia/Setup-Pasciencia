@@ -94,7 +94,7 @@
           </button>
           <div class="nav-submenu">
             <button class="nav-button nav-subitem" data-page="escalada" data-permission="calibragem" type="button">Escalada GATTO</button>
-            <button class="nav-button nav-subitem upcoming-item" type="button" disabled aria-disabled="true">Escalada GIO <small>En preparación</small></button>
+            <button class="nav-button nav-subitem" data-page="escaladaGio" data-dataset="gio" data-permission="calibragem" type="button">Escalada GIO</button>
           </div>
         </div>
       </nav>
@@ -699,6 +699,17 @@
         </header>
         <p id="escaladaLoading" role="status" hidden>Carregando laboratório…</p>
         <iframe id="escaladaFrame" title="Laboratório de escalada de contratos 2.0" data-src="escalada/index.html?v=2.0.7" sandbox="allow-scripts allow-same-origin allow-downloads" style="width:100%;height:calc(100dvh - 180px);min-height:720px;border:1px solid var(--border);border-radius:12px;display:block"></iframe>
+      </section>
+
+      <section class="page" id="page-escaladaGio" aria-label="Laboratório de escalada GIO">
+        <header class="page-header">
+          <div class="page-heading-wrap">
+            <button class="menu-toggle" type="button" aria-label="Abrir menu" aria-expanded="false">☰</button>
+            <div><p class="eyebrow">Laboratório de capital · GIO</p><h1>Laboratório de escalada GIO</h1><p class="subtitle">Mesmo modelo e opções da Escalada GATTO, usando os resultados EXECUTADO PROTEGENDO da base GIO.</p></div>
+          </div>
+        </header>
+        <p id="escaladaGioLoading" role="status">Carregando a base GIO para o laboratório…</p>
+        <iframe id="escaladaGioFrame" title="Laboratório de escalada GIO" data-src="escalada/index.html?dataset=gio&amp;v=2.1.0" sandbox="allow-scripts allow-same-origin allow-downloads" style="width:100%;height:calc(100dvh - 180px);min-height:720px;border:1px solid var(--border);border-radius:12px;display:block"></iframe>
       </section>
 
       <section class="page" id="page-comparativo" aria-label="Comparativo GIO">
