@@ -1,7 +1,8 @@
 'use strict';
 
 const API_URL = 'https://script.google.com/macros/s/AKfycby1rs6UObGzUGgp2I-vLt4W48V1tu2Jk8MIB066GdBynFTKjJXgBZHl8uptw3Gx_jLd/exec';
-const state = { all: [], filtered: [], gattoAll: [], gioAll: [], dataset: 'gatto', activePage: 'resultados', period: 'custom', selectedYear: null, customFrom: '', customTo: '', mode: 'operations', stats: null, resultFilter: 'all', selectedLine: 1 };
+const state = { all: [], filtered: [], gattoAll: [], gioAll: [], dataUpdatedAt: '', dataset: 'gatto', activePage: 'resultados', period: 'custom', selectedYear: null, customFrom: '', customTo: '', mode: 'operations', stats: null, resultFilter: 'all', selectedLine: 1 };
+window.PuloEscaladaData = { getGioData: () => ({ generatedAt: state.dataUpdatedAt, operations: state.gioAll.map(({ id, dataHoraIso, lado, financeiro, pontos, resultado, order }) => ({ id, dataHoraIso, lado, financeiro, pontos, resultado, order })) }) };
 const MODE_PAGES = new Set(['resultados', 'pontos', 'operacoes']);
 const money = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 const money0 = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
@@ -113,7 +114,7 @@ function updateDatasetContext() {
     context.textContent = state.dataset === 'gio'
       ? 'Base GIO · EXECUTADO PROTEGENDO × R$ 0,20/pt'
       : 'Base de resultados: GATTO';
-    context.hidden = state.activePage === 'comparativo' || state.activePage === 'escalada';
+    context.hidden = state.activePage === 'comparativo' || state.activePage === 'escalada' || state.activePage === 'escaladaGio';
   }
   document.querySelectorAll('#lineDatasetSelector button').forEach(button => {
     const active = button.dataset.dataset === state.dataset;
@@ -1087,7 +1088,7 @@ function formatIntegerInput(event) {
 function syncModeVisibility(pageName) {
   const toolbar = document.querySelector('.analysis-toolbar');
   toolbar.classList.toggle('no-mode', !MODE_PAGES.has(pageName));
-  document.body.classList.toggle('comparison-active', pageName === 'comparativo' || pageName === 'escalada');
+  document.body.classList.toggle('comparison-active', pageName === 'comparativo' || pageName === 'escalada' || pageName === 'escaladaGio');
 }
 
 function updatePatrimony() {
@@ -1846,6 +1847,7 @@ async function loadData() {
 
     state.gattoAll = payload.operacoes.sort((a, b) => a.dataHoraIso.localeCompare(b.dataHoraIso));
     state.gioAll = normalizeGioOperations(payload.comparativoGio ?? payload.comparativoProtegido);
+    state.dataUpdatedAt = payload.geradoEm || '';
     state.dataset = 'gatto';
     state.all = state.gattoAll;
     configureDatasetRange(false);
