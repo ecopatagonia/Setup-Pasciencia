@@ -7,6 +7,7 @@
   <title>O PULO DO GATTO — Performance</title>
   <link rel="stylesheet" href="styles.css?v=6.4">
   <link rel="stylesheet" href="auth.css?v=6.2">
+<link rel="stylesheet" href="drawdowns/styles.css?v=1.0">
 </head>
 <body>
   <div class="app">
@@ -30,6 +31,7 @@
               <div class="nav-submenu">
                 <button class="nav-button nav-subitem active" data-page="resultados" data-dataset="gatto" data-permission="resultados" type="button">Resumo de resultados</button>
                 <button class="nav-button nav-subitem" data-page="patrimonio" data-dataset="gatto" data-permission="patrimonio" type="button">Patrimônio</button>
+                <button class="nav-button nav-subitem" data-page="drawdowns" data-dataset="gatto" data-permission="resultados">Drawdowns</button>
                 <button class="nav-button nav-subitem" data-page="pontos" data-dataset="gatto" data-permission="pontos" type="button">Pontos</button>
                 <button class="nav-button nav-subitem" data-page="consistencia" data-dataset="gatto" data-permission="consistencia" type="button">Consistência</button>
                 <button class="nav-button nav-subitem" data-page="evolucao" data-dataset="gatto" data-permission="evolucao_temporal" type="button">Evolução temporal</button>
@@ -61,6 +63,7 @@
               <div class="nav-submenu">
                 <button class="nav-button nav-subitem" data-page="resultados" data-dataset="gio" data-permission="resultados" type="button">Resumo de resultados</button>
                 <button class="nav-button nav-subitem" data-page="patrimonio" data-dataset="gio" data-permission="patrimonio" type="button">Patrimônio</button>
+                <button class="nav-button nav-subitem" data-page="drawdowns" data-dataset="gio" data-permission="resultados">Drawdowns</button>
                 <button class="nav-button nav-subitem" data-page="pontos" data-dataset="gio" data-permission="pontos" type="button">Pontos</button>
                 <button class="nav-button nav-subitem" data-page="consistencia" data-dataset="gio" data-permission="consistencia" type="button">Consistência</button>
                 <button class="nav-button nav-subitem" data-page="evolucao" data-dataset="gio" data-permission="evolucao_temporal" type="button">Evolução temporal</button>
@@ -475,7 +478,17 @@
         </article>
       </section>
 
-      <section class="page" id="page-pontos">
+      <section class="page" id="page-drawdowns"><button class="menu-toggle" type="button" aria-label="Abrir menu" aria-expanded="false">☰</button><div id="drawdownExplorer">
+<div class="eyebrow">Profundidade, duração e recuperação</div><h1 id="dd-heading">Drawdowns</h1><p class="muted">Compare os episódios na tabela e selecione os que deseja explorar nos gráficos.</p>
+<div class="filters"><label class="control">ESCALA DO GRÁFICO<select id="dd-scale"><option value="balance">Saldo acumulado · como no site</option><option value="relative">R$ abaixo do pico · escala comum</option></select></label><label class="check"><input type="checkbox" id="dd-limit" checked> Quebra: pico − R$ 2.500</label></div>
+<div id="dd-coverage" class="coverage"></div>
+<div id="dd-summary" class="summary" aria-live="polite"></div><div id="dd-current-note" class="note"></div>
+<div class="legend"><span><i style="background:var(--dd-red)"></i>Queda até o fundo</span><span><i style="background:var(--dd-green)"></i>Trajeto de recuperação após o fundo</span><span><i style="background:var(--dd-gold)"></i>Pico de referência</span></div>
+<section aria-labelledby="dd-table-heading"><div class="table-heading"><div><h2 id="dd-table-heading">Mapa dos episódios</h2><p class="small muted">O número DD segue a cronologia e não muda ao ordenar a tabela.</p></div><label class="control">ORDENAR POR<select id="dd-sort"><option value="depth">Maior drawdown</option><option value="date">Aparição cronológica</option></select></label></div><div class="selection-tools"><div class="seg"><button type="button" id="dd-top-three">Selecionar os 3 maiores</button><button type="button" id="dd-clear">Limpar seleção</button></div><span id="dd-selected-count" class="small muted" aria-live="polite"></span><button type="button" id="dd-show-charts">Ver gráficos selecionados ↓</button></div><div class="list-options"><label class="check"><input type="checkbox" id="dd-more"> Mostrar mais de 5 episódios</label><label class="control" id="dd-row-count-wrap" hidden>QUANTIDADE NA TABELA<input type="number" id="dd-row-count" min="6" step="1" value="10" aria-label="Quantidade de episódios na tabela"></label><span id="dd-list-coverage" class="small muted" aria-live="polite"></span></div><div id="dd-selection-message" class="small muted" aria-live="polite"></div><div id="dd-ranking" class="ranking-wrap" aria-label="Tabela dos episódios de drawdown"></div><p class="small muted" style="margin-top:9px">Selecione de 0 a 5 episódios. Ao atingir 5, desmarque um para selecionar outro. Alterar a ordenação preserva sua seleção.</p></section><section id="dd-chart-section" aria-labelledby="dd-chart-heading"><h2 id="dd-chart-heading" class="section-title">Gráficos selecionados</h2><p id="dd-chart-order" class="small muted"></p><div id="dd-episodes" aria-live="polite"></div></section>
+<details><summary>Como os episódios são calculados</summary><p>Resultados financeiros da base ativa (GATTO ou EXECUTADO PROTEGENDO do GIO), para 1 contrato. O saldo é o resultado acumulado das operações, sem capital inicial. A curva reinicia em zero no começo do período escolhido. Em um ano isolado, não incorpora picos ou perdas do ano anterior; em todo o histórico, os episódios podem atravessar a virada de ano.</p><p>Um episódio começa no último pico anterior à queda e termina no primeiro fechamento que recupera ou supera esse pico. Recuos intermediários até a recuperação pertencem ao mesmo episódio. O último episódio pode permanecer aberto. Empates no valor do pico atualizam a referência para o fechamento mais recente. No início da série, a referência é o saldo zero antes da primeira operação.</p><p>A numeração DD é cronológica dentro do período e da unidade de análise escolhidos. A tabela mostra inicialmente cinco episódios na ordenação escolhida; a opção de mostrar mais altera apenas a quantidade de linhas, não o cálculo nem o limite de cinco gráficos. Ordenar a tabela preserva os episódios selecionados. Ao mudar o período ou de operações para pregões, os episódios são recalculados e a seleção volta aos três maiores, pois os ciclos podem ser diferentes.</p><p>O ranking é pela maior distância entre pico e fundo, em R$; em empate, vem primeiro o episódio com maior duração em dias corridos. Não soma drawdowns entre si. “Operações após o pico” e “pregões com operações” contam os fechamentos posteriores ao ponto de pico até o fim do episódio, incluindo o fechamento de recuperação. Os dias corridos são a diferença entre as datas, sem acrescentar um dia.</p><p>Em “Por pregão”, os resultados são somados por data antes de localizar os picos e fundos. Quedas e recuperações dentro do mesmo pregão deixam de aparecer; por isso o ranking e a profundidade podem mudar. Não são medidas de risco intratrade.</p><p>A recuperação percentual é o avanço do fundo até o saldo final do episódio dividido pela sua profundidade, limitado a 100%. A linha de quebra representa a perda de R$ 2.500 desde o pico, equivalente ao capital de risco adotado. É exibida por padrão e não encerra nem altera os episódios históricos. Em escala relativa, todos os gráficos exibidos usam a mesma escala vertical.</p></details>
+<footer id="dd-source"></footer>
+</div></section>
+<section class="page" id="page-pontos">
         <header class="page-header">
           <div class="page-heading-wrap">
             <button class="menu-toggle" type="button" aria-label="Abrir menu" aria-expanded="false"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
@@ -738,10 +751,12 @@
   <script src="config.js?v=5.0"></script>
   <script src="auth.js?v=6.2"></script>
   <script src="comparativo/bridge.js?v=1.2"></script>
-  <script src="app.js?v=6.5"></script>
+  <script src="drawdowns/explorer.js?v=1.0"></script>
+<script src="app.js?v=6.6"></script>
   <script src="escalada/bridge.js?v=1.0"></script>
 </body>
 </html>
+
 
 
 

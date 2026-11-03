@@ -3,7 +3,7 @@
 const API_URL = 'https://script.google.com/macros/s/AKfycby1rs6UObGzUGgp2I-vLt4W48V1tu2Jk8MIB066GdBynFTKjJXgBZHl8uptw3Gx_jLd/exec';
 const state = { all: [], filtered: [], gattoAll: [], gioAll: [], dataUpdatedAt: '', dataset: 'gatto', activePage: 'resultados', period: 'custom', selectedYear: null, customFrom: '', customTo: '', mode: 'operations', stats: null, resultFilter: 'all', selectedLine: 1 };
 window.PuloEscaladaData = { getGioData: () => ({ generatedAt: state.dataUpdatedAt, operations: state.gioAll.map(({ id, dataHoraIso, lado, financeiro, pontos, resultado, order }) => ({ id, dataHoraIso, lado, financeiro, pontos, resultado, order })) }) };
-const MODE_PAGES = new Set(['resultados', 'pontos', 'operacoes']);
+const MODE_PAGES = new Set(['resultados', 'pontos', 'operacoes', 'drawdowns']);
 const money = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 const money0 = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
 const points0 = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 });
@@ -303,7 +303,14 @@ function applyPeriod() {
   render();
 }
 
+function renderDrawdownsPage() {
+  if (state.activePage !== 'drawdowns') return;
+  window.PuloDrawdowns?.render({operations:state.filtered,dataset:state.dataset,mode:state.mode,
+    periodKey:[state.period,state.selectedYear,state.customFrom,state.customTo],periodLabel:describePeriod(),updatedAt:state.dataUpdatedAt});
+}
+
 function render() {
+  renderDrawdownsPage();
   const s = state.stats;
   setText('resultado', money.format(s.total));
   setText('exp-op', money.format(s.expOperation));
@@ -1881,6 +1888,7 @@ document.querySelectorAll('.nav-button[data-page]').forEach(button => {
     document.querySelectorAll('.nav-button').forEach(b => b.classList.toggle('active', b === button));
     document.querySelectorAll('.page').forEach(page => page.classList.toggle('active', page.id === `page-${button.dataset.page}`));
     syncModeVisibility(button.dataset.page);
+    renderDrawdownsPage();
     if (button.dataset.comparisonPage) window.PuloComparativoBridge?.activate(button.dataset.comparisonPage);
     document.getElementById('sidebar').classList.remove('open');
     document.querySelectorAll('.nav-group').forEach(group => group.classList.toggle('open', group.contains(button)));
@@ -2082,3 +2090,4 @@ document.addEventListener('pulo:session', event => {
   }
   if (!state.all.length) loadData();
 });
+
