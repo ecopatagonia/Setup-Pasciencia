@@ -1,7 +1,7 @@
 /* The main dashboard owns the single spreadsheet request and authenticated navigation. */
 (() => {
   'use strict';
-  const pages = new Set(['overview', 'results', 'risk', 'profit', 'order-performance', 'data']);
+  const pages = new Set(['overview', 'results', 'risk', 'profit', 'order-performance', 'line-comparison', 'data']);
   let currentPage = 'overview';
   let theme = 'dark';
   let payload = null;
@@ -65,5 +65,6 @@
     document.querySelector(`[data-comparison-page="${page}"]`)?.click();
   });
 })();
+
 
 

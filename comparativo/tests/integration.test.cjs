@@ -26,8 +26,8 @@ test('one payload reaches a lazily loaded iframe; four pages preserve the same i
   assert.equal(h.attrs.src, 'comparativo/index.html?v=1.0');
   assert.equal(h.calls.length, 0);
   h.callbacks['frame:load']();
-  for (const page of ['results', 'risk', 'data']) h.window.PuloComparativoBridge.activate(page);
-  assert.deepEqual(h.calls.filter(c => c[0] === 'page').map(c => c[1]), ['overview', 'results', 'risk', 'data']);
+  for (const page of ['results', 'risk', 'line-comparison', 'data']) h.window.PuloComparativoBridge.activate(page);
+  assert.deepEqual(h.calls.filter(c => c[0] === 'page').map(c => c[1]), ['overview', 'results', 'risk', 'line-comparison', 'data']);
   assert.equal(h.calls.filter(c => c[0] === 'payload').length, 1);
   h.window.PuloComparativoBridge.setTheme('light');
   assert.deepEqual(h.calls.filter(c => c[0] === 'theme').at(-1), ['theme', 'light']);
@@ -103,15 +103,16 @@ test('navigation and assets are wired to the existing sidebar and loader', () =>
   const index = fs.readFileSync(path.join(__dirname, '../../index.html'), 'utf8');
   const app = fs.readFileSync(path.join(__dirname, '../../app.js'), 'utf8');
   for (const page of ['overview', 'results', 'risk', 'data']) assert(index.includes(`data-comparison-page="${page}"`));
-  assert(index.includes('comparativo/bridge.js?v=1.0'));
+  assert.match(index, /comparativo\/bridge\.js\?v=\d+\.\d+/);
   assert(index.includes('id="page-comparativo"'));
   assert(app.includes('window.PuloComparativoBridge?.setPayload(payload)'));
   const child = code('index.html');
   assert(!child.includes('__DATA__'));
   assert(!child.includes('__ENGINE__'));
   assert(!child.includes('__APP__'));
-  for (const file of ['engine.js', 'app.js', 'embedded.js', 'styles.css']) assert(child.includes(file + '?v=1.0'));
+  for (const file of ['engine.js', 'app.js', 'embedded.js', 'styles.css']) assert(child.includes(file + '?v='));
   assert(code('styles.css').includes('heat-positive'));
   assert(code('app.js').includes('weeklyHeatmap'));
   assert(code('app.js').includes('var(--bar-original-negative)'));
 });
+

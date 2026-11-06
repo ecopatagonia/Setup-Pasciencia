@@ -1,6 +1,6 @@
 (() => {
   'use strict';
-  const pages = { overview: 'Visão comparativa', results: 'Resultados', risk: 'Risco e estabilidade', profit: 'Evolução do lucro', 'order-performance': 'Desempenho por operação', data: 'Operações e dados' };
+  const pages = { overview: 'Visão comparativa', results: 'Resultados', risk: 'Risco e estabilidade', profit: 'Evolução do lucro', 'order-performance': 'Desempenho por operação', 'line-comparison': 'Comparativo linha a linha', data: 'Operações e dados' };
   if (window.parent === window) {
     window.location.replace('../index.html?view=site&comparativo=overview');
     return;
@@ -39,6 +39,7 @@
     return result;
   };
   api.acceptPayload = payload => {
+    window.PuloLineComparison?.acceptPayload(payload);
     const rows = payload?.comparativoGio ?? payload?.comparativoProtegido;
     if (rows === undefined || rows === null) { if (currentSource === 'snapshot') snapshotNotice(); return false; }
     if (!Array.isArray(rows) || !rows.length) {
@@ -87,5 +88,6 @@
   window.addEventListener('resize', requestHeight);
   requestHeight();
 })();
+
 
 

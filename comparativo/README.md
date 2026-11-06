@@ -1,6 +1,6 @@
 # Comparativo GIO
 
-O menu **Comparativo GIO** do painel principal contém quatro submenus: Visão comparativa, Resultados, Risco e estabilidade, Operações e dados. Eles compartilham uma instância do módulo e conservam seus filtros ao alternar de submenu. O módulo é estático, sem build nem dependências externas.
+O menu **Comparativo** contém Visão comparativa, Resultados, Risco e estabilidade, Evolução do lucro, Desempenho por operação, Comparativo linha a linha e Operações e dados. Compartilham uma instância do módulo; a página linha a linha tem seus próprios filtros e usa a mesma carga da API. O módulo é estático, sem build nem dependências externas.
 
 ## Dados e atualização
 
@@ -37,3 +37,10 @@ Também é aceita a matriz Q:Y/A:I com ou sem cabeçalho. `protected: null` sign
 ## Verificação
 
 `node --test comparativo/tests/*.test.cjs` verifica a entrega de payload, a navegação e permissões, mensagens do iframe, normalização de vazios/zero e cálculo pareado. Os scripts também podem ser checados com `node --check`. O módulo não publica dados de login nem inclui tokens ou credenciais.
+
+
+## Comparativo linha a linha (06/11/2026)
+
+O submenu **Comparativo linha a linha** fica após **Desempenho por operação**. Recebe o mesmo payload central, sem outra requisição e sem dados fixos. `line-comparison-data.js` une `operacoes[].id` (A) com `comparativoGio[].id` (Q), compara `operacoes[].pontos` (L) com `protected` (V), e preserva diferenças entre L e T como informação, sem excluir esses pares. Não altera as regras dos submenus anteriores, que continuam usando o original registrado em GIO.
+
+Somente pares numéricos (incluindo zero) de Op1/Op2/Op3 entram nas curvas; IDs duplicados bloqueiam a nova análise com aviso. Pendências e IDs sem par são informados por linha/período. Abre no último ano disponível e permite selecionar linha, três painéis, histórico completo, ano, operações/pregões, curvas sobrepostas/separadas na mesma escala, vantagem acumulada, métricas, drawdowns e resultados anuais/mensais. Valores para um contrato, sem escalado. A linha de risco no gráfico de drawdown é −R$ 2.500. Não carrega o snapshot incorporado ao restante do módulo.
