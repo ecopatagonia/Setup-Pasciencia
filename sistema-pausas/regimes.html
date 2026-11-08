@@ -1,0 +1,63 @@
+<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>GATTO · Regimes de risco</title>
+<style>body{margin:0;background:#08141e;color:#e7f2fa;font:15px system-ui}main{max-width:1280px;margin:auto;padding:28px 18px}section{background:#102430;border:1px solid #2a4959;border-radius:14px;margin:16px 0;padding:18px}h1{font-size:clamp(32px,6vw,54px);margin:5px 0}h2{margin:0 0 10px}p,small,label{color:#b1c7d4;line-height:1.5}.tag{color:#59e4c8;letter-spacing:.14em;font-weight:bold}.controls{display:flex;gap:14px;flex-wrap:wrap}label{display:grid;gap:4px}select,input,button{font:inherit;color:#e7f2fa;background:#081923;border:1px solid #527484;border-radius:7px;padding:8px}button{cursor:pointer}.scroll{overflow:auto}table{width:100%;border-collapse:collapse;white-space:nowrap}th,td{text-align:right;padding:9px;border-bottom:1px solid #2a4959}th:first-child,td:first-child{text-align:left}td:nth-child(2),th:nth-child(2){background:#183f46}svg{width:100%;height:auto;display:block}output{color:#59e4c8}summary{cursor:pointer}</style>
+<main><div class="tag">O PULO DO GATTO / LABORATÓRIO</div><h1>Regimes de risco</h1><p>Compare o drawdown recente com o histórico de GATTO. Resultados brutos com 1 contrato; perda efetiva e stop inicial registrado são medidas distintas.</p>
+<section><h2>Configurar comparação</h2><div class="controls"><label>Início do trecho em estudo<input type="date" id="start" value="2026-09-10"></label><label>Após a operação nº · no dia inicial<input type="number" id="op" value="1" min="0" max="20"></label><label>Tamanho máximo do trecho<input type="number" id="length" value="114" min="1" max="1950"></label><label>Stop inicial grande · pontos<input type="number" id="stop" value="500" min="1"></label><label>Histórico para janelas iguais<select id="scope"><option value="2026">2026 antes do trecho</option><option value="">Todo o histórico anterior</option></select></label><label>Variação das janelas<select id="scheme"><option value="rolling">Móveis · podem se sobrepor</option><option value="blocks">Blocos · sem sobreposição</option></select></label></div></section>
+<section><h2>Comparação direta</h2><p id="coverage"></p><div class="scroll" id="comparison"></div><p>Melhor e pior janela são escolhidas pelo resultado acumulado, apenas entre janelas anteriores com o mesmo número de operações. São extremos observados, não previsões.</p></section>
+<section><h2>Onde o trecho se encaixa?</h2><div class="controls"><label>Métrica<select id="metric"><option value="big">Stops iniciais grandes (%)</option><option value="win">Operações ganhadoras (%)</option><option value="loss">Perda média (R$)</option><option value="streak">Maior sequência de perdas</option><option value="pnl">Resultado bruto (R$)</option></select></label></div><p id="distribution"></p><div id="chart"></div></section>
+<section><h2>Evolução mensal</h2><p>Meses do ano de início; o último mês pode estar incompleto.</p><div class="scroll" id="monthly"></div></section>
+<details><summary>Como ler</summary><p>O win rate divide as ganhadoras por todas as operações, inclusive resultados zero. Um zero interrompe uma sequência de perdas. Perdas seguidas contam cada perda imediatamente precedida por outra perda dentro do próprio trecho. A linha de 550 pontos usa igualdade no campo de stop inicial registrado; o controle de stop grande usa o corte escolhido ou acima. As janelas móveis compartilham operações, portanto seus percentis são descritivos. Este painel compara resultados observados; não simula um filtro de entrada nem mede a volatilidade das velas.</p></details></main>
+<script>
+function init(gatto,gio,read){
+ const controller=new AbortController();const signal=controller.signal;
+
+const $=id=>document.getElementById(id),r=gatto.map(x=>[x.date,x.order,Math.round(x.points*20),x.stop]),num=(n,d=2)=>n==null?'—':n.toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d}),money=n=>n==null?'—':'R$ '+num(n),date=d=>d?.split('-').reverse().join('/')||'—';
+function calc(a,k){let n=a.length,b=0,cap=0,w=0,l=0,p=0,g=0,loss=0,run=0,streak=0,pair=0;for(const [, ,v,s] of a){p+=v;if(typeof s==='number'&&s>=k)b++;if(s===550)cap++;if(v>0){w++;g+=v;}if(v<0){l++;loss-=v;run++;streak=Math.max(streak,run);if(run>1)pair++;}else run=0;}return {n,b,cap,w,l,pnl:p/100,win:n?100*w/n:null,big:n?100*b/n:null,loss:l?loss/l/100:null,gain:w?g/w/100:null,streak,pair,first:a[0]?.[0],last:a.at(-1)?.[0]};}
+function table(headers,rows){return '<table><thead><tr>'+headers.map(x=>'<th>'+x+'</th>').join('')+'</tr></thead><tbody>'+rows.map(row=>'<tr>'+row.map(x=>'<td>'+x+'</td>').join('')+'</tr>').join('')+'</tbody></table>';}
+const pc=(n,d)=>d?n+' · '+num(n*100/d,1)+'%':'—',period=o=>o?.n?date(o.first)+' → '+date(o.last):'—';
+function compare(){
+ const start=$('start').value||'2026-09-10',yr=start.slice(0,4),op=+$('op').value,k=Math.max(1,+$('stop').value||500),size=Math.max(1,Math.min(r.length,Math.floor(+$('length').value||114)));
+ const before=r.filter(x=>x[0]<start||(x[0]===start&&x[1]<=op)),study=r.slice(before.length,before.length+size),N=study.length,prior=before.filter(x=>x[0].startsWith(yr)),pool=$('scope').value?prior:before,ws=[];
+ if(N){const stride=$('scheme').value==='blocks'?N:1;for(let j=pool.length;j>=N;j-=stride)ws.push(calc(pool.slice(j-N,j),k));}
+ const ordered=[...ws].sort((a,b)=>a.pnl-b.pnl),focus=calc(study,k),prev=calc(N?before.slice(-N):[],k),annual=calc(prior,k),cols=[focus,prev,annual,ordered.at(-1),ordered[0]];
+ $('coverage').textContent=r.length+' operações na base · até '+date(r.at(-1)[0])+' · '+ws.length+' janelas históricas comparáveis.';
+ const metrics=[['Período',period],['Operações',x=>x.n],['Stop inicial ≥ '+k+' pts',x=>pc(x.b,x.n)],['Stop inicial = 550 pts',x=>pc(x.cap,x.n)],['Ganhadoras',x=>pc(x.w,x.n)],['Perdedoras',x=>pc(x.l,x.n)],['Perdas logo após outra perda',x=>pc(x.pair,x.n)],['Maior sequência de perdas',x=>x.streak],['Perda efetiva média',x=>money(x.loss)],['Ganho médio',x=>money(x.gain)],['Resultado bruto',x=>money(x.pnl)]];
+ $('comparison').innerHTML=table(['Métrica','Trecho em estudo','Trecho anterior','Todo '+yr+' anterior','Melhor janela','Pior janela'],metrics.map(([label,f])=>[label,...cols.map(x=>x?.n?f(x):'—')]));
+ const months=[...new Set(r.filter(x=>x[0].startsWith(yr)).map(x=>x[0].slice(0,7)))];$('monthly').innerHTML=table(['Mês','Operações','Stops grandes','Ganhadoras','Perdas seguidas','Maior sequência','Perda média','Resultado'],months.map(m=>{const x=calc(r.filter(y=>y[0].startsWith(m)),k);return [m,x.n,pc(x.b,x.n),pc(x.w,x.n),x.pair,x.streak,money(x.loss),money(x.pnl)];}));
+ plot(focus,ws);
+}
+function plot(focus,ws){
+ const key=$('metric').value,v=focus[key],a=ws.map(x=>x[key]).filter(Number.isFinite);
+ if(!focus.n||v==null||!a.length){$('distribution').textContent='Sem janelas suficientes para esta comparação.';$('chart').innerHTML='';return;}
+ const rank=a.filter(x=>x<=v).length,avg=a.reduce((s,x)=>s+x,0)/a.length;
+ $('distribution').textContent='Trecho: '+num(v)+' · média das janelas: '+num(avg)+' · '+rank+' de '+a.length+' janelas ficaram neste valor ou abaixo.';
+ const lo=Math.min(v,...a),hi=Math.max(v,...a),span=hi-lo||1,bins=Array(16).fill(0),x=t=>45+710*(t-lo)/span;
+ for(const t of a)bins[Math.min(15,Math.floor(16*(t-lo)/span))]++;
+ const max=Math.max(...bins);
+ $('chart').innerHTML='<svg viewBox="0 0 800 210" role="img" aria-label="Distribuição das janelas históricas e posição do trecho"><text x="45" y="18" fill="#b1c7d4">Frequência histórica</text>'+bins.map((b,i)=>'<rect x="'+(45+i*44.375)+'" y="'+(175-140*b/max)+'" width="41" height="'+140*b/max+'" fill="#458395"/>').join('')+'<path d="M'+x(v)+' 25V177" stroke="#ffc46b" stroke-width="3"/><text x="45" y="202" fill="#b1c7d4">'+num(lo)+'</text><text x="755" y="202" text-anchor="end" fill="#b1c7d4">'+num(hi)+'</text></svg><small style="color:#ffc46b">Linha amarela: trecho em estudo</small>';
+}
+for(const id of ['start','op','length','stop','scope','scheme','metric'])$(id).onchange=compare;compare();
+return ()=>controller.abort();
+}
+(function(){
+'use strict';
+function convert(raw){return (raw||[]).flatMap(x=>{
+ const date=String(x.dataHoraIso||'').slice(0,10),order=Number(String(x.id||'').split('__').at(-1)),points=x.pontos;
+ return /^\d{4}-\d{2}-\d{2}$/.test(date)&&[1,2,3].includes(order)&&Number.isFinite(points)?[{id:x.id,date,order,points,stop:Number.isFinite(x.tamanhoStop)?x.tamanhoStop:null}]:[];
+ }).sort((a,b)=>a.date.localeCompare(b.date)||a.order-b.order);}
+const root=document.querySelector('main');
+const notice=document.createElement('p');notice.setAttribute('role','status');document.body.prepend(notice);
+let teardown;
+function start(){
+ let base;
+ try{base=window.parent!==window?window.parent.PuloPauseData?.():null;}catch{}
+ if(!base?.gatto?.length){root.hidden=true;notice.textContent='Abra pelo painel principal e aguarde a atualização da base.';return;}
+ teardown?.();root.hidden=false;notice.textContent='';
+ try{teardown=init(convert(base.gatto),convert(base.gio),base.read);}
+ catch(error){root.hidden=true;notice.textContent=error.message;return;}
+}
+window.addEventListener('pulo:pause-data',start);
+const frame=window.frameElement;
+if(frame)new ResizeObserver(()=>{if(!frame.getClientRects().length)return;frame.style.height=Math.max(800,document.body.offsetHeight+20)+'px';}).observe(document.body);
+start();
+})();
+</script></html>
