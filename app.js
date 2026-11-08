@@ -1,5 +1,18 @@
 'use strict';
 
+const PAUSE_PAGES = new Set(['drawdownCompare', 'pauseRadar', 'pauseRegimes']);
+window.PuloPauseData = () => ({
+  gatto: state.gattoAll,
+  gio: state.gioAll,
+  read: state.dataUpdatedAt
+});
+function openPausePage(page) {
+  if (!PAUSE_PAGES.has(page)) return;
+  const frame = document.querySelector('#page-' + page + ' iframe');
+  if (frame && !frame.hasAttribute('src')) frame.src = frame.dataset.pauseSrc;
+}
+
+
 const API_URL = 'https://script.google.com/macros/s/AKfycby1rs6UObGzUGgp2I-vLt4W48V1tu2Jk8MIB066GdBynFTKjJXgBZHl8uptw3Gx_jLd/exec';
 const state = { all: [], filtered: [], gattoAll: [], gioAll: [], dataUpdatedAt: '', dataset: 'gatto', activePage: 'resultados', period: 'custom', selectedYear: null, customFrom: '', customTo: '', mode: 'operations', stats: null, resultFilter: 'all', selectedLine: 1 };
 window.PuloEscaladaData = { getGioData: () => ({ generatedAt: state.dataUpdatedAt, operations: state.gioAll.map(({ id, dataHoraIso, lado, financeiro, pontos, resultado, order }) => ({ id, dataHoraIso, lado, financeiro, pontos, resultado, order })) }) };
@@ -114,7 +127,7 @@ function updateDatasetContext() {
     context.textContent = state.dataset === 'gio'
       ? 'Base GIO · EXECUTADO PROTEGENDO × R$ 0,20/pt'
       : 'Base de resultados: GATTO';
-    context.hidden = state.activePage === 'comparativo' || state.activePage === 'escalada' || state.activePage === 'escaladaGio';
+    context.hidden = (state.activePage === 'comparativo' || PAUSE_PAGES.has(state.activePage)) || state.activePage === 'escalada' || state.activePage === 'escaladaGio';
   }
   document.querySelectorAll('#lineDatasetSelector button').forEach(button => {
     const active = button.dataset.dataset === state.dataset;
@@ -1095,7 +1108,7 @@ function formatIntegerInput(event) {
 function syncModeVisibility(pageName) {
   const toolbar = document.querySelector('.analysis-toolbar');
   toolbar.classList.toggle('no-mode', !MODE_PAGES.has(pageName));
-  document.body.classList.toggle('comparison-active', pageName === 'comparativo' || pageName === 'escalada' || pageName === 'escaladaGio');
+  document.body.classList.toggle('comparison-active', (pageName === 'comparativo' || PAUSE_PAGES.has(pageName)) || pageName === 'escalada' || pageName === 'escaladaGio');
 }
 
 function updatePatrimony() {
@@ -1855,6 +1868,9 @@ async function loadData() {
     state.gattoAll = payload.operacoes.sort((a, b) => a.dataHoraIso.localeCompare(b.dataHoraIso));
     state.gioAll = normalizeGioOperations(payload.comparativoGio ?? payload.comparativoProtegido);
     state.dataUpdatedAt = payload.geradoEm || '';
+    document.querySelectorAll('iframe[data-pause-src][src]').forEach(frame => {
+      frame.contentWindow?.dispatchEvent(new Event('pulo:pause-data'));
+    });
     state.dataset = 'gatto';
     state.all = state.gattoAll;
     configureDatasetRange(false);
@@ -1889,6 +1905,7 @@ document.querySelectorAll('.nav-button[data-page]').forEach(button => {
     document.querySelectorAll('.page').forEach(page => page.classList.toggle('active', page.id === `page-${button.dataset.page}`));
     syncModeVisibility(button.dataset.page);
     renderDrawdownsPage();
+    openPausePage(state.activePage);
     if (button.dataset.comparisonPage) window.PuloComparativoBridge?.activate(button.dataset.comparisonPage);
     document.getElementById('sidebar').classList.remove('open');
     document.querySelectorAll('.nav-group').forEach(group => group.classList.toggle('open', group.contains(button)));

@@ -1,5 +1,11 @@
 # O Pulo do Gatto — Documento Maestro
 
+## 2026-11-08 — Drawdowns comparados e Sistema de Pausas
+
+- Comparativo: Drawdowns comparados entre Comparativo linha a linha e Operações e dados.
+- Sistema de Pausas: Radar de drawdowns e Regimes de risco, entre Comparativo e Escalada.
+- As três páginas reutilizam a carga atual do painel; não publicam arquivos de operações. Comparativos emparelham por ID e data; sinais de pausa são simulados ao fechamento do pregão.
+
 ## 2026-11-06 — Comparativo linha a linha
 
 - Posição: Comparativo → Desempenho por operação → **Comparativo linha a linha** → Operações e dados.
