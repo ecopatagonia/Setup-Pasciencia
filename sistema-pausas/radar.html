@@ -1,0 +1,180 @@
+<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>GATTO · Radar de drawdowns</title>
+<style>
+:root{color-scheme:dark;--bg:#08121b;--panel:#10212d;--line:#2a424f;--txt:#e5f1f7;--muted:#a4bdca;--teal:#4ce1cd;--amber:#ffc468}*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top right,#143841,var(--bg) 55%);color:var(--txt);font:15px system-ui}main{max-width:1240px;margin:auto;padding:32px 20px}header{margin-bottom:24px}h1{font-size:clamp(30px,5vw,54px);margin:8px 0}h2{margin:0 0 8px}p{line-height:1.55;color:var(--muted);margin:8px 0}.tag{color:var(--teal);letter-spacing:.15em;font-weight:700;font-size:12px}.panel,.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:19px;margin-bottom:16px}.controls,.cards{display:flex;gap:12px;flex-wrap:wrap}.card{flex:1;min-width:175px;margin:0}.card strong{display:block;font-size:24px;margin:5px 0}.card small,label{color:var(--muted)}label{display:grid;gap:5px}input,select,button{font:inherit;background:#091923;color:var(--txt);border:1px solid #466371;border-radius:8px;padding:8px}input{width:115px}button{cursor:pointer;color:var(--teal)}button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--teal)}.table{overflow:auto}table{width:100%;border-collapse:collapse;white-space:nowrap}th,td{text-align:right;padding:10px;border-bottom:1px solid var(--line)}th:first-child,td:first-child{text-align:left}th{color:var(--muted);font-size:13px}.on{background:#16403f}.warn{color:var(--amber)}.positive{color:var(--teal)}.negative{color:#ff9ba5}svg{width:100%;height:auto;max-height:330px}footer{color:var(--muted);font-size:13px;margin:20px 0}
+.time-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.time-tile{padding:12px;border:1px solid var(--line);border-radius:12px}.time-tile .cards{display:grid;grid-template-columns:1fr 1fr;gap:4px}.time-tile .card{min-width:0;padding:5px;background:none;border:0}.time-tile .card strong{font-size:15px}.time-tile small{font-size:11px}@media(max-width:900px){.time-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:520px){.time-grid{grid-template-columns:1fr}}</style>
+<main><header><div class="tag">O PULO DO GATTO / LABORATÓRIO / ETAPA 01</div><h1>Radar de drawdowns</h1><p>Separe as oscilações de rotina e observe o que aconteceu depois de cada sinal de queda.</p><p id="source"></p></header>
+<label>Setup<select id="setup"><option value="gatto">GATTO</option><option value="gio">GIO</option><option value="compare">Comparativo</option></select></label><br>
+<section class="panel" id="compareView" hidden><h2>Proteção de capital · lado a lado</h2><p id="pairInfo"></p><label>Ano<select id="pairYear"></select></label><p>Mesmas operações nos dois setups. A curva começa em zero na amostra selecionada. Pausa e reentrada decididas no fechamento para o pregão seguinte, pela curva teórica de cada setup. Valores brutos, 1 contrato.</p><div class="table" id="comparison"></div></section><nav id="tabs" class="controls" aria-label="Vistas"><button id="signalTab" aria-pressed="true">Radar de sinais</button><button id="timeTab" aria-pressed="false">Tempo em drawdown</button></nav><br>
+<section id="timeView" class="panel" hidden><h2>Tempo em drawdown</h2><p>Curva ao fechamento de cada pregão · 1 contrato · inclui quedas de rotina.</p><label>Período<select id="timeYear"><option value="">Todo o histórico</option><option>2024</option><option>2025</option><option>2026</option></select></label><br><label>Ampliar corte<select id="timeCut"><option value="0">Sem corte</option><option value="150">R$ 150</option><option value="200">R$ 200</option><option value="250">R$ 250</option><option value="300">R$ 300</option><option value="350">R$ 350</option><option value="400">R$ 400</option><option value="450">R$ 450</option><option value="500">R$ 500</option></select></label><br><h3>Sem corte · visão geral</h3><div class="cards" id="timeCards"></div><div id="timeFocus" hidden></div><h3>Todos os cortes</h3><div id="timeGrid" class="time-grid"></div><p>Pregões: fechamentos abaixo do pico. Calendário sem corte: tempo entre o pico e a recuperação, ou até o último fechamento se o episódio estiver aberto. Com corte, o calendário conta do fechamento que atinge o nível até o fechamento que volta abaixo dele, ou até o fim da série. Os intervalos são repartidos na virada do ano, sem reiniciar a curva.</p></section>
+<div id="signalView"><section class="panel"><h2>Calibrar o sinal</h2><div class="controls"><label>Ano do pico<select id="year"><option value="">Todo o histórico</option><option>2024</option><option>2025</option><option>2026</option></select></label><label>Corte inicial · R$<input id="level" type="number" min="1" max="100000" value="200"></label><label>Próximo nível · R$<input id="next" type="number" min="2" max="100001" value="300"></label><label>Atalhos<span><button data-level="150">150</button> <button data-level="200">200</button> <button data-level="250">250</button> <button data-level="300">300</button> <button data-level="350">350</button> <button data-level="400">400</button> <button data-level="450">450</button> <button data-level="500">500</button></span></label></div><p>Abaixo do corte: eventos de rotina para este estudo. O corte não altera a curva nem redefine os picos.</p><div class="cards" id="cards"></div></section>
+<section class="panel"><h2>Onde a queda deixa de ser rotina?</h2><p>As estatísticas de profundidade e recuperação usam episódios encerrados. Selecione um corte para explorar o sinal.</p><div class="table" id="cuts"></div></section>
+<section class="panel"><h2>O que aconteceu após o sinal?</h2><p id="race"></p><p>Resultado desde o fechamento do sinal. Os horizontes de pregão incluem as operações restantes do dia do sinal e terminam no fechamento do 1º, 3º ou 5º pregão seguinte. A trajetória segue mesmo após a recuperação; horizontes incompletos são excluídos.</p><div class="table" id="horizons"></div><p class="warn">Amostra histórica: sinais de um mesmo episódio em cortes diferentes não são independentes. Poucos casos nos extremos.</p></section>
+<section class="panel"><h2>O sinal em cada ano</h2><p>Episódios atribuídos ao ano do pico original; a observação pode continuar no ano seguinte.</p><div class="table" id="annual"></div></section>
+<section class="panel"><h2>Inspecionar um episódio</h2><label>Pico de origem<select id="event"></select></label><p id="detail"></p><div id="plot"></div></section>
+</div><footer>Base atualizada pelo painel. Radar por operação; tempo e proteção ao fechamento do pregão. R$ 0,20 por ponto de WIN, com 1 contrato. Sem simulação de lote, custos ou ordens intradiárias.</footer></main>
+<script>
+function init(gatto,gio,read){
+ const controller=new AbortController();const signal=controller.signal;
+
+/* Closing-equity drawdown episodes. Monetary values are integer cents. */
+function buildDrawdownAnalysis(rawRows, mode = 'operations') {
+  const valid = rawRows.filter(r => typeof r.points === 'number' && Number.isFinite(r.points))
+    .slice().sort((a,b) => a.date.localeCompare(b.date) || a.order - b.order);
+  const events = [];
+  for (const r of valid) {
+    const cents = Math.round(r.points * 20);
+    if (mode === 'days' && events.at(-1)?.date === r.date) {
+      events.at(-1).change += cents;
+      events.at(-1).operations += 1;
+      events.at(-1).ids.push(r.id);
+    } else events.push({date:r.date, change:cents, operations:1, ids:[r.id]});
+  }
+  if (!events.length) return {nodes:[], episodes:[], ranked:[], operations:0, days:0, maxDepth:0};
+  const nodes = [{date:events[0].date, value:0, operations:0, ids:[], baseline:true}];
+  let value = 0;
+  for (const e of events) {value += e.change; nodes.push({...e,value});}
+  const episodes = [];
+  let peak = 0, active = null;
+  function finish(end, closed) {
+    const e = {...active, end, closed};
+    const slice = nodes.slice(e.start+1,e.end+1);
+    e.depth = nodes[e.start].value - nodes[e.trough].value;
+    e.remaining = Math.max(0,nodes[e.start].value - nodes[e.end].value);
+    e.recovered = Math.min(e.depth,Math.max(0,nodes[e.end].value - nodes[e.trough].value));
+    e.recoveryPct = e.depth ? e.recovered/e.depth*100 : 100;
+    e.operations = slice.reduce((a,r)=>a+r.operations,0);
+    e.days = new Set(slice.map(r=>r.date)).size;
+    e.calendarDays = Math.round((Date.parse(nodes[e.end].date+'T00:00:00Z')-Date.parse(nodes[e.start].date+'T00:00:00Z'))/86400000);
+    e.recoveryDays = Math.round((Date.parse(nodes[e.end].date+'T00:00:00Z')-Date.parse(nodes[e.trough].date+'T00:00:00Z'))/86400000);
+    episodes.push(e); active = null;
+  }
+  for (let i=1;i<nodes.length;i++) {
+    if (!active) {
+      if(nodes[i].value<nodes[peak].value) active={start:peak,trough:i};
+      else peak=i;
+    } else {
+      if(nodes[i].value<nodes[active.trough].value) active.trough=i;
+      if(nodes[i].value>=nodes[active.start].value) {finish(i,true);peak=i;}
+    }
+  }
+  if(active) finish(nodes.length-1,false);
+  const ranked=episodes.slice().sort((a,b)=>b.depth-a.depth || b.calendarDays-a.calendarDays || a.start-b.start);
+  return {nodes,episodes,ranked,operations:valid.length,days:new Set(valid.map(r=>r.date)).size,maxDepth:ranked[0]?.depth||0};
+}
+if(typeof module!=='undefined') module.exports={buildDrawdownAnalysis};
+const $=id=>document.getElementById(id);
+let z,n,day,ix,end,daily,dn;
+function load(rows){
+ z=buildDrawdownAnalysis(rows);n=z.nodes;day=[...new Set(n.map(x=>x.date))];ix=new Map(day.map((d,i)=>[d,i]));end=new Map(n.map((x,i)=>[x.date,i]));
+ daily=buildDrawdownAnalysis(rows,'days');dn=daily.nodes;
+}
+load(gatto);
+const fmt=(v,d=2)=>v==null?'—':v.toLocaleString('pt-BR',{maximumFractionDigits:d,minimumFractionDigits:d}),br=v=>v==null?'—':'R$ '+fmt(v/100),dt=i=>n[i].date.split('-').reverse().join('/');
+const mean=v=>v.length?v.reduce((a,b)=>a+b,0)/v.length:null,q=(v,p=.5)=>{if(!v.length)return null;let s=[...v].sort((a,b)=>a-b),i=(s.length-1)*p,j=Math.floor(i);return s[j]+(i-j)*(s[Math.ceil(i)]-s[j]);};
+const range=(v,f)=>v.length?f(q(v,.25))+' a '+f(q(v,.75)):'—';
+const daysBetween=(a,b)=>ix.get(n[b].date)-ix.get(n[a].date);
+const scoped=y=>z.episodes.filter(e=>n[e.start].date.startsWith(y));
+function signals(es,k){return es.filter(e=>e.depth>=k).map(e=>({...e,signal:n.findIndex((x,i)=>i>e.start&&i<=e.trough&&n[e.start].value-x.value>=k)}));}
+function race(es,j){const deeper=es.filter(e=>e.depth>=j).length,rec=es.filter(e=>e.closed&&e.depth<j).length;return [rec,deeper,es.length-rec-deeper];}
+function table(cols,rows){return '<table><thead><tr>'+cols.map(c=>'<th>'+c+'</th>').join('')+'</tr></thead><tbody>'+rows.map(r=>'<tr>'+r.map(c=>'<td>'+c+'</td>').join('')+'</tr>').join('')+'</tbody></table>';}
+function windowStats(es,h){return es.flatMap(e=>{const s=e.signal,di=ix.get(n[s].date)+h,t=h?end.get(day[di]):s+1;if(t==null||t>=n.length||(h&&di===day.length-1))return [];const path=n.slice(s,t+1).map(x=>x.value-n[s].value);return [{ret:path.at(-1),up:Math.max(...path),down:-Math.min(...path)}];});}
+
+const span=(a,b)=>Math.max(0,(Date.parse(b)-Date.parse(a))/86400000);
+function timeStats(year,cut=0){
+ const lo=year?year+'-01-01':dn[0].date, hi=year?(+year+1)+'-01-01':dn.at(-1).date;
+ const overlap=(a,b)=>span(a>lo?a:lo,b<hi?b:hi);
+ let peak=0,below=0,total=0,filteredDays=0;
+ for(let i=1;i<dn.length;i++){const x=dn[i];peak=Math.max(peak,x.value);const depth=peak-x.value,inside=cut?depth>=cut:depth>0;if(x.date>=lo&&(year?x.date<hi:x.date<=hi)){total++;if(inside)below++;}if(cut&&inside&&dn[i+1])filteredDays+=overlap(x.date,dn[i+1].date);}
+ return {below,total,calendar:cut?filteredDays:daily.episodes.reduce((s,e)=>s+overlap(dn[e.start].date,dn[e.end].date),0),elapsed:overlap(dn[0].date,dn.at(-1).date)};
+}
+function renderTime(){
+ const focus=Number($('timeCut').value);
+ const donuts=(cut,small=false)=>{const t=timeStats($('timeYear').value,cut);
+ return [['Pregões',t.below,t.total],['Dias calendário',t.calendar,t.elapsed]].map(([a,b,c])=>{
+ const pct=c?100*b/c:0,label=cut?'No corte ou acima':'Em drawdown',other=cut?'Abaixo do corte':'Fora do drawdown';
+ return '<div class="card"><small>'+a+'</small><div style="width:'+(small?64:138)+'px;aspect-ratio:1;margin:12px auto;border-radius:50%;display:grid;place-items:center;background:conic-gradient(var(--teal) '+pct+'%,var(--line) 0)" aria-hidden="true"><strong style="width:'+(small?49:106)+'px;aspect-ratio:1;display:grid;place-items:center;border-radius:50%;background:var(--panel)">'+(c?fmt(pct,1)+'%':'—')+'</strong></div><strong>'+b+' / '+c+'</strong><small class="positive">'+label+' · '+b+' ('+fmt(pct,1)+'%)</small><br><small>'+other+' · '+(c-b)+' ('+fmt(c?100-pct:0,1)+'%)</small></div>';
+ }).join('');};
+ $('timeCards').innerHTML=donuts(0);
+ $('timeFocus').hidden=!focus;
+ $('timeFocus').innerHTML=focus?'<h3>Corte ampliado · '+br(focus*100)+'</h3><div class="cards">'+donuts(focus*100)+'</div>':'';
+ $('timeGrid').innerHTML=[150,200,250,300,350,400,450,500].map(k=>'<article class="time-tile"><h4>'+br(k*100)+'</h4><div class="cards">'+donuts(k*100,true)+'</div></article>').join('');
+}
+function switchView(time){$('timeView').hidden=!time;$('signalView').hidden=time;$('timeTab').setAttribute('aria-pressed',time);$('signalTab').setAttribute('aria-pressed',!time);if(time)renderTime();}
+$('signalTab').onclick=()=>switchView(false);$('timeTab').onclick=()=>switchView(true);$('timeYear').onchange=renderTime;$('timeCut').onchange=renderTime;
+let active=[];
+function render(){
+ const y=$('year').value,k=Math.max(1,Number($('level').value)||200)*100,j=Math.max(k/100+1,Number($('next').value)||300)*100; $('next').min=k/100+1;
+ const es=scoped(y),closed=es.filter(e=>e.closed),sig=signals(es,k),r=race(sig,j),routine=closed.filter(e=>e.depth<k).length;
+ $('source').textContent=z.operations.toLocaleString('pt-BR')+' operações · '+z.days+' pregões · '+dt(0)+' a '+dt(n.length-1)+' · 1 contrato'+($('setup').value==='gio'?' · anos anteriores a 2026 com cobertura parcial':'');
+ $('cards').innerHTML=[['Rotina · abaixo do corte',routine+' / '+closed.length,'episódios encerrados'],['Alcançaram o corte',sig.length,'inclui episódios abertos'],['Recuperaram antes do próximo nível',r[0]+' / '+sig.length,br(k)+' → '+br(j)],['Abertos que atingiram o corte',sig.filter(e=>!e.closed).length,'tempo de recuperação ainda desconhecido']].map(([a,b,c])=>'<div class="card"><small>'+a+'</small><strong>'+b+'</strong><small>'+c+'</small></div>').join('');
+ $('cuts').innerHTML=table(['Corte','Encerrados','% dos encerrados','Prof. mediana','Prof. média','Desv. padrão','Pregões médios','Pregões medianos','50% central · pregões'],[...new Set([0,15000,20000,25000,30000,35000,40000,45000,50000,k])].sort((a,b)=>a-b).map(c=>{let a=c?signals(closed,c):closed,v=a.map(e=>e.depth),t=a.map(e=>daysBetween(c?e.signal:e.start,e.end)),m=mean(v);return [c?'<button data-level="'+c/100+'">'+br(c)+(c===k?' ✓':'')+'</button>':'Sem corte',v.length,closed.length?fmt(100*v.length/closed.length,1)+'%':'—',br(q(v)),br(m),br(v.length?Math.sqrt(mean(v.map(x=>(x-m)**2))):null),fmt(mean(t)),fmt(q(t)),range(t,fmt)];}));
+ $('race').textContent=br(k)+' → '+br(j)+': '+r[0]+' recuperaram primeiro · '+r[1]+' atingiram o próximo nível primeiro · '+r[2]+' sem desfecho. Um salto que cruza os dois níveis no mesmo fechamento conta como avanço imediato.';
+ $('horizons').innerHTML=table(['Horizonte','Casos completos','Positivos','Resultado mediano','50% central · resultado','Avanço máx. mediano','Queda adicional mediana'],[0,1,3,5].map(h=>{let w=windowStats(sig,h),v=w.map(a=>a.ret);return [h?h+(h===1?' pregão':' pregões'):'Próxima operação',w.length,w.length?v.filter(x=>x>0).length+' / '+w.length:'—',br(q(v)),range(v,br),br(q(w.map(x=>x.up))),br(q(w.map(x=>x.down)))];}));
+ $('annual').innerHTML=table(['Ano','Sinais','Recuperaram primeiro','Aprofundaram primeiro','Sem desfecho','Mediana · próxima operação'],(y?[y]:[...new Set(n.slice(1).map(x=>x.date.slice(0,4)))]).map(a=>{const s=signals(scoped(a),k);return [a,s.length,...race(s,j),br(q(windowStats(s,0).map(x=>x.ret)))];}));
+ const old=$('event').value; active=sig.slice().sort((a,b)=>b.depth-a.depth); $('event').innerHTML=active.map(e=>'<option value="'+e.start+'">'+dt(e.start)+' · '+br(e.depth)+(e.closed?'':' · aberto')+'</option>').join(''); if(active.some(e=>String(e.start)===old))$('event').value=old; plot();
+}
+function plot(){const e=active.find(x=>String(x.start)===$('event').value)||active[0];if(!e){$('detail').textContent='Nenhum episódio neste corte.';$('plot').innerHTML='';return;}const v=n.slice(e.start,e.end+1).map(x=>x.value-n[e.start].value),x=i=>48+820*i/Math.max(1,v.length-1),y=a=>32-180*a/Math.max(e.depth,1),s=e.signal-e.start;
+ $('detail').textContent='Pico '+dt(e.start)+' · sinal '+dt(e.signal)+' · fundo '+dt(e.trough)+' · '+(e.closed?'recuperou em '+dt(e.end)+' após '+daysBetween(e.signal,e.end)+' pregões':'aberto há '+daysBetween(e.signal,e.end)+' pregões desde o sinal');
+ $('plot').innerHTML='<svg viewBox="0 0 910 240" role="img" aria-label="Trajetória do drawdown com marcação do sinal"><path d="M48 32H868" stroke="#607682" stroke-dasharray="5 5"/><text x="48" y="22" fill="#aac1cc">Pico · R$ 0</text><path d="M'+x(s)+' 30V215" stroke="#ffc468" stroke-dasharray="4 4"/><path d="'+v.map((a,i)=>(i?'L':'M')+x(i)+' '+y(Math.min(0,a))).join(' ')+'" stroke="#4ce1cd" stroke-width="2.5" fill="none"/><circle cx="'+x(s)+'" cy="'+y(v[s])+'" r="5" fill="#ffc468"/><text x="48" y="232" fill="#aac1cc">'+dt(e.start)+'</text><text x="868" y="232" text-anchor="end" fill="#aac1cc">'+dt(e.end)+'</text></svg>';
+}
+document.addEventListener('click',e=>{if(e.target.dataset.level){$('level').value=e.target.dataset.level;$('next').value=({150:200,200:300,250:300,300:350,350:400,400:450,450:500,500:750})[e.target.dataset.level]||Number(e.target.dataset.level)+100;render();}},{signal});
+for(const id of ['level','next','year'])$(id).onchange=()=>{if(Number($('next').value)<=Number($('level').value))$('next').value=Number($('level').value)+100;render();};$('event').onchange=plot;render();
+const gioMap=new Map(gio.map(r=>[r.id,r]));
+const pairs=gatto.filter(r=>gioMap.get(r.id)?.date===r.date);
+function protect(run,threshold,resume){
+ let eq=0,high=0,dd=0,peak=0,on=true,skips=0,pauses=0,relapses=0,seen=false;
+ for(const x of run.nodes.slice(1)){
+  if(on)eq+=x.change;else skips++;
+  high=Math.max(high,eq);dd=Math.max(dd,high-eq);
+  peak=Math.max(peak,x.value);const depth=peak-x.value;if(!depth)seen=false;
+  if(on&&depth>=threshold){if(seen)relapses++;seen=true;pauses++;on=false;}
+  else if(!on&&depth<=resume)on=true;
+ }
+ return {eq,dd,skips,pauses,relapses};
+}
+const pairYears=[...new Set(pairs.map(r=>r.date.slice(0,4)))].sort();
+$('pairYear').innerHTML=pairYears.map(y=>'<option>'+y+'</option>').join('');$('pairYear').value=pairYears.at(-1)||'';
+function compare(){
+ const a=pairs.filter(r=>r.date.startsWith($('pairYear').value)),b=a.map(r=>gioMap.get(r.id));
+ const runs=[a,b].map(r=>buildDrawdownAnalysis(r,'days'));
+ $('pairInfo').textContent=a.length+' pares · '+runs[0].days+' pregões em comum · '+(a.length?a[0].date+' a '+a.at(-1).date:'sem dados')+'. Anos anteriores a 2026 têm cobertura parcial de GIO.';
+ $('comparison').innerHTML=table(['Regra · pausa / retorno','Setup','Resultado bruto','Diferença vs. base','DD máximo','Pregões em pausa','Pausas / recaídas'],[[Infinity,0],[30000,15000],[40000,20000],[50000,20000],[50000,25000],[50000,30000],[50000,35000],[50000,0]].flatMap(([k,j])=>runs.map((r,i)=>{
+ const p=protect(r,k,j),base=r.nodes.at(-1)?.value??0;return [Number.isFinite(k)?br(k)+' / '+(j?br(j):'pico'):'Sem pausa',i?'GIO':'GATTO',br(p.eq),br(p.eq-base),br(p.dd),p.skips,p.pauses+' / '+p.relapses];
+ })));
+}
+$('pairYear').onchange=compare;$('setup').querySelector('[value=gio]').disabled=!gio.length;$('setup').querySelector('[value=compare]').disabled=!pairs.length;
+$('setup').onchange=()=>{
+ const v=$('setup').value,c=v==='compare';$('tabs').hidden=c;$('tabs').style.display=c?'none':'';$('compareView').hidden=!c;
+ if(v==='gio'&&!gio.length){$('setup').value='gatto';return;}
+ if(c){$('signalView').hidden=true;$('timeView').hidden=true;compare();return;}
+ load(v==='gio'?gio:gatto);
+ const years=[...new Set(n.slice(1).map(x=>x.date.slice(0,4)))].sort();
+ for(const id of ['year','timeYear']){$(id).innerHTML='<option value="">Todo o histórico</option>'+years.map(y=>'<option>'+y+'</option>').join('');$(id).value=v==='gio'?years.at(-1):'';}
+ switchView(false);render();
+};
+$('setup').value='gatto';$('setup').onchange();
+return ()=>controller.abort();
+}
+(function(){
+'use strict';
+function convert(raw){return (raw||[]).flatMap(x=>{
+ const date=String(x.dataHoraIso||'').slice(0,10),order=Number(String(x.id||'').split('__').at(-1)),points=x.pontos;
+ return /^\d{4}-\d{2}-\d{2}$/.test(date)&&[1,2,3].includes(order)&&Number.isFinite(points)?[{id:x.id,date,order,points,stop:Number.isFinite(x.tamanhoStop)?x.tamanhoStop:null}]:[];
+ }).sort((a,b)=>a.date.localeCompare(b.date)||a.order-b.order);}
+const root=document.querySelector('main');
+const notice=document.createElement('p');notice.setAttribute('role','status');document.body.prepend(notice);
+let teardown;
+function start(){
+ let base;
+ try{base=window.parent!==window?window.parent.PuloPauseData?.():null;}catch{}
+ if(!base?.gatto?.length){root.hidden=true;notice.textContent='Abra pelo painel principal e aguarde a atualização da base.';return;}
+ teardown?.();root.hidden=false;notice.textContent='';
+ try{teardown=init(convert(base.gatto),convert(base.gio),base.read);}
+ catch(error){root.hidden=true;notice.textContent=error.message;return;}
+}
+window.addEventListener('pulo:pause-data',start);
+const frame=window.frameElement;
+if(frame)new ResizeObserver(()=>{if(!frame.getClientRects().length)return;frame.style.height=Math.max(800,document.body.offsetHeight+20)+'px';}).observe(document.body);
+start();
+})();
+</script></html>
