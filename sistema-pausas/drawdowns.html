@@ -95,7 +95,8 @@ function graph(e,dd){
    s+='<path fill="none" stroke="'+color+'" stroke-width="2.6" d="'+arr.map((v,i)=>(i?'L':'M')+x(i)+','+y(v)).join(' ')+'"/>';
    const maxLabel=dd?'Máx. '+money(maxValue):'Fundo '+money(maxValue);
    s+='<circle cx="'+x(maxIndex)+'" cy="'+y(maxValue)+'" r="4" fill="'+color+'" stroke="#071017" stroke-width="2"/><text class="value-label" x="'+x(maxIndex)+'" y="'+Math.max(15,Math.min(201,y(maxValue)+offset))+'" text-anchor="'+(maxIndex>arr.length*.72?'end':'start')+'" style="fill:'+color+'">'+maxLabel+'</text>';
-   const currentOffset=-offset;\n   s+='<circle cx="'+x(last)+'" cy="'+y(current)+'" r="4" fill="'+color+'" stroke="#071017" stroke-width="2"/><text class="value-label" x="'+(x(last)-5)+'" y="'+Math.max(15,Math.min(201,y(current)+currentOffset))+'" text-anchor="end" style="fill:'+color+'">Atual '+money(current)+'</text>';
+   const currentOffset=-offset;
+   s+='<circle cx="'+x(last)+'" cy="'+y(current)+'" r="4" fill="'+color+'" stroke="#071017" stroke-width="2"/><text class="value-label" x="'+(x(last)-5)+'" y="'+Math.max(15,Math.min(201,y(current)+currentOffset))+'" text-anchor="end" style="fill:'+color+'">Atual '+money(current)+'</text>';
  }
  s+='<text x="78" y="229">'+date(nodes[0].date)+'</text><text x="880" y="229" text-anchor="end">'+date(nodes.at(-1).date)+'</text><line data-cross x1="78" x2="78" y1="18" y2="203" stroke="#9cb2bf" visibility="hidden"/><rect data-hit x="78" y="18" width="802" height="185" fill="transparent"/></svg>';
  return '<div class="chart" data-graph="'+e.id+'" data-dd="'+Number(dd)+'"><h3>'+(dd?'Drawdown desde o pico próprio · R$':'Resultado acumulado · R$')+'</h3>'+s+'<div class="readout">Passe o cursor ou toque para consultar os fechamentos.</div></div>';
