@@ -1821,17 +1821,72 @@ function drawAll() {
   });
 }
 
-async function loadData() {
+const DASHBOARD_SNAPSHOT_KEY = 'pulo-dashboard-snapshot-v1';
+let dashboardRequestToken = '';
+let dashboardLoadedToken = '';
+
+function validDashboardPayload(payload) {
+  return payload?.sucesso && Array.isArray(payload.operacoes) && payload.operacoes.length > 0
+    && payload.operacoes.every(operation => typeof operation?.dataHoraIso === 'string');
+}
+
+function renderDashboardPayload(payload) {
+  const previousFirst = state.all[0]?.dataHoraIso.slice(0, 10);
+  const previousLast = state.all.at(-1)?.dataHoraIso.slice(0, 10);
+  const fullRange = state.customFrom === previousFirst && state.customTo === previousLast;
+  state.gattoAll = [...payload.operacoes].sort((a, b) => a.dataHoraIso.localeCompare(b.dataHoraIso));
+  state.gioAll = normalizeGioOperations(payload.comparativoGio ?? payload.comparativoProtegido);
+  state.dataUpdatedAt = payload.geradoEm || '';
+  if (state.dataset === 'gio' && !state.gioAll.length) state.dataset = 'gatto';
+  state.all = state.dataset === 'gio' ? state.gioAll : state.gattoAll;
+  configureDatasetRange(Boolean(previousFirst) && !fullRange);
+  updateDatasetContext();
+  cacheBaseForRobustez(payload);
+  window.PuloComparativoBridge?.setPayload(payload);
+  document.querySelectorAll('iframe[data-pause-src][src]').forEach(frame => {
+    frame.contentWindow?.dispatchEvent(new Event('pulo:pause-data'));
+  });
+  document.getElementById('gioResultsNav')?.classList.toggle('gio-data-unavailable', !state.gioAll.length);
+  document.getElementById('loadingState')?.classList.add('loaded');
+  applyPeriod();
+}
+
+async function loadData(token) {
   const statusDot = document.getElementById('statusDot');
   const statusText = document.getElementById('statusText');
   const statusDetail = document.getElementById('statusDetail');
   const notice = document.getElementById('notice');
   const loadingState = document.getElementById('loadingState');
   const loadingDetail = document.getElementById('loadingDetail');
+  const status = statusText.closest('.data-status');
+  const sessionActive = () => window.PuloAccess?.getToken() === token;
+  const showCounts = () => {
+    statusDetail.textContent = `${state.gattoAll.length} operações GATTO · ${state.gioAll.length} GIO · ${state.dataUpdatedAt.slice(0, 10)}`;
+  };
+
+  status.dataset.refresh = 'loading';
+  statusDot.className = 'status-dot error';
+  statusText.textContent = 'ATUALIZANDO DADOS';
+  notice.classList.remove('visible');
+  let scope;
+  let hasSnapshot = false;
+  try {
+    const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(token));
+    scope = Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
+    if (!sessionActive()) return;
+    const cached = JSON.parse(sessionStorage.getItem(DASHBOARD_SNAPSHOT_KEY) || 'null');
+    if (cached?.scope === scope && validDashboardPayload(cached.payload)) {
+      renderDashboardPayload(cached.payload);
+      hasSnapshot = true;
+      showCounts();
+    }
+  } catch (error) {
+    console.warn('Cache de resultados indisponível.', error);
+  }
+  if (!sessionActive()) return;
 
   try {
-    loadingState?.classList.remove('loaded', 'error');
-    notice.classList.remove('visible');
+    if (!hasSnapshot) loadingState?.classList.remove('loaded', 'error');
     let response;
     let lastError;
     for (let attempt = 1; attempt <= 2; attempt += 1) {
@@ -1859,30 +1914,36 @@ async function loadData() {
     }
     if (!response?.ok) throw lastError || new Error('A base não respondeu.');
     const payload = await response.json();
-    if (!payload.sucesso || !Array.isArray(payload.operacoes)) {
-      throw new Error(payload.mensagem || 'A API não devolveu operações válidas.');
+    if (!sessionActive()) return;
+    if (!validDashboardPayload(payload)) {
+      throw new Error(payload?.mensagem || 'A API não devolveu operações válidas.');
     }
-    cacheBaseForRobustez(payload);
-    window.PuloComparativoBridge?.setPayload(payload);
-
-    state.gattoAll = payload.operacoes.sort((a, b) => a.dataHoraIso.localeCompare(b.dataHoraIso));
-    state.gioAll = normalizeGioOperations(payload.comparativoGio ?? payload.comparativoProtegido);
-    state.dataUpdatedAt = payload.geradoEm || '';
-    document.querySelectorAll('iframe[data-pause-src][src]').forEach(frame => {
-      frame.contentWindow?.dispatchEvent(new Event('pulo:pause-data'));
-    });
-    state.dataset = 'gatto';
-    state.all = state.gattoAll;
-    configureDatasetRange(false);
-    updateDatasetContext();
-    document.getElementById('gioResultsNav')?.classList.toggle('gio-data-unavailable', !state.gioAll.length);
-    statusDot.className = 'status-dot ok';
-    statusText.textContent = 'Dados atualizados';
-    statusDetail.textContent = `${payload.meta.total} operações GATTO · ${state.gioAll.length} GIO · ${payload.geradoEm.slice(0, 10)}`;
-    loadingState?.classList.add('loaded');
-    applyPeriod();
+    const gioFailed = payload.meta?.comparativoGio?.sucesso === false;
+    if (gioFailed && hasSnapshot && state.gioAll.length) {
+      throw new Error('A base GIO não pôde ser atualizada.');
+    }
+    renderDashboardPayload(payload);
+    status.dataset.refresh = gioFailed ? 'failed' : 'done';
+    statusDot.className = gioFailed ? 'status-dot error' : 'status-dot ok';
+    statusText.textContent = gioFailed ? 'GIO INDISPONÍVEL' : 'Dados atualizados';
+    showCounts();
+    dashboardLoadedToken = token;
+    if (scope && !gioFailed) {
+      try {
+        sessionStorage.setItem(DASHBOARD_SNAPSHOT_KEY, JSON.stringify({ scope, payload }));
+      } catch (error) {
+        console.warn('Não foi possível salvar os resultados para a próxima recarga.', error);
+      }
+    }
   } catch (error) {
+    if (!sessionActive()) return;
     console.error(error);
+    status.dataset.refresh = 'failed';
+    if (hasSnapshot) {
+      statusText.textContent = 'ATUALIZAÇÃO INDISPONÍVEL';
+      showCounts();
+      return;
+    }
     statusDot.className = 'status-dot error';
     statusText.textContent = 'Falha na conexão';
     statusDetail.textContent = 'Verifique a API publicada';
@@ -1893,6 +1954,7 @@ async function loadData() {
     document.querySelectorAll('.skeleton').forEach(el => el.classList.remove('skeleton'));
   }
 }
+
 
 document.querySelectorAll('.nav-button[data-page]').forEach(button => {
   button.addEventListener('click', () => {
@@ -2105,6 +2167,11 @@ document.addEventListener('pulo:session', event => {
     );
     fallback?.click();
   }
-  if (!state.all.length) loadData();
+  const token = window.PuloAccess?.getToken();
+  if (!token || token === dashboardLoadedToken || token === dashboardRequestToken) return;
+  dashboardRequestToken = token;
+  loadData(token).finally(() => {
+    if (dashboardRequestToken === token) dashboardRequestToken = '';
+  });
 });
 
