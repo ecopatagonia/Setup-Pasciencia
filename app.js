@@ -322,6 +322,9 @@ function renderDrawdownsPage() {
   window.PuloDrawdowns?.render({operations:state.filtered,dataset:state.dataset,mode:state.mode,
     periodKey:[state.period,state.selectedYear,state.customFrom,state.customTo],periodLabel:describePeriod(),updatedAt:state.dataUpdatedAt});
 }
+document.addEventListener('pulo:drawdowns-dataset-change', event => {
+  if (state.activePage === 'drawdowns') activateDataset(event.detail);
+});
 
 function render() {
   renderDrawdownsPage();
@@ -1904,7 +1907,7 @@ async function loadData() {
 
 document.querySelectorAll('.nav-button[data-page]').forEach(button => {
   button.addEventListener('click', () => {
-    const targetDataset = button.dataset.page === 'linea' && !button.dataset.dataset ? state.dataset : (button.dataset.dataset || 'gatto');
+    const targetDataset = (button.dataset.page === 'linea' || button.dataset.page === 'drawdowns') && !button.dataset.dataset ? state.dataset : (button.dataset.dataset || 'gatto');
     if (!activateDataset(targetDataset)) return;
     state.activePage = button.dataset.page;
     document.body.classList.toggle('line-page-active', state.activePage === 'linea');

@@ -1,5 +1,14 @@
 # O Pulo do Gatto — Documento Maestro
 
+## 2026-11-14 — Drawdowns por operação
+
+- Menu principal: **Comparativo → Drawdowns → Individuais**. O item Drawdowns tem ícone próprio e acesso em nível principal.
+- Reutiliza o explorador e a identidade visual do módulo Drawdowns existente, com filtros de Setup GATTO/GIO e operações: todas, Op1, Op2, Op3, Op1+Op2, Op1+Op3 ou Op2+Op3.
+- Fonte única: operações financeiras reais já carregadas pela API do site (`state.gattoAll` / `state.gioAll`) e recorte temporal ativo. Sem dataset ilustrativo do mockup e sem nova consulta à planilha.
+- Mantém o cálculo por fechamento, seleção de episódios, mapa, gráficos, modos de análise, escala e referência de quebra existentes. O filtro de operação usa a ordem persistida no registro ou o sufixo de operação do ID.
+- Entrega: branch e PR próprios; publicação no GitHub Pages após revisão.
+
+
 ## 2026-11-08 — Drawdowns comparados e Sistema de Pausas
 
 - Comparativo: Drawdowns comparados entre Comparativo linha a linha e Operações e dados.
