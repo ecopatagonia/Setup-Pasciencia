@@ -1,9 +1,10 @@
 'use strict';
 
-const PAUSE_PAGES = new Set(['drawdownCompare', 'pauseRadar', 'pauseRegimes']);
+const PAUSE_PAGES = new Set(['drawdownCompare', 'pauseRadar', 'pauseRegimes', 'lineCombinations']);
 window.PuloPauseData = () => ({
   gatto: state.gattoAll,
   gio: state.gioAll,
+  gioPendingDates: state.gioPendingDates || [],
   read: state.dataUpdatedAt
 });
 function openPausePage(page) {
@@ -1866,7 +1867,14 @@ async function loadData() {
     window.PuloComparativoBridge?.setPayload(payload);
 
     state.gattoAll = payload.operacoes.sort((a, b) => a.dataHoraIso.localeCompare(b.dataHoraIso));
-    state.gioAll = normalizeGioOperations(payload.comparativoGio ?? payload.comparativoProtegido);
+    const gioRows = payload.comparativoGio ?? payload.comparativoProtegido;
+    state.gioAll = normalizeGioOperations(gioRows);
+    const validGioIds = new Set(state.gioAll.map(operation => operation.id));
+    state.gioPendingDates = [...new Set((Array.isArray(gioRows) ? gioRows : []).flatMap(row => {
+      const id = String((Array.isArray(row) ? row[0] : row?.id ?? row?.ID) ?? '');
+      const match = id.match(/^OP_(\d{2})-(\d{2})-(\d{4})__[123]$/);
+      return match && !validGioIds.has(id) ? [`${match[3]}-${match[2]}-${match[1]}`] : [];
+    }))];
     state.dataUpdatedAt = payload.geradoEm || '';
     document.querySelectorAll('iframe[data-pause-src][src]').forEach(frame => {
       frame.contentWindow?.dispatchEvent(new Event('pulo:pause-data'));
