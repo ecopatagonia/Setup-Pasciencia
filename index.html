@@ -72,10 +72,15 @@
             </div>
           </div>
         </div>
-        <button class="nav-button nav-top-level" data-page="linea" data-permission="resultados" type="button">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 20h18M5 16l4-5 4 3 6-8"/><circle cx="19" cy="6" r="1.5"/></svg>
-          <span>Linha a linha</span>
-        </button>
+        <div class="nav-group" id="linhaLinhaNav">
+          <button class="nav-group-toggle" data-permission="resultados" type="button" aria-expanded="false">
+            <span>Linha a linha</span><span class="nav-chevron">⌄</span>
+          </button>
+          <div class="nav-submenu">
+            <button class="nav-button nav-subitem" data-page="linea" data-permission="resultados" type="button">Análise por operação</button>
+            <button class="nav-button nav-subitem" data-page="lineCombinations" data-permission="resultados" type="button">Combinações de operações</button>
+          </div>
+        </div>
         <div class="nav-group" id="comparisonNav">
           <button class="nav-group-toggle" data-permission="resultados" type="button" aria-expanded="false">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V7m5 12V3m6 16v-8m5 8V5M2 21h20"/></svg>
@@ -736,6 +741,10 @@
         <iframe id="escaladaGioFrame" title="Laboratório de escalada GIO" data-src="escalada/index.html?dataset=gio&amp;v=2.1.0" sandbox="allow-scripts allow-same-origin allow-downloads" style="width:100%;height:calc(100dvh - 180px);min-height:720px;border:1px solid var(--border);border-radius:12px;display:block"></iframe>
       </section>
 
+      <section class="page" id="page-lineCombinations" aria-label="Combinações de operações">
+        <button class="menu-toggle" type="button" aria-label="Abrir menu" aria-expanded="false">☰ Menu</button>
+        <iframe title="Combinações de operações" data-pause-src="linha-a-linha/combinacoes.html?v=1" style="width:100%;height:calc(100dvh - 100px);min-height:720px;border:0;display:block"></iframe>
+      </section>
       <section class="page" id="page-drawdownCompare" aria-label="Drawdowns comparados"><iframe title="Drawdowns comparados" data-pause-src="sistema-pausas/drawdowns.html?v=3" style="width:100%;border:0;min-height:800px;display:block"></iframe></section>
       <section class="page" id="page-pauseRadar" aria-label="Radar de drawdowns"><iframe title="Radar de drawdowns" data-pause-src="sistema-pausas/radar.html?v=1" style="width:100%;border:0;min-height:800px;display:block"></iframe></section>
       <section class="page" id="page-pauseRegimes" aria-label="Regimes de risco"><iframe title="Regimes de risco" data-pause-src="sistema-pausas/regimes.html?v=1" style="width:100%;border:0;min-height:800px;display:block"></iframe></section>
@@ -766,7 +775,7 @@
   <script src="auth.js?v=6.2"></script>
   <script src="comparativo/bridge.js?v=1.3"></script>
   <script src="drawdowns/explorer.js?v=1.0"></script>
-<script src="app.js?v=6.7"></script>
+<script src="app.js?v=6.8"></script>
   <script src="escalada/bridge.js?v=1.0"></script>
 </body>
 </html>
