@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="pt-BR">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Comparativo · GATTO e GIO</title>
+<style>
+:root{color-scheme:dark;--bg:#0a1019;--panel:#111d2a;--line:#293a4c;--ink:#edf4fb;--muted:#a7bacb;--mint:#64e0bc;--red:#ff9fa4}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Inter",system-ui,sans-serif}main{max-width:1180px;margin:auto;padding:32px clamp(16px,4vw,48px) 60px}
+header{border-bottom:1px solid var(--line);padding-bottom:22px}h1{font-size:clamp(30px,5vw,48px);letter-spacing:-.05em;line-height:1.08;margin:8px 0 12px}h2{font-size:20px;margin:0 0 12px}.brand,.positive{color:var(--mint)}.negative{color:var(--red)}.sub,small{color:var(--muted)}p{margin:8px 0}a{color:var(--mint)}section{margin-top:24px}.panel,.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px}.controls{display:flex;flex-wrap:wrap;gap:14px;align-items:end}label{display:grid;gap:4px;color:var(--muted)}input,select,button{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px}button{cursor:pointer}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}.card strong{display:block;font-size:29px;letter-spacing:-.04em}.scroller{overflow:auto}table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}th,td{text-align:right;padding:10px;border-bottom:1px solid var(--line);white-space:nowrap}th:first-child,td:first-child{text-align:left}th{font-size:13px;color:var(--muted)}tbody tr:last-child td{border-bottom:0}.detail{margin-top:14px;max-height:540px}.detail thead{position:sticky;top:0;background:var(--panel)}.bars{display:grid;gap:14px}.track{height:10px;display:flex;overflow:hidden;border-radius:8px;background:var(--line)}.track span:nth-child(1){background:var(--mint)}.track span:nth-child(2){background:var(--red)}.track span:nth-child(3){background:#8399ae}.labels{display:flex;flex-wrap:wrap;gap:14px;margin:5px 0}.controls .sub{align-self:center;margin-left:auto}
+#results .panel + .panel{margin-top:14px} #results .scroller{margin-top:10px} [hidden]{display:none!important}
+#chart{margin-top:12px}.chart-frame{overflow-x:auto}.chart-frame svg{display:block;width:100%;min-width:540px;height:auto}.legend{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:10px}.legend span{display:inline-flex;align-items:center;gap:7px}.swatch{width:14px;height:4px;border-radius:2px}.check{display:inline-flex;align-items:center;gap:8px;color:var(--ink);cursor:pointer}.check input{accent-color:var(--mint)}td small{display:block}
+.view-nav{display:flex;gap:8px;flex-wrap:wrap;margin-top:20px}.view-nav button[aria-pressed="true"]{color:var(--mint);border-color:var(--mint);background:#112a28}
+.rank-legend{display:flex;gap:8px;flex-wrap:wrap}.rank-1,.rank-2,.rank-3{display:inline-block;padding:2px 8px;border-radius:6px;font-weight:700}.rank-1{background:#163b30;color:#95f4c0}.rank-2{background:#443814;color:#ffe38b}.rank-3{background:#492630;color:#ffacb7}.annual-table td{vertical-align:top}.annual-table td small{margin:3px 0}.annual-table th small{font-weight:400}
+#crossPairs small{display:block}.ratio-bar{display:block;height:6px;width:112px;margin:4px 0 0 auto;background:#293a4c;border-radius:6px;overflow:hidden}.ratio-bar i{display:block;height:100%;background:var(--mint)}.ratio-bar.gio i{background:#85b7ff}
+</style>
+<p id="siteStatus" role="status" style="padding:24px">Aguardando a base de operações do painel…</p>
+<main id="moduleContent" hidden>
+<header><strong class="brand">O PULO DO GATTO</strong><h1>Comparativo de operações</h1><p class="sub">Capital inicial de referência: R$ 2.500,00 por estratégia. Todas as operações usam 1 contrato a R$ 0,20 por ponto.</p></header>
+<nav class="view-nav" aria-label="Setups">
+<button type="button" id="showGatto" aria-pressed="true">GATTO</button>
+<button type="button" id="showGio" aria-pressed="false">GIO</button>
+<button type="button" id="showCross" aria-pressed="false">GATTO × GIO</button>
+</nav>
+<div id="setupViews">
+<nav class="view-nav" aria-label="Vistas do comparativo">
+<button type="button" id="showDaily" aria-pressed="true">Comparativo diário</button>
+<button type="button" id="showAnnual" aria-pressed="false">Comparativo anual</button>
+</nav>
+<div id="dailyView">
+<section class="panel controls" aria-label="Período da comparação">
+<label>Período<select id="period"><option value="custom">Personalizado</option><option value="2024">2024</option><option value="2025">2025</option><option value="2026" selected>2026</option><option value="all">2024–2026</option></select></label><label>De<input id="from" type="date"></label><label>Até<input id="to" type="date"></label><button id="reset" type="button">Período completo</button><span class="sub" id="coverage" aria-live="polite"></span>
+</section>
+<p id="gioCoverage" class="sub" hidden>GIO 2024 e 2025 têm dados parciais. Os resultados incluem apenas operações com pontuação preenchida.</p>
+<section class="panel" id="results" aria-label="Resultados dos cenários"><h2>Resultados por estratégia</h2>
+<p class="sub">Marque as estratégias para comparar o resultado acumulado e o drawdown. Sem seleção, os gráficos mostram as sete.</p>
+<div class="scroller"><table><thead><tr><th>Estratégia</th><th>Operações executadas</th><th>Resultado (pts)</th><th>Resultado (R$)</th><th>Drawdown máx. (pts)</th><th>Drawdown máx. (R$)</th><th>Diferença vs. Op1 (R$)</th></tr></thead><tbody id="summary"></tbody></table></div>
+</section>
+<section class="panel"><h2>Curvas acumuladas</h2><div class="controls">
+<label>Unidade<select id="unit"><option value="pts">Pontos</option><option value="brl">Reais</option></select></label>
+</div><div id="chart"></div></section>
+<section class="panel"><h2>Drawdown por operação</h2>
+<p class="sub">Zero indica o pico da própria estratégia. Quanto mais baixa a curva, maior a queda desde esse pico.</p>
+<div id="drawdownChart"></div></section>
+</div>
+<section class="panel" id="annualView" hidden>
+<h2>Lucro e drawdown por ano</h2>
+<p class="sub">Cada ano começa com o acumulado zerado. O drawdown é medido após cada operação fechada.</p>
+<p class="rank-legend"><span class="rank-1">1º melhor</span> <span class="rank-2">2º melhor</span> <span class="rank-3">3º melhor</span></p>
+<div class="scroller" tabindex="0" aria-label="Resultados anuais por estratégia"><table class="annual-table"><thead id="annualHead"></thead><tbody id="annualBody"></tbody></table></div>
+</section>
+</div>
+<div id="crossView" hidden>
+<section class="panel">
+<h2>GATTO × GIO</h2>
+<div class="controls">
+<label>Ano<select id="crossYear"><option>2024</option><option>2025</option><option selected>2026</option></select></label>
+<span id="crossCoverage" class="sub" aria-live="polite"></span>
+</div>
+<p class="sub">A comparação usa pregões presentes nos dois setups e exclui datas com operações pendentes identificadas no GIO. Em 2024 e 2025, a cobertura do GIO é parcial.</p>
+</section>
+<section class="panel"><h2>Frente a frente</h2>
+<p class="sub">Em cada combinação, o maior Lucro / draw aparece em verde.</p>
+<div class="scroller" tabindex="0" aria-label="Setups lado a lado"><table><thead><tr><th scope="col">Estratégia</th><th scope="col">GATTO</th><th scope="col">GIO</th></tr></thead><tbody id="crossPairs"></tbody></table></div>
+</section>
+<section class="panel"><h2>Ranking por lucro e drawdown</h2>
+<div class="controls"><label>Ordenar por<select id="crossSort"><option value="ratio">Lucro / draw</option><option value="reais">Maior lucro</option><option value="drawdownReais">Menor drawdown</option></select></label><label>Limite de drawdown<select id="crossLimit"><option value="">Sem limite</option><option value="500">R$ 500</option><option value="1000">R$ 1.000</option><option value="1500">R$ 1.500</option><option value="2000">R$ 2.000</option><option value="2500">R$ 2.500</option></select></label></div>
+<p class="sub">A barra mostra quantos reais de lucro a estratégia gerou por R$ 1 de drawdown máximo, qualquer que seja a ordenação.</p>
+<div class="scroller" tabindex="0" aria-label="Ranking das estratégias"><table><thead><tr><th scope="col">Posição</th><th scope="col">Setup</th><th scope="col">Estratégia</th><th scope="col">Operações</th><th scope="col">Lucro</th><th scope="col">Drawdown máx.</th><th scope="col">Lucro / draw</th></tr></thead><tbody id="crossRank"></tbody></table></div>
+</section>
+<section><small>1 contrato por operação · R$ 0,20 por ponto · resultados acumulados a partir de zero no início da amostra · drawdown após cada fechamento no GATTO e pela ordem do ID no GIO, cuja planilha não contém horários de saída.</small></section>
+</div>
+<section id="gattoSource"><small>Fonte <a href="https://docs.google.com/spreadsheets/d/1JQfi8LBfO1n_LvNZYfh1LHr6JXgJWP6bgDNYPYdX8Zc/edit#gid=1091466349">PARA_SITE</a> · PONTOS (coluna L) · ordem conferida por CANDLE_ENTRADA · CANDLE_SAIDA para ordenar os fechamentos do pregão · R$ 0,20 por ponto por contrato. O drawdown máximo mede a maior queda desde o pico do saldo realizado, partindo de zero. Os pregões sem entradas posteriores registradas também entram na comparação.</small></section>
+<section id="gioSource" hidden><small>Fonte <a href="https://docs.google.com/spreadsheets/d/1JQfi8LBfO1n_LvNZYfh1LHr6JXgJWP6bgDNYPYdX8Zc/edit#gid=1421402167">SETUP_GIO</a> · EXECUTADO PROTEGENDO (coluna F) · operações ordenadas pelo ID dentro do pregão. A planilha do GIO não traz horários de saída. O drawdown por operação segue essa ordem. Dados carregados pelo painel.</small></section>
+</main>
+<script>
+const byId = id => document.getElementById(id);
+const datasets = {gatto: [], gio: []};
+let activeSetup = 'gatto';
+let data = datasets.gatto;
+const from = byId('from'), to = byId('to'), unit = byId('unit');
+const selected = new Set();
+const number = new Intl.NumberFormat('pt-BR');
+const currency = new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'});
+const signed = value => (value > 0 ? '+' : '') + number.format(value);
+const formatDate = date => date.split('-').reverse().join('/');
+const scenarios = [
+  {key:'1',label:'Só Op1',operations:[1],color:'#64e0bc'},
+  {key:'2',label:'Só Op2',operations:[2],color:'#ff8799'},
+  {key:'3',label:'Só Op3',operations:[3],color:'#e8e66b'},
+  {key:'12',label:'Op1 + Op2',operations:[1,2],color:'#85b7ff'},
+  {key:'13',label:'Op1 + Op3',operations:[1,3],color:'#ffc777'},
+  {key:'23',label:'Op2 + Op3',operations:[2,3],color:'#f0a4d0'},
+  {key:'123',label:'Op1 + Op2 + Op3',operations:[1,2,3],color:'#d9a6ff'}
+];
+let first = '2024-01-01';
+let last = '2026-12-31';
+const period = byId('period');
+for (const input of [from,to]) {
+  input.min = first;
+  input.max = last;
+  input.addEventListener('change',() => {
+    period.value = 'custom';
+    render();
+  });
+}
+function setPeriod(value) {
+  period.value = value;
+  from.value = value === 'all' ? first : value + '-01-01';
+  to.value = value === 'all' ? last : value + '-12-31';
+  render();
+}
+period.addEventListener('change',() => {
+  if (period.value !== 'custom') setPeriod(period.value);
+});
+function metrics(points) {
+  let total = 0, peak = 0, drawdown = 0;
+  for (const value of points) {
+    total += value;
+    peak = Math.max(peak,total);
+    drawdown = Math.max(drawdown,peak-total);
+  }
+  return {total, drawdown, reais:total/5, drawdownReais:drawdown/5};
+}
+function cell(value) {
+  return '<td>' + value + '</td>';
+}
+function seriesFor(rows,operations) {
+  return rows.flatMap(row => row[4].filter(i => operations.includes(i)).map(i => row[i]));
+}
+function renderSummary(rows) {
+  const base = metrics(seriesFor(rows,[1]));
+  if (!rows.length) {
+    byId('summary').innerHTML = '<tr><td colspan="7">Nenhuma operação disponível no período.</td></tr>';
+    return;
+  }
+  byId('summary').innerHTML = scenarios.map(({key,label,operations}) => {
+    const points = seriesFor(rows,operations);
+    const result = metrics(points);
+    const checkbox = '<label class="check"><input type="checkbox" value="' + key + '"' +
+      (selected.has(key) ? ' checked' : '') + '>' + label + '</label>';
+    const delta = key === '1' ? '—' : currency.format((result.total-base.total)/5);
+    return '<tr>' + [checkbox,number.format(points.length),signed(result.total),currency.format(result.reais),
+      number.format(result.drawdown),currency.format(result.drawdownReais),delta].map(cell).join('') + '</tr>';
+  }).join('');
+}
+function chartSeries(rows,scenario,financial) {
+  let total = 0, peak = 0;
+  const scale = financial ? 0.20 : 1;
+  const path = [0], drawdown = [0];
+  for (const row of rows) {
+    for (const op of row[4]) {
+      if (scenario.operations.includes(op)) total += row[op];
+      peak = Math.max(peak,total);
+      path.push(total * scale);
+      drawdown.push((total-peak)*scale);
+    }
+  }
+  return {label:scenario.label,color:scenario.color,path,drawdown};
+}
+function renderChart(rows) {
+  const financial = unit.value === 'brl';
+  const active = scenarios.filter(item => selected.size === 0 || selected.has(item.key));
+  const singlePair = selected.size === 1 && active[0].key !== '1';
+  if (!rows.length) {
+    for (const id of ['chart','drawdownChart']) byId(id).textContent = 'Nenhum pregão no período.';
+    return;
+  }
+  const curves = active.map(item => chartSeries(rows,item,financial));
+  if (singlePair) curves.unshift(chartSeries(rows,scenarios[0],financial));
+  drawChart('chart',rows,curves,'path',financial);
+  drawChart('drawdownChart',rows,curves,'drawdown',financial);
+}
+function drawChart(id,rows,curves,series,financial) {
+  const isDrawdown = series === 'drawdown';
+  const values = curves.flatMap(curve => curve[series]);
+  const low = Math.min(isDrawdown ? -1 : 0,...values);
+  const high = isDrawdown ? 0 : Math.max(1,...values);
+  const left = 104, right = 974, top = 18, bottom = 240;
+  const x = i => left + i*(right-left)/(curves[0].path.length-1);
+  const y = v => bottom - (v-low)*(bottom-top)/(high-low);
+  const grid = Array.from({length:5},(_,i) => {
+    const value = low + (high-low)*i/4;
+    return '<line x1="'+left+'" x2="'+right+'" y1="'+y(value)+'" y2="'+y(value)+'" stroke="#293a4c"/>' +
+      '<text x="'+(left-8)+'" y="'+(y(value)+4)+'" text-anchor="end">'+
+      (financial ? currency.format(Math.round(value)) : number.format(Math.round(value)))+'</text>';
+  }).join('');
+  const lines = curves.map(({[series]:path,color}) => '<polyline fill="none" stroke="'+color+'" stroke-width="2.4" stroke-linejoin="round" points="'+
+    path.map((value,i) => x(i).toFixed(1)+','+y(value).toFixed(1)).join(' ')+'"/>').join('');
+  const title = isDrawdown ? 'Curvas de drawdown por operação' : 'Curvas de resultado acumulado por fechamento de operação';
+  byId(id).innerHTML = '<div class="chart-frame"><svg viewBox="0 0 994 270" role="img" aria-label="'+title+'">' +
+    '<g fill="#a7bacb" font-size="12">'+grid+'<text x="'+left+'" y="262">'+formatDate(rows[0][0])+'</text><text x="'+right+
+    '" y="262" text-anchor="end">'+formatDate(rows.at(-1)[0])+'</text></g>'+lines+'</svg></div><div class="legend">'+
+    curves.map(curve => '<span><i class="swatch" style="background:'+curve.color+'"></i>'+curve.label+'</span>').join('')+'</div>';
+}
+function currentRows() {
+  return data.filter(([date]) => date >= (from.value || first) && date <= (to.value || last));
+}
+function render() {
+  const rows = currentRows();
+  byId('coverage').textContent = rows.length
+    ? rows.length + (rows.length === 1 ? ' pregão' : ' pregões') + ' · ' + formatDate(rows[0][0]) + ' a ' + formatDate(rows.at(-1)[0])
+    : 'Nenhum pregão no período';
+  renderSummary(rows);
+  renderChart(rows);
+}
+function renderAnnual() {
+  const years = ['2024','2025','2026'].map(year => {
+    const rows = data.filter(row => row[0].startsWith(year));
+    const results = scenarios.map(scenario => {
+      const result = metrics(seriesFor(rows,scenario.operations));
+      return {...result, key:scenario.key, ratio:result.drawdown ? result.total/result.drawdown : null};
+    });
+    const top = results.filter(result => result.ratio !== null)
+      .sort((a,b) => b.ratio-a.ratio).slice(0,3).map(result => result.key);
+    return {year,rows,results,top};
+  });
+  const ratioFormat = new Intl.NumberFormat('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const partial = year => year === '2026' || (activeSetup === 'gio' && year !== '2026');
+  byId('annualHead').innerHTML = '<tr><th scope="col">Estratégia</th>' + years.map(({year,rows}) =>
+    '<th scope="col">'+year+(partial(year) ? ' parcial' : '')+'<small>'+rows.length+' pregões com dados'+
+    (partial(year) && rows.length ? '<br>'+formatDate(rows[0][0])+' a '+formatDate(rows.at(-1)[0]) : '')+
+    '</small></th>').join('') + '</tr>';
+  byId('annualBody').innerHTML = scenarios.map(({key,label},i) =>
+    '<tr><th scope="row">'+label+'</th>'+years.map(({rows,results,top}) => {
+      if (!rows.length) return cell('Sem dados');
+      const {reais,drawdownReais,ratio} = results[i];
+      const rank = top.indexOf(key)+1;
+      const value = ratio === null ? '—' : ratioFormat.format(ratio)+'×';
+      return cell('<small>Lucro '+currency.format(reais)+'</small><small>Drawdown '+currency.format(drawdownReais)+
+        '</small><span'+(rank ? ' class="rank-'+rank+'"' : '')+'>Lucro / draw '+value+
+        (rank ? ' · '+rank+'º' : '')+'</span>');
+    }).join('')+'</tr>').join('');
+}
+function showAnnualView(annual) {
+  byId('dailyView').hidden = annual;
+  byId('annualView').hidden = !annual;
+  byId('showDaily').setAttribute('aria-pressed',String(!annual));
+  byId('showAnnual').setAttribute('aria-pressed',String(annual));
+}
+byId('showDaily').addEventListener('click',() => showAnnualView(false));
+byId('showAnnual').addEventListener('click',() => showAnnualView(true));
+let gioPendingDates = new Set();
+const crossYear = byId('crossYear'), crossSort = byId('crossSort'), crossLimit = byId('crossLimit');
+function renderCross() {
+  const year = crossYear.value;
+  const gioDays = new Set(datasets.gio.map(row => row[0]));
+  const gattoRows = datasets.gatto.filter(([date]) => date.startsWith(year) && gioDays.has(date) && !gioPendingDates.has(date));
+  const dates = new Set(gattoRows.map(row => row[0]));
+  const gioRows = datasets.gio.filter(([date]) => dates.has(date));
+  byId('crossCoverage').textContent = dates.size
+    ? dates.size+' pregões em comum · '+formatDate(gattoRows[0][0])+' a '+formatDate(gattoRows.at(-1)[0])
+    : 'Nenhum pregão comparável';
+  if (!dates.size) {
+    byId('crossPairs').innerHTML = '<tr><td colspan="3">Sem dados comparáveis.</td></tr>';
+    byId('crossRank').innerHTML = '<tr><td colspan="7">Sem dados comparáveis.</td></tr>';
+    return;
+  }
+  const ratioFormat = new Intl.NumberFormat('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const formatRatio = ratio => ratio === null ? '—' : ratioFormat.format(ratio)+'×';
+  const pairs = scenarios.map(({label,operations}) => ['GATTO','GIO'].map((setupName,i) => {
+    const points = seriesFor(i ? gioRows : gattoRows,operations);
+    const result = metrics(points);
+    return {...result,setupName,label,count:points.length,ratio:result.drawdown ? result.total/result.drawdown : null};
+  }));
+  byId('crossPairs').innerHTML = pairs.map(([gatto,gio]) => {
+    const best = Math.max(gatto.ratio ?? -Infinity,gio.ratio ?? -Infinity);
+    return '<tr><th scope="row">'+gatto.label+'</th>'+[gatto,gio].map(item => {
+      if (!item.count) return cell('Sem operações');
+      const highlight = item.ratio === best && gatto.ratio !== gio.ratio;
+      return cell('<span'+(highlight ? ' class="rank-1"' : '')+'>Lucro / draw '+formatRatio(item.ratio)+'</span>'+
+        '<small>'+item.count+' operações · Lucro '+currency.format(item.reais)+' · Drawdown '+currency.format(item.drawdownReais)+'</small>');
+    }).join('')+'</tr>';
+  }).join('');
+  const sort = crossSort.value;
+  const limit = crossLimit.value === '' ? Infinity : Number(crossLimit.value);
+  const ranked = pairs.flat().filter(item => item.count && item.drawdownReais <= limit).sort((a,b) => {
+    if (sort === 'drawdownReais') return a.drawdownReais-b.drawdownReais;
+    return (b[sort] ?? -Infinity)-(a[sort] ?? -Infinity);
+  });
+  const maxRatio = Math.max(1,...ranked.map(item => item.ratio ?? 0));
+  byId('crossRank').innerHTML = ranked.map((item,i) => {
+    const bar = item.ratio > 0 ? '<span class="ratio-bar '+item.setupName.toLowerCase()+'" aria-hidden="true"><i style="width:'+
+      (100*item.ratio/maxRatio).toFixed(1)+'%"></i></span>' : '';
+    return '<tr>'+[item.count ? i+1 : '—',item.setupName,item.label,item.count,
+      item.count ? currency.format(item.reais) : '—',item.count ? currency.format(item.drawdownReais) : '—',
+      formatRatio(item.ratio)+bar].map(cell).join('')+'</tr>';
+  }).join('') || '<tr><td colspan="7">Nenhuma estratégia dentro do limite de drawdown.</td></tr>';
+}
+function showCross(active) {
+  byId('setupViews').hidden = active;
+  byId('crossView').hidden = !active;
+  byId('showCross').setAttribute('aria-pressed',String(active));
+  byId('showGatto').setAttribute('aria-pressed',String(!active && activeSetup === 'gatto'));
+  byId('showGio').setAttribute('aria-pressed',String(!active && activeSetup === 'gio'));
+  byId('gattoSource').hidden = active || activeSetup !== 'gatto';
+  byId('gioSource').hidden = active || activeSetup !== 'gio';
+  if (active) renderCross();
+}
+byId('showCross').addEventListener('click',() => showCross(true));
+crossYear.addEventListener('change',renderCross);
+crossSort.addEventListener('change',renderCross);
+crossLimit.addEventListener('change',renderCross);
+function showSetup(key) {
+  activeSetup = key;
+  data = datasets[key];
+  byId('showGatto').setAttribute('aria-pressed',String(key === 'gatto'));
+  byId('showGio').setAttribute('aria-pressed',String(key === 'gio'));
+  byId('gattoSource').hidden = activeSetup !== 'gatto';
+  byId('gioSource').hidden = activeSetup !== 'gio';
+  byId('gioCoverage').hidden = activeSetup !== 'gio';
+  showCross(false);
+  render();
+  renderAnnual();
+}
+byId('showGatto').addEventListener('click',() => showSetup('gatto'));
+byId('showGio').addEventListener('click',() => showSetup('gio'));
+byId('summary').addEventListener('change',event => {
+  const box = event.target;
+  if (box.checked) selected.add(box.value);
+  else selected.delete(box.value);
+  renderChart(currentRows());
+});
+unit.addEventListener('change',() => renderChart(currentRows()));
+byId('reset').addEventListener('click',() => setPeriod('all'));
+function groupOperations(operations, useExitCandle) {
+  const days = new Map();
+  for (const operation of operations) {
+    const date = operation.dataHoraIso?.slice(0,10);
+    const order = Number(String(operation.id ?? '').split('__').at(-1));
+    if (!date || ![1,2,3].includes(order) || !Number.isFinite(operation.pontos)) continue;
+    if (!days.has(date)) days.set(date,new Map());
+    days.get(date).set(order,operation);
+  }
+  return [...days.keys()].sort().map(date => {
+    const day = days.get(date);
+    const close = operation => operation.candleSaida == null ? Infinity : Number(operation.candleSaida);
+    const order = [...day.keys()].sort((a,b) => (useExitCandle ? close(day.get(a))-close(day.get(b)) : 0) || a-b);
+    return [date,...[1,2,3].map(i => day.get(i)?.pontos ?? null),order];
+  });
+}
+function refreshSiteData() {
+  const payload = window.parent !== window ? window.parent.PuloPauseData?.() : null;
+  if (!payload?.gatto?.length) {
+    byId('siteStatus').textContent = window.parent === window
+      ? 'Abra Combinações de operações pelo menu Linha a linha do painel.'
+      : 'Aguardando a base de operações do painel…';
+    return;
+  }
+  const initial = byId('moduleContent').hidden;
+  datasets.gatto = groupOperations(payload.gatto,true);
+  datasets.gio = groupOperations(payload.gio ?? [],false);
+  gioPendingDates = new Set(payload.gioPendingDates ?? []);
+  const dates = [...datasets.gatto,...datasets.gio].map(row => row[0]).sort();
+  if (!dates.length) {
+    byId('siteStatus').textContent = 'A base não contém operações válidas para o comparativo.';
+    return;
+  }
+  first = dates[0].slice(0,4) + '-01-01';
+  last = dates.at(-1).slice(0,4) + '-12-31';
+  for (const input of [from,to]) {
+    input.min = first;
+    input.max = last;
+  }
+  data = datasets[activeSetup];
+  byId('moduleContent').hidden = false;
+  byId('siteStatus').hidden = true;
+  if (initial) setPeriod('2026');
+  else render();
+  renderAnnual();
+  if (!byId('crossView').hidden) renderCross();
+}
+window.addEventListener('pulo:pause-data',refreshSiteData);
+refreshSiteData();
+</script>
+</html>
