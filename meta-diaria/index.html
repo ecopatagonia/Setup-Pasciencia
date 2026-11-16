@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simulador de meta diária · O PULO DO GATTO</title>
+<style>
+:root{color-scheme:dark;--bg:#0b1016;--panel:#131c25;--line:#2a3947;--ink:#eff5fa;--muted:#a4b4c3;--mint:#66e2b6;--red:#ffadad}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Inter,system-ui,sans-serif}
+main{max-width:1080px;margin:auto;padding:clamp(24px,6vw,72px) clamp(16px,4vw,42px)}
+.brand{font-size:.78rem;letter-spacing:.16em;color:var(--mint);font-weight:750}
+h1{font-size:clamp(2rem,5vw,3.5rem);line-height:1.05;letter-spacing:-.055em;margin:.5rem 0 .8rem}
+h2{font-size:1.2rem;margin:0 0 .6rem}p{margin:.3rem 0;color:var(--muted)}
+.panel{margin-top:22px;padding:clamp(16px,3vw,26px);border:1px solid var(--line);border-radius:16px;background:var(--panel)}
+.controls,.stats{display:flex;flex-wrap:wrap;gap:16px 24px;align-items:end}
+label{display:block;font-weight:650;margin-bottom:6px}input,button,select{font:inherit;color:var(--ink);border:1px solid var(--line);border-radius:8px;background:var(--bg);padding:9px 12px}
+input{width:155px;font-variant-numeric:tabular-nums}button{cursor:pointer}button:hover{border-color:var(--mint)}
+:focus-visible{outline:2px solid var(--mint);outline-offset:3px}
+small,.hint{color:var(--muted);font-size:.88rem}.hint{margin-top:12px}#error{color:var(--red)}
+.stats{margin-top:15px;align-items:stretch}.stat{flex:1 1 170px;padding:13px 0;border-top:1px solid var(--line)}
+.stat strong{display:block;font-size:1.42rem;margin-top:4px;font-variant-numeric:tabular-nums}
+.pos{color:var(--mint)}.neg{color:var(--red)}
+.scroll{overflow-x:auto}table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;text-align:right}
+th,td{padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap}thead th{color:var(--muted);font-size:.86rem}th:first-child{text-align:left}tbody tr:last-child{background:#1c2a34}tbody tr:last-child>*{font-weight:750}
+.risk-selected{background:#18323a}.risk-table tbody tr:last-child{background:inherit}.risk-table tbody tr:last-child>*{font-weight:400}.risk-table tbody tr:last-child th{font-weight:700}
+footer{margin-top:18px}footer a{color:var(--mint)}[hidden]{display:none!important}
+</style>
+</head>
+<body><main>
+<header><div class="brand">O PULO DO GATTO</div><h1>Simulador de meta diária</h1>
+<p id="coverage">1 contrato por operação</p></header>
+<div class="controls" style="margin-top:18px">
+<div><label for="setup">Setup</label><select id="setup"><option value="gatto">GATTO</option><option value="gio">GIO</option></select></div>
+<p id="source-status" role="status">Aguardando a base de operações do painel…</p>
+</div>
+<div id="module" hidden>
+<section id="comparison-panel" class="panel" aria-labelledby="comparison"><h2 id="comparison">Comparativo dos pregões ganhadores</h2>
+<p class="hint" id="winner-note">Cada cenário soma os pregões que terminaram com saldo positivo.</p>
+<div class="scroll" tabindex="0" aria-label="Tabela comparativa"><table>
+<thead><tr><th scope="col">Período</th><th scope="col">Sem corte</th><th scope="col">Com corte</th><th scope="col">Diferença</th><th scope="col">Pregões ganhadores</th></tr></thead>
+<tbody id="years"></tbody></table></div>
+</section>
+<section class="panel" aria-label="Configuração">
+<div class="controls"><div><label for="cut">Meta de lucro por pregão (R$)</label><input id="cut" type="text" inputmode="decimal" value="150,00" autocomplete="off" aria-describedby="rule error"></div>
+<button id="reset" type="button">Restaurar R$ 150</button></div>
+<p id="rule" class="hint">Ao fechar Op1 ou Op2, se o saldo acumulado atingir a meta, o pregão termina com o saldo alcançado. Caso contrário, seguem as operações registradas.</p>
+<p id="error" class="hint" role="status" hidden>Digite um valor positivo em reais, com até duas casas decimais.</p>
+</section>
+<section id="history-panel" class="panel" aria-labelledby="history"><h2 id="history">Histórico do setup</h2>
+<div class="stats" aria-live="polite"><div class="stat"><small>Lucro dos ganhadores sem corte</small><strong id="base"></strong></div>
+<div class="stat"><small>Lucro dos ganhadores com corte</small><strong id="sim"></strong></div>
+<div class="stat"><small>Diferença com o corte</small><strong id="delta"></strong></div></div>
+<p id="stops" class="hint"></p>
+</section>
+<section id="risk-panel" class="panel" aria-labelledby="risk">
+<h2 id="risk">Resultado líquido e drawdown</h2>
+<div><label for="window">Período da comparação</label><select id="window">
+</select></div>
+<p class="hint" id="risk-method">Lucro / draw = resultado líquido ÷ drawdown máximo por operação. Cada janela começa em zero. O drawdown por pregão considera apenas os saldos de fechamento. As regras de parada são independentes. Na primeira operação positiva, o pregão pode terminar no negativo. Na regra de saldo positivo, ganhos e perdas do pregão são somados antes de decidir. Saldo zero não aciona nenhuma dessas duas regras.</p>
+<div class="scroll risk-table" tabindex="0" aria-label="Comparativo de resultado e drawdown"><table aria-describedby="risk-method">
+<thead><tr><th scope="col">Regra</th><th scope="col">Resultado líquido</th><th scope="col">Perdas</th><th scope="col">Pregões perdedores</th><th scope="col">Draw máx. por operação</th><th scope="col">Draw máx. por pregão</th><th scope="col">Lucro / draw</th></tr></thead>
+<tbody id="risk-rows"></tbody></table></div>
+</section>
+</div>
+</main>
+<script>
+const el = id => document.getElementById(id);
+let rows = [];
+const criticalStart = '2026-09-10';
+const formatDate = date => date.split('-').reverse().join('/');
+const money = new Intl.NumberFormat('pt-BR', {style:'currency', currency:'BRL'});
+const reais = cents => money.format(cents / 100);
+const signClass = value => value > 0 ? 'pos' : value < 0 ? 'neg' : '';
+
+function parseTarget(raw) {
+  const value = raw.trim();
+  if (!/^\d+(?:[.,]\d{1,2})?$/.test(value)) return null;
+  const [whole, decimal = ''] = value.split(/[.,]/);
+  const cents = Number(whole) * 100 + Number(decimal.padEnd(2, '0'));
+  return Number.isSafeInteger(cents) && cents > 0 ? cents : null;
+}
+
+function simulate(target) {
+  const empty = () => ({base:0, simulated:0, baseDays:0, simulatedDays:0, stop1:0, stop2:0});
+  const total = empty();
+  const critical = empty();
+  const years = new Map();
+
+  for (const [date, op1, op2, op3] of rows) {
+    const first = (op1 ?? 0) * 20;
+    const second = first + (op2 ?? 0) * 20;
+    const original = second + (op3 ?? 0) * 20;
+    const stop1 = first >= target && (op2 !== null || op3 !== null);
+    const stop2 = !stop1 && op2 !== null && second >= target && op3 !== null;
+    const result = stop1 ? first : stop2 ? second : original;
+    const year = date.slice(0, 4);
+    if (!years.has(year)) years.set(year, empty());
+
+    const summaries = [total, years.get(year)];
+    if (date >= criticalStart) summaries.push(critical);
+
+    for (const summary of summaries) {
+      if (original > 0) { summary.base += original; summary.baseDays++; }
+      if (result > 0) { summary.simulated += result; summary.simulatedDays++; }
+      if (stop1) summary.stop1++;
+      if (stop2) summary.stop2++;
+    }
+  }
+  return {total, years, critical};
+}
+
+
+function riskMetrics(window, shouldStop) {
+  let equity = 0, opPeak = 0, opDraw = 0;
+  let dayPeak = 0, dayDraw = 0, losses = 0, losingDays = 0;
+  for (const row of rows) {
+    const [date, , , , closeOrder] = row;
+    if (window === 'critical' && date < criticalStart) continue;
+    if (window !== 'all' && window !== 'critical' && !date.startsWith(window)) continue;
+
+    let day = 0;
+    let last = 3;
+    for (const index of [1, 2, 3]) {
+      if (row[index] === null) continue;
+      const amount = Math.round(row[index] * 20);
+      day += amount;
+      if (shouldStop(amount, day)) {
+        last = index;
+        break;
+      }
+    }
+    for (const index of closeOrder) {
+      if (index > last) continue;
+      equity += Math.round(row[index] * 20);
+      opPeak = Math.max(opPeak, equity);
+      opDraw = Math.max(opDraw, opPeak - equity);
+    }
+    dayPeak = Math.max(dayPeak, equity);
+    dayDraw = Math.max(dayDraw, dayPeak - equity);
+    if (day < 0) { losses += day; losingDays++; }
+  }
+  return {equity, opDraw, dayDraw, losses, losingDays};
+}
+
+function renderRisk(target) {
+  const window = el('window').value;
+  const presets = [500, 9000, 15000, 20000, 44000];
+  const cuts = [...new Set(target === null ? presets : [...presets, target])].sort((a, b) => a - b);
+  const scenarios = [
+    {label: 'Real · sem corte', shouldStop: () => false},
+    ...cuts.map(cut => ({label: reais(cut), cut, shouldStop: (_, day) => day >= cut})),
+    {label: 'Parar na primeira perda', shouldStop: amount => amount < 0},
+    {label: 'Parar na primeira operação positiva', shouldStop: amount => amount > 0},
+    {label: 'Parar no primeiro saldo diário positivo', shouldStop: (_, day) => day > 0}
+  ];
+  const formatRatio = new Intl.NumberFormat('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  el('risk-rows').innerHTML = scenarios.map(({label, cut, shouldStop}) => {
+    const result = riskMetrics(window, shouldStop);
+    const active = cut === target;
+    const ratio = result.opDraw ? formatRatio.format(result.equity / result.opDraw) + '×' : '—';
+    return '<tr' + (active ? ' class="risk-selected"' : '') + '><th scope="row">' + label +
+      (active ? ' · meta atual' : '') + '</th><td class="' + signClass(result.equity) + '">' +
+      reais(result.equity) + '</td><td>' + reais(result.losses) + '</td><td>' + result.losingDays +
+      '</td><td>' + reais(result.opDraw) + '</td><td>' + reais(result.dayDraw) +
+      '</td><td>' + ratio + '</td></tr>';
+  }).join('');
+}
+
+function render() {
+  if (!rows.length) return;
+  const target = parseTarget(el('cut').value);
+  const invalid = target === null;
+  el('cut').setAttribute('aria-invalid', String(invalid));
+  el('error').hidden = !invalid;
+  el('comparison-panel').hidden = invalid;
+  el('history-panel').hidden = invalid;
+  renderRisk(target);
+  if (invalid) return;
+
+  const {total, years, critical} = simulate(target);
+  el('base').textContent = reais(total.base);
+  el('sim').textContent = reais(total.simulated);
+  const difference = total.simulated - total.base;
+  el('delta').textContent = reais(difference);
+  el('delta').className = signClass(difference);
+  el('stops').textContent = 'Pregões com operações evitadas · após Op1: ' + total.stop1 +
+    ' · após Op2: ' + total.stop2;
+  el('years').innerHTML = [...years, ...(rows.at(-1)[0] >= criticalStart ? [['Período crítico', critical]] : []), ['Histórico do setup', total]].map(([period, result]) => {
+    const label = period;
+    const delta = result.simulated - result.base;
+    return '<tr><th scope="row">' + label + '</th><td>' + reais(result.base) +
+      '</td><td>' + reais(result.simulated) + '</td><td class="' + signClass(delta) + '">' +
+      reais(delta) + '</td><td>' + result.baseDays + ' → ' + result.simulatedDays + '</td></tr>';
+  }).join('');
+}
+
+el('window').addEventListener('change', render);
+el('cut').addEventListener('input', render);
+el('reset').addEventListener('click', () => {
+  el('cut').value = '150,00';
+  render();
+  el('cut').focus();
+});
+function groupOperations(operations, setup) {
+  const days = new Map();
+  for (const op of operations ?? []) {
+    const date = op.dataHoraIso?.slice(0, 10);
+    const order = Number(op.order || String(op.id ?? '').split('__').at(-1));
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date ?? '') || ![1, 2, 3].includes(order) || !Number.isFinite(op.pontos)) continue;
+    if (setup === 'gio' && !date.startsWith('2026')) continue;
+    if (!days.has(date)) days.set(date, new Map());
+    days.get(date).set(order, op);
+  }
+  const close = op => op.candleSaida == null || op.candleSaida === '' ? Infinity : Number(op.candleSaida);
+  return [...days.keys()].sort().map(date => {
+    const day = days.get(date);
+    const order = [...day.keys()].sort((a, b) => (setup === 'gatto' ? close(day.get(a)) - close(day.get(b)) : 0) || a - b);
+    return [date, ...[1, 2, 3].map(index => day.get(index)?.pontos ?? null), order];
+  });
+}
+
+function refreshSiteData() {
+  const setup = el('setup').value;
+  const payload = parent !== window ? parent.PuloPauseData?.() : null;
+  rows = groupOperations(payload?.[setup], setup);
+  const status = el('source-status');
+  status.hidden = rows.length > 0;
+  el('module').hidden = !rows.length;
+  if (!rows.length) {
+    el('coverage').textContent = '1 contrato por operação';
+    status.textContent = parent === window ? 'Abra Meta diária pelo menu do painel.'
+      : payload?.read ? 'Sem operações disponíveis para este setup.' : 'Aguardando a base de operações do painel…';
+    return;
+  }
+  const first = rows[0][0], last = rows.at(-1)[0];
+  el('coverage').textContent = setup.toUpperCase() + ' · 1 contrato por operação · '
+    + formatDate(first) + ' a ' + formatDate(last) + ' · ' + rows.length + ' pregões';
+  const windows = el('window');
+  const previous = windows.value;
+  const years = [...new Set(rows.map(row => row[0].slice(0, 4)))];
+  const choices = [['all', 'Histórico do setup'], ...years.map(year => [year, year])];
+  if (last >= criticalStart) choices.push(['critical', 'Período crítico · 10/09/2026 em diante']);
+  windows.replaceChildren(...choices.map(([value, label]) => new Option(label, value)));
+  windows.value = choices.some(([value]) => value === previous) ? previous : (setup === 'gio' ? '2026' : 'all');
+  render();
+}
+
+el('setup').addEventListener('change', refreshSiteData);
+window.addEventListener('pulo:pause-data', refreshSiteData);
+refreshSiteData();
+</script>
+</body></html>

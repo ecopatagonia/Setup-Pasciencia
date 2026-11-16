@@ -1,5 +1,12 @@
 # O Pulo do Gatto — Documento Maestro
 
+## 2026-11-16 — Meta diária
+
+- Menu principal: **Individuais → Meta diária → Pausas**, com acesso de Resultados.
+- Seletor GATTO/GIO com dados carregados pela API do painel. GIO usa **Executado Protegendo**, limitado a 2026. A janela crítica começa em 10/09/2026 e acompanha a última data disponível.
+- Compara meta em reais, primeira perda, primeira operação positiva e primeiro saldo diário positivo. Calcula resultado líquido, perdas, drawdown máximo por fechamento e por pregão e resultado líquido sobre drawdown por fechamento, usando as operações executadas em cada cenário.
+- Usa a ordem de saída registrada para GATTO e a ordem da operação no ID para GIO.
+
 ## 2026-11-14 — Drawdowns por operação
 
 - Menu principal: **Comparativo → Drawdowns → Individuais**. O item Drawdowns tem ícone próprio e acesso em nível principal.
