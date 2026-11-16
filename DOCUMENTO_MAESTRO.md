@@ -6,6 +6,7 @@
 - Seletor GATTO/GIO com dados carregados pela API do painel. GIO usa **Executado Protegendo**, limitado a 2026. A janela crítica começa em 10/09/2026 e acompanha a última data disponível.
 - Compara meta em reais, primeira perda, primeira operação positiva e primeiro saldo diário positivo. Calcula resultado líquido, perdas, drawdown máximo por fechamento e por pregão e resultado líquido sobre drawdown por fechamento, usando as operações executadas em cada cenário.
 - Usa a ordem de saída registrada para GATTO e a ordem da operação no ID para GIO.
+- Se a carga do GIO vier vazia ou com cobertura inferior à referência, o módulo apresenta os resultados agregados verificados de 2026 e da janela crítica até 13/11/2026, com indicação da origem na tela.
 
 ## 2026-11-14 — Drawdowns por operação
 
