@@ -33,3 +33,12 @@
 - Compatibilidade: mantém os cálculos e as bases dos submenus anteriores. Tema, autenticação e permissão `resultados` permanecem no fluxo existente.
 - Validação: testes do módulo e da integração, fixtures com zero/pendências/IDs duplicados, reconciliação com o payload real e conferência independente de totais e drawdown por linha. A prova com a API em 06/11/2026 retornou 565 pares de 2026 (209/193/163); estes números são apenas evidência de teste e não estão fixados na aplicação.
 - Entrega: branch e PR próprios, com publicação no GitHub Pages após validação.
+
+## 2026-11-18 — SL Limit
+
+- Menu principal **Meta diária → SL Limit → Pausas**, com ícone de filtro e permissão Resultados.
+- Mesmo simulador aprovado: GATTO/GIO, histórico completo, 2024, 2025, 2026 e período crítico desde 10/09/2026; Op1, Op2, Op3 e todas as combinações. Exclusão estrita de tamanho stop maior que o corte; identidades preservadas.
+- Resultados e SL GATTO vêm da carga atual do painel. Não incorpora resultados do mockup. GIO usa EXECUTADO PROTEGENDO do painel e seu próprio TAMANHO_STOP: campo da API quando existir, ou metadados verificados de GIOLVAN!E, com data e cobertura explícitas. Não usa stops GATTO para GIO.
+- A API atual de GIO ainda não fornece SL: `corte-sl/gio-stops.js` contém somente metadados de stop, conferidos por ID, data, lado e resultados na preparação. Deve ser atualizado quando os stops de GIOLVAN forem corrigidos, até a API transmitir esse campo. Registros sem SL são mantidos e informados, sem imputação. Resultados novos do painel não são substituídos por snapshots.
+- Ganhos sacrificados, perdas evitadas, médias/medianas, efeito líquido, resultado, DD por operação ou pregão, profit factor, comparações por janela, busca parametrizável de cortes, curvas e exportação CSV. DD recalculado desde zero para cada janela.
+- Novo módulo em pasta própria `corte-sl/`; branch e PR dedicados. Sem alteração do motor de outros módulos.

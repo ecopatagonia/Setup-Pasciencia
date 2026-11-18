@@ -1,10 +1,11 @@
 'use strict';
 
-const PAUSE_PAGES = new Set(['drawdownCompare', 'pauseRadar', 'pauseRegimes', 'lineCombinations', 'dailyTarget']);
+const PAUSE_PAGES = new Set(['drawdownCompare', 'pauseRadar', 'pauseRegimes', 'lineCombinations', 'dailyTarget', 'stopCut']);
 window.PuloPauseData = () => ({
   gatto: state.gattoAll,
   gio: state.gioAll,
   gioPendingDates: state.gioPendingDates || [],
+  gioPendingOperations: state.gioPendingOperations || [],
   read: state.dataUpdatedAt
 });
 function openPausePage(page) {
@@ -78,7 +79,8 @@ function normalizeGioOperations(rows) {
       resultado: points === null ? '' : points > 0 ? 'GAIN' : points < 0 ? 'STOP' : 'BREAKEVEN',
       order,
       hora: '',
-      candleEntrada: null,
+      candleEntrada: parseNumber(field('candleEntrada', 'CANDLE_ENTRADA')),
+      tamanhoStop: parseNumber(field('tamanhoStop', 'tamanho_stop', 'TAMANHO_STOP')),
       candleSaida: null
     };
   }).filter(operation => operation.dataHoraIso && ['COMPRA', 'VENDA'].includes(operation.lado) && Number.isFinite(operation.financeiro))
@@ -1878,6 +1880,11 @@ async function loadData() {
       const match = id.match(/^OP_(\d{2})-(\d{2})-(\d{4})__[123]$/);
       return match && !validGioIds.has(id) ? [`${match[3]}-${match[2]}-${match[1]}`] : [];
     }))];
+    state.gioPendingOperations = (Array.isArray(gioRows) ? gioRows : []).flatMap(row => {
+      const id = String((Array.isArray(row) ? row[0] : row?.id ?? row?.ID) ?? '');
+      const match = id.match(/^OP_(\d{2})-(\d{2})-(\d{4})__([123])$/);
+      return match && !validGioIds.has(id) ? [{date: `${match[3]}-${match[2]}-${match[1]}`, order: Number(match[4])}] : [];
+    });
     state.dataUpdatedAt = payload.geradoEm || '';
     document.querySelectorAll('iframe[data-pause-src][src]').forEach(frame => {
       frame.contentWindow?.dispatchEvent(new Event('pulo:pause-data'));
