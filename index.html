@@ -18,8 +18,8 @@
       </div>
 
       <nav class="nav" aria-label="Menu principal">
-        <div class="nav-group open" id="setupGattoNav">
-          <button class="nav-group-toggle" type="button" aria-expanded="true">
+        <div class="nav-group" id="setupGattoNav">
+          <button class="nav-group-toggle" type="button" aria-expanded="false">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V9m5 10V5m6 14v-7m5 7V3"/><path d="M2 21h20"/></svg>
             <span>Setup GATTO</span><span class="nav-chevron">⌄</span>
           </button>
@@ -109,6 +109,10 @@
         <button class="nav-button" data-page="stopCut" data-permission="resultados" type="button">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 5h16l-6 7v6l-4 2v-8z"/></svg>
           <span>SL Limit</span>
+        </button>
+        <button class="nav-button" data-page="monteCarlo" data-permission="resultados" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 7h3c4 0 5 10 9 10h6"/><path d="m18 14 3 3-3 3"/><path d="M3 17h3c2.4 0 3.8-3.6 5.2-6.4C12.4 8.4 13.6 7 15 7h6"/><path d="m18 4 3 3-3 3"/></svg>
+          <span>Monte Carlo</span>
         </button>
         <div class="nav-group" id="pausesNav">
           <button class="nav-group-toggle" data-permission="resultados" type="button" aria-expanded="false">
@@ -769,6 +773,10 @@
       <section class="page" id="page-stopCut" aria-label="SL Limit">
         <button class="menu-toggle" type="button" aria-label="Abrir menu" aria-expanded="false">☰ Menu</button>
         <iframe title="SL Limit · Simulador de corte por SL inicial" data-pause-src="corte-sl/index.html?v=1" style="width:100%;height:calc(100dvh - 100px);min-height:720px;border:0;display:block"></iframe>
+      </section>
+      <section class="page" id="page-monteCarlo" aria-label="Monte Carlo e calibração retrospectiva">
+        <button class="menu-toggle" type="button" aria-label="Abrir menu" aria-expanded="false">☰ Menu</button>
+        <iframe title="Monte Carlo GATTO e GIO · Calibração retrospectiva" data-pause-src="montecarlo-calibracao/index.html?v=1" sandbox="allow-scripts allow-same-origin allow-downloads" style="width:100%;height:calc(100dvh - 100px);min-height:760px;border:0;display:block"></iframe>
       </section>
       <section class="page" id="page-pauseRadar" aria-label="Radar de drawdowns"><iframe title="Radar de drawdowns" data-pause-src="sistema-pausas/radar.html?v=1" style="width:100%;border:0;min-height:800px;display:block"></iframe></section>
       <section class="page" id="page-pauseRegimes" aria-label="Regimes de risco"><iframe title="Regimes de risco" data-pause-src="sistema-pausas/regimes.html?v=1" style="width:100%;border:0;min-height:800px;display:block"></iframe></section>

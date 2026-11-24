@@ -1,0 +1,1572 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>O PULO DO GATTO - Monte Carlo</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #111311;
+      --panel: #191c19;
+      --panel-2: #202420;
+      --line: #343a34;
+      --text: #f4f5ef;
+      --muted: #a7aea5;
+      --teal: #32d6bd;
+      --orange: #ff9b45;
+      --red: #ff5e62;
+      --yellow: #eacb58;
+      --green: #6dda7c;
+      --blue: #62a7ff;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 Inter, ui-sans-serif, system-ui, sans-serif; letter-spacing: 0; }
+    button, input, select { font: inherit; }
+    button { cursor: pointer; }
+    .app { min-height: 100vh; display: grid; grid-template-columns: 230px minmax(0, 1fr); }
+    aside { border-right: 1px solid var(--line); padding: 22px 16px; position: sticky; top: 0; height: 100vh; background: #141614; }
+    .brand { padding: 0 8px 20px; border-bottom: 1px solid var(--line); }
+    .brand small { color: var(--teal); font-weight: 800; }
+    .brand strong { display: block; font-size: 22px; margin-top: 4px; }
+    nav { display: grid; gap: 6px; margin-top: 18px; }
+    nav button { border: 0; border-radius: 6px; padding: 11px 12px; text-align: left; color: var(--muted); background: transparent; }
+    nav button.active { color: #101311; background: var(--teal); font-weight: 800; }
+    [hidden] { display: none !important; }
+    .side-note { margin-top: 22px; padding: 12px; border: 1px solid var(--line); border-radius: 6px; color: var(--muted); }
+    .side-note b { color: var(--text); display: block; margin-bottom: 5px; }
+    main { min-width: 0; padding: 24px; }
+    header { display: flex; justify-content: space-between; gap: 20px; align-items: flex-start; margin-bottom: 18px; }
+    .eyebrow { margin: 0 0 4px; color: var(--teal); font-weight: 800; text-transform: uppercase; font-size: 12px; }
+    h1 { margin: 0; font-size: 30px; }
+    h2 { margin: 3px 0 0; font-size: 18px; }
+    p { margin: 0; }
+    .disclaimer { color: var(--muted); max-width: 780px; margin-top: 8px; }
+    .status { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line); padding: 8px 11px; border-radius: 6px; white-space: nowrap; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--yellow); }
+    .dot.ok { background: var(--green); }
+    .dot.error { background: var(--red); }
+    .grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 14px; }
+    .panel { grid-column: span 4; background: var(--panel); border: 1px solid var(--line); border-radius: 7px; padding: 16px; min-width: 0; }
+    .panel.wide { grid-column: span 8; }
+    .panel.full { grid-column: 1 / -1; }
+    .panel-title { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 14px; }
+    .panel-title small { color: var(--muted); }
+    .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    label { display: grid; gap: 6px; color: var(--muted); }
+    .check-control { grid-column: 1 / -1; display: flex; align-items: center; gap: 9px; padding: 10px 11px; border: 1px solid var(--line); border-radius: 5px; background: #101210; color: var(--text); }
+    .check-control input { width: 17px; height: 17px; margin: 0; accent-color: var(--teal); }
+    .check-control small { color: var(--muted); margin-left: auto; }
+    input, select { width: 100%; color: var(--text); background: #101210; border: 1px solid var(--line); border-radius: 5px; padding: 9px 10px; }
+    .segmented { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; padding: 3px; background: #0f110f; border: 1px solid var(--line); border-radius: 6px; }
+    .segmented button { border: 0; padding: 9px; color: var(--muted); background: transparent; border-radius: 4px; }
+    .segmented button.active { background: var(--panel-2); color: var(--teal); font-weight: 800; }
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+    .primary, .secondary { border-radius: 5px; padding: 10px 14px; font-weight: 800; }
+    .primary { border: 1px solid var(--teal); background: var(--teal); color: #101311; }
+    .secondary { border: 1px solid var(--line); background: var(--panel-2); color: var(--text); }
+    button:disabled { opacity: .55; cursor: wait; }
+    .progress { height: 5px; background: #0d0f0d; border-radius: 99px; overflow: hidden; margin-top: 12px; }
+    .progress span { display: block; height: 100%; width: 0; background: var(--teal); transition: width .15s linear; }
+    .metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+    .scenario-strip { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
+    .scenario-card { background: var(--panel-2); border: 1px solid var(--line); border-top: 3px solid var(--line); padding: 13px; min-width: 0; }
+    .scenario-card.real { border-top-color: var(--text); }
+    .scenario-card.all { border-top-color: var(--blue); }
+    .scenario-card.filtered { border-top-color: var(--teal); }
+    .scenario-card small { color: var(--muted); }
+    .scenario-card strong { display: block; font-size: 22px; margin: 4px 0 8px; }
+    .scenario-card dl { margin: 0; display: grid; grid-template-columns: 1fr auto; gap: 4px 8px; font-size: 12px; }
+    .scenario-card dt { color: var(--muted); }
+    .scenario-card dd { margin: 0; font-weight: 700; }
+    .decision-note { margin-top: 12px; padding: 13px; border-left: 3px solid var(--teal); background: var(--panel-2); }
+    .battery-runner { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; align-items: end; }
+    .battery-progress { height: 10px; background: #0d0f0d; border-radius: 99px; overflow: hidden; margin-top: 14px; }
+    .battery-progress span { display: block; width: 0; height: 100%; background: var(--teal); transition: width .15s linear; }
+    .battery-status { display: flex; justify-content: space-between; gap: 12px; margin-top: 7px; color: var(--muted); font-size: 12px; }
+    .battery-methods { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
+    .battery-methods div { padding: 10px; border: 1px solid var(--line); background: var(--panel-2); }
+    .battery-methods b { display: block; }
+    .battery-methods span { color: var(--muted); font-size: 12px; }
+    .decision-hero { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+    .decision-card { border: 1px solid var(--line); border-top: 3px solid var(--teal); background: var(--panel-2); padding: 15px; min-width: 0; }
+    .decision-card.aggressive { border-top-color: var(--yellow); }
+    .decision-card.extreme { border-top-color: var(--red); }
+    .decision-card small { color: var(--muted); }
+    .decision-card strong { display: block; font-size: 24px; margin: 5px 0 10px; }
+    .decision-card dl { margin: 0; display: grid; grid-template-columns: 1fr auto; gap: 5px 10px; font-size: 12px; }
+    .decision-card dt { color: var(--muted); }
+    .decision-card dd { margin: 0; font-weight: 800; text-align: right; }
+    .decision-verdict { padding: 16px; border-left: 4px solid var(--teal); background: var(--panel-2); line-height: 1.6; }
+    .decision-verdict b { color: var(--teal); }
+    #decisionChart { height: 340px; }
+    .context-bar { display: grid; grid-template-columns: 160px minmax(180px,1fr) minmax(180px,1fr) minmax(190px,1fr) minmax(150px,.7fr); gap: 12px; align-items: end; }
+    .signal-list { display: grid; gap: 8px; }
+    .signal { display: grid; grid-template-columns: 12px 1fr auto; gap: 9px; align-items: center; padding: 10px 11px; border: 1px solid var(--line); background: var(--panel-2); }
+    .signal i { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); }
+    .signal.good i { background: var(--green); }
+    .signal.warn i { background: var(--yellow); }
+    .signal.bad i { background: var(--red); }
+    .signal span { color: var(--muted); font-size: 12px; }
+    .signal strong { text-align: right; }
+    #historicalChart, #stressChart { height: 330px; }
+    #calibrationChart { height: 350px; }
+    .manual-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
+    .manual-block { padding: 14px; border: 1px solid var(--line); background: var(--panel-2); }
+    .manual-block h3 { margin: 0 0 8px; font-size: 15px; }
+    .manual-block p { color: var(--muted); }
+    .metric { background: var(--panel-2); border-left: 3px solid var(--line); padding: 11px; min-height: 78px; }
+    .metric.good { border-color: var(--green); }
+    .metric.warn { border-color: var(--yellow); }
+    .metric.bad { border-color: var(--red); }
+    .metric span { display: block; color: var(--muted); font-size: 12px; }
+    .metric strong { display: block; margin-top: 5px; font-size: 19px; }
+    canvas { width: 100%; height: 320px; display: block; border-radius: 5px; background: #101210; }
+    #histogram { height: 280px; }
+    .legend { display: flex; flex-wrap: wrap; gap: 12px; margin: 10px 0 0; color: var(--muted); font-size: 12px; }
+    .legend i { width: 18px; height: 3px; display: inline-block; margin-right: 5px; vertical-align: middle; }
+    .table-wrap { overflow: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 10px 9px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+    th:first-child, td:first-child { text-align: left; }
+    thead th { color: var(--muted); font-size: 12px; }
+    .risk-row td:nth-child(3), .risk-row td:nth-child(4) { font-weight: 800; }
+    .tone-ok { color: var(--green); }
+    .tone-warn { color: var(--yellow); }
+    .tone-bad { color: var(--red); }
+    .method-note { margin-top: 12px; padding: 12px; background: var(--panel-2); border-left: 3px solid var(--blue); color: var(--muted); }
+    .audit { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+    .audit div { border-top: 1px solid var(--line); padding-top: 8px; }
+    .audit span { color: var(--muted); display: block; font-size: 12px; }
+    .empty { color: var(--muted); padding: 30px; text-align: center; }
+    @media (max-width: 1000px) {
+      .app { grid-template-columns: 1fr; }
+      aside { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--line); }
+      aside nav { grid-template-columns: repeat(3, 1fr); }
+      .side-note { display: none; }
+      .panel, .panel.wide { grid-column: span 6; }
+      .metrics { grid-template-columns: repeat(2, 1fr); }
+      .scenario-strip { grid-template-columns: 1fr; }
+      .battery-runner { grid-template-columns: 1fr; }
+      .battery-methods { grid-template-columns: 1fr; }
+      .decision-hero { grid-template-columns: 1fr; }
+      .context-bar { grid-template-columns: repeat(2, minmax(0,1fr)); }
+      .manual-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 680px) {
+      main { padding: 16px; }
+      header { display: grid; }
+      h1 { font-size: 25px; }
+      .panel, .panel.wide { grid-column: 1 / -1; }
+      .form-grid, .audit { grid-template-columns: 1fr; }
+      aside nav { grid-template-columns: 1fr; }
+      canvas { height: 260px; }
+      .context-bar { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside>
+      <div class="brand"><small>O PULO DO GATTO</small><strong>Robustez</strong></div>
+      <nav>
+        <button class="active" data-view="summary">Resumo de Robustez</button>
+        <button data-view="historical">Cenários Históricos</button>
+        <button data-view="calibration">Calibração Retrospectiva</button>
+        <button data-view="stress">Stress Determinístico</button>
+        <button data-view="single">Simulações Aleatórias</button>
+        <button data-view="battery">Bateria Completa de Risco</button>
+        <button data-view="decision">Painel de Decisão de Risco</button>
+      </nav>
+      <div class="side-note"><b>Mockup independente</b><span>Executa permutações reais no navegador. Não modifica o site publicado.</span></div>
+    </aside>
+    <main>
+      <header>
+        <div><p class="eyebrow">Módulo Robustez</p><h1 id="pageTitle">Simulações Aleatórias</h1><p class="disclaimer" id="pageDescription">Reorganiza resultados reais para medir drawdown e risco de ruptura. Ferramenta educativa de análise histórica, não recomendação financeira.</p></div>
+        <div class="status"><span class="dot" id="statusDot"></span><span id="statusText">Carregando bases...</span></div>
+      </header>
+
+      <section class="grid" id="robustnessContext">
+        <div class="panel full">
+          <div class="panel-title"><div><small>Contexto compartilhado</small><h2>Base para robustez histórica</h2></div><small id="robustContextLabel">Aguardando dados</small></div>
+          <div class="context-bar">
+            <div><label>Setup</label><div class="segmented" id="robustDatasetTabs"><button class="active" data-value="gatto">GATTO</button><button data-value="gio">GIO</button></div></div>
+            <label>Operações incluídas<select id="robustOperationSet"><option value="all">Op1 + Op2 + Op3</option><option value="op12">Op1 + Op2</option><option value="op13">Op1 + Op3</option><option value="op23">Op2 + Op3</option><option value="op1">Somente Op1</option><option value="op2">Somente Op2</option><option value="op3">Somente Op3</option></select></label>
+            <label>Janela de análise<select id="robustPeriod"><option value="all">Histórico completo</option><option value="allNoCritical">Total sem período crítico</option><option value="2024">2024</option><option value="2025">2025</option><option value="2026">2026 completo</option><option value="2026NoCritical">2026 sem período crítico</option><option value="critical">Somente período crítico</option></select></label>
+            <label class="check-control"><input id="robustStopFilter" type="checkbox"><span>Usar base sem SL inicial ≥ 550</span></label>
+            <label>Capital por contrato<input id="robustCapital" type="number" value="2500" min="100" step="100"></label>
+          </div>
+        </div>
+      </section>
+
+      <section class="grid" id="summaryView">
+        <div class="panel full">
+          <div class="panel-title"><div><small>Diagnóstico histórico</small><h2>Resumo de robustez</h2></div><small id="summaryPeriodLabel"></small></div>
+          <div class="metrics" id="summaryMetrics"></div>
+        </div>
+        <div class="panel wide">
+          <div class="panel-title"><div><small>Evidências separadas</small><h2>O que está e não está sustentado</h2></div></div>
+          <div class="signal-list" id="summarySignals"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-title"><div><small>Cauda simulada</small><h2>Estado da bateria</h2></div></div>
+          <div id="summaryBatteryStatus" class="decision-verdict"></div>
+          <div class="actions"><button class="secondary" id="summaryGoBattery">Abrir Bateria Completa</button></div>
+        </div>
+        <div class="panel full">
+          <div class="panel-title"><div><small>Janelas reais</small><h2>Resultado e drawdown por período</h2></div><small>1 contrato</small></div>
+          <div class="table-wrap"><table><thead><tr><th>Período</th><th>Operações</th><th>Resultado</th><th>Pontos</th><th>DD máximo</th><th>Resultado/DD</th><th>Profit factor</th><th>Gains</th></tr></thead><tbody id="summaryPeriodRows"></tbody></table></div>
+        </div>
+      </section>
+
+      <section class="grid" id="historicalView" hidden>
+        <div class="panel full">
+          <div class="panel-title"><div><small>Ordem realmente observada</small><h2>Cenários históricos</h2></div><small>Sem aleatoriedade</small></div>
+          <p class="method-note">Cada linha conserva a ordem cronológica real. As janelas críticas e sem período crítico permitem verificar quanto os resultados dependem do regime adverso de setembro e outubro de 2026.</p>
+        </div>
+        <div class="panel wide">
+          <div class="panel-title"><div><small>Resultado versus risco</small><h2>Comparação temporal</h2></div></div>
+          <canvas id="historicalChart"></canvas>
+          <div class="legend"><span><i style="background:#32d6bd"></i>Resultado</span><span><i style="background:#ff5e62"></i>DD máximo</span></div>
+        </div>
+        <div class="panel">
+          <div class="panel-title"><div><small>Leitura</small><h2>Dependência temporal</h2></div></div>
+          <div class="decision-verdict" id="historicalVerdict"></div>
+        </div>
+        <div class="panel full">
+          <div class="panel-title"><div><small>Métricas reais</small><h2>Detalhe por janela</h2></div><small id="historicalSampleLabel"></small></div>
+          <div class="table-wrap"><table><thead><tr><th>Janela</th><th>Operações</th><th>Resultado</th><th>Pontos</th><th>DD máximo</th><th>DD/capital</th><th>Resultado/DD</th><th>Profit factor</th><th>% gains</th><th>Pior dia</th><th>Pior semana</th></tr></thead><tbody id="historicalRows"></tbody></table></div>
+        </div>
+      </section>
+
+      <section class="grid" id="calibrationView" hidden>
+        <div class="panel full">
+          <div class="panel-title"><div><small>Walk-forward sem informação futura</small><h2>Calibração retrospectiva</h2></div><small>Pregões completos</small></div>
+          <p class="method-note">Cada prova usa somente o período de treinamento para construir milhares de anos ou trechos alternativos. Depois compara a distribuição prevista com o drawdown que realmente apareceu no período posterior, mantido fora da amostra.</p>
+          <div class="form-grid" style="margin-top:14px">
+            <label>Simulações por prova<select id="calibrationRuns"><option>1000</option><option selected>5000</option><option>10000</option></select></label>
+            <label>Bloco de pregões<select id="calibrationBlock"><option value="1">1 · independentes</option><option value="3" selected>3 · dependência curta</option><option value="5">5 · uma semana</option><option value="10">10 · duas semanas</option></select></label>
+            <label>Semente<input id="calibrationSeed" type="number" value="20261120" min="1" step="1"></label>
+            <label>Unidade fixa<input value="Pregão completo" disabled></label>
+          </div>
+          <div class="actions"><button class="primary" id="runCalibration">Executar calibração</button><button class="secondary" id="cancelCalibration" hidden>Cancelar</button></div>
+          <div class="battery-progress"><span id="calibrationProgress"></span></div>
+          <div class="battery-status"><span id="calibrationStatus">Pronta para executar</span><span id="calibrationCounter">0 / 20.000</span></div>
+        </div>
+
+        <div class="panel full">
+          <div class="panel-title"><div><small>Leitura da base selecionada</small><h2>Interpretação da amostra</h2></div><small id="calibrationSampleLabel"></small></div>
+          <div class="decision-verdict" id="calibrationSampleInterpretation"></div>
+        </div>
+
+        <div class="panel wide" id="calibrationChartPanel" hidden>
+          <div class="panel-title"><div><small>Previsto versus realizado</small><h2>Onde o DD real caiu na distribuição</h2></div><small>R$ por contrato</small></div>
+          <canvas id="calibrationChart"></canvas>
+          <div class="legend"><span><i style="background:#eacb58"></i>P95 previsto</span><span><i style="background:#ff9b45"></i>P99 previsto</span><span><i style="background:#ff5e62"></i>CVaR 99%</span><span><i style="background:#62a7ff"></i>DD real posterior</span></div>
+        </div>
+
+        <div class="panel" id="calibrationVerdictPanel" hidden>
+          <div class="panel-title"><div><small>Diagnóstico</small><h2>Capacidade de antecipação</h2></div></div>
+          <div class="decision-verdict" id="calibrationVerdict"></div>
+        </div>
+
+        <div class="panel full" id="calibrationTablePanel" hidden>
+          <div class="panel-title"><div><small>Provas fora da amostra</small><h2>Treinamento → período posterior</h2></div><small id="calibrationResultLabel"></small></div>
+          <div class="table-wrap"><table><thead><tr><th>Treinamento</th><th>Teste posterior</th><th>Pregões treino/teste</th><th>P95 DD</th><th>P99 DD</th><th>CVaR 99%</th><th>DD real</th><th>Percentil real</th><th>Resultado real</th><th>Percentil resultado</th><th>Leitura</th></tr></thead><tbody id="calibrationRows"></tbody></table></div>
+        </div>
+
+        <div class="panel full">
+          <div class="panel-title"><div><small>Manual de interpretação</small><h2>Para que serve e como usar</h2></div></div>
+          <div class="manual-grid">
+            <div class="manual-block"><h3>1. Pergunta respondida</h3><p>Verifica se uma simulação construída somente com o passado teria colocado o drawdown posterior dentro de uma faixa razoável. Não tenta prever o resultado exato nem a data do próximo DD.</p></div>
+            <div class="manual-block"><h3>2. Percentil real</h3><p>Indica a posição do DD observado entre os caminhos previstos. Percentil 70 significa que 70% das simulações tiveram DD menor e 30% tiveram DD maior.</p></div>
+            <div class="manual-block"><h3>3. Faixas de leitura</h3><p>Até P95: compatível com a distribuição central. P95–P99: adverso previsto. P99–CVaR: cauda extrema. Acima do CVaR: o modelo histórico subestimou aquele período.</p></div>
+            <div class="manual-block"><h3>4. Blocos de pregões</h3><p>Bloco 1 trata os dias como independentes. Blocos 3, 5 e 10 preservam sequências locais. Se os resultados mudam muito conforme o bloco, a dependência temporal é relevante.</p></div>
+            <div class="manual-block"><h3>5. O que valida</h3><p>Valida a capacidade do modelo de enquadrar riscos posteriores. Testes com menos de 20 pregões são apenas indicativos. Não valida que a estratégia continuará lucrativa nem que as probabilidades futuras serão idênticas às históricas.</p></div>
+            <div class="manual-block"><h3>6. Uso na decisão</h3><p>Uma referência de capital ganha credibilidade quando os DD posteriores ficam dentro de P95/P99 em várias provas, métodos e configurações. 2026 completo e período crítico se sobrepõem e não contam como duas evidências independentes. Superações recorrentes exigem mais capital ou outro modelo.</p></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="grid" id="stressView" hidden>
+        <div class="panel full">
+          <div class="panel-title"><div><small>Sequências adversas fixas</small><h2>Stress determinístico</h2></div><small>Não estima probabilidade</small></div>
+          <p class="method-note">Os testes acrescentam eventos adversos definidos à curva histórica: repetição do pior dia, da pior semana, do período crítico e concentração das maiores perdas. Servem para medir resistência; não afirmam que essas sequências sejam prováveis.</p>
+        </div>
+        <div class="panel wide">
+          <div class="panel-title"><div><small>Impacto por contrato</small><h2>Drawdown após cada choque</h2></div><small id="stressCapitalLabel"></small></div>
+          <canvas id="stressChart"></canvas>
+          <div class="legend"><span><i style="background:#ff5e62"></i>DD máximo</span><span><i style="background:#62a7ff"></i>Capital</span></div>
+        </div>
+        <div class="panel">
+          <div class="panel-title"><div><small>Limite</small><h2>Leitura de sobrevivência</h2></div></div>
+          <div class="decision-verdict" id="stressVerdict"></div>
+        </div>
+        <div class="panel full">
+          <div class="panel-title"><div><small>Resultados fixos</small><h2>Choques aplicados à curva real</h2></div></div>
+          <div class="table-wrap"><table><thead><tr><th>Cenário</th><th>Choque acrescentado</th><th>Resultado final</th><th>DD máximo</th><th>Aumento do DD</th><th>DD/capital</th><th>Quebra 60%</th><th>Quebra 80%</th><th>Quebra 100%</th></tr></thead><tbody id="stressRows"></tbody></table></div>
+        </div>
+      </section>
+
+      <section class="grid" id="singleView" hidden>
+        <div class="panel">
+          <div class="panel-title"><div><small>Base do estudo</small><h2>Setup e janela</h2></div></div>
+          <label>Setup</label>
+          <div class="segmented" id="datasetTabs"><button class="active" data-value="gatto">GATTO</button><button data-value="gio">GIO</button></div>
+          <div class="form-grid" style="margin-top:12px">
+            <label>Período<select id="period"><option value="all">Histórico completo</option><option>2024</option><option>2025</option><option>2026</option><option value="critical">Somente período crítico</option></select></label>
+            <label>Unidade da sequência<select id="scope"><option value="operations">Operações</option><option value="days">Pregões</option></select></label>
+            <label>Operações incluídas<select id="operationSet"><option value="all">Op1 + Op2 + Op3</option><option value="op12">Op1 + Op2</option><option value="op13">Op1 + Op3</option><option value="op23">Op2 + Op3</option><option value="op1">Somente Op1</option><option value="op2">Somente Op2</option><option value="op3">Somente Op3</option></select></label>
+            <label class="check-control"><input id="excludeCritical" type="checkbox"><span>Excluir período crítico da amostra</span><small>10/09/2026 a 31/10/2026</small></label>
+            <label class="check-control"><input id="excludeLargeStop" type="checkbox"><span>Comparar original vs. sem operações com SL inicial ≥ 550</span><small id="stopFilterStatus">Usa TAMANHO STOP</small></label>
+          </div>
+        </div>
+
+        <div class="panel wide">
+          <div class="panel-title"><div><small>Motor estatístico</small><h2>Configuração reproduzível</h2></div><small id="sampleLabel">Aguardando dados</small></div>
+          <div class="form-grid">
+            <label>Método<select id="method"><option value="permutation">Permutação completa</option><option value="bootstrap">Bootstrap individual</option><option value="blocks">Bootstrap por blocos</option></select></label>
+            <label>Quantidade<select id="runs"><option>100</option><option>500</option><option>1000</option><option>5000</option><option selected>10000</option></select></label>
+            <label>Semente<input id="seed" type="number" value="20261119" min="1" step="1"></label>
+            <label>Capital por contrato<input id="capital" type="number" value="2500" min="100" step="100"></label>
+            <label>Contratos<input id="contracts" type="number" value="1" min="1" max="500" step="1"></label>
+            <label id="blockLabel">Tamanho do bloco<select id="blockSize"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option><option>13</option><option>14</option><option selected>15</option></select></label>
+          </div>
+          <div class="actions"><button class="primary" id="runButton">Executar Monte Carlo</button><button class="secondary" id="newSeed">Nova semente real</button><button class="secondary" id="reset">Restaurar</button></div>
+          <div class="progress"><span id="progressBar"></span></div>
+          <p class="method-note" id="methodNote"><b>Permutação completa:</b> usa todos os resultados exatamente uma vez em cada corrida e altera somente a ordem.</p>
+        </div>
+
+        <div class="panel full">
+          <div class="panel-title"><div><small>Leitura principal</small><h2>Drawdown máximo simulado</h2></div><small id="runLabel">Execute a simulação</small></div>
+          <div class="metrics" id="metrics">
+            <div class="metric"><span>DD histórico real</span><strong>-</strong></div>
+            <div class="metric"><span>Mediana simulada</span><strong>-</strong></div>
+            <div class="metric"><span>P99</span><strong>-</strong></div>
+            <div class="metric"><span>Pior caminho</span><strong>-</strong></div>
+          </div>
+        </div>
+
+        <div class="panel full" id="stopComparisonPanel" hidden>
+          <div class="panel-title"><div><small>Comparação direta</small><h2>Curva real vs. Monte Carlo completo vs. Monte Carlo sem SL 550</h2></div><small id="stopComparisonSample">Mesma semente e configuração</small></div>
+          <div class="scenario-strip" id="stopComparisonCards"></div>
+          <div class="table-wrap"><table><thead><tr><th>Métrica</th><th>Curva histórica real</th><th>Monte Carlo · todas</th><th>Monte Carlo · sem SL ≥ 550</th><th>Variação do filtro</th></tr></thead><tbody id="stopComparisonRows"></tbody></table></div>
+          <p class="method-note">A quantidade de operações aparece somente como contexto. A leitura principal compara drawdown, cauda de risco, quebra e resultado por unidade de drawdown. Operações sem SL identificado permanecem na amostra.</p>
+          <p class="decision-note" id="stopComparisonConclusion"></p>
+        </div>
+
+        <div class="panel wide">
+          <div class="panel-title"><div><small>Caminhos</small><h2>Curva real e fronteira extrema</h2></div></div>
+          <canvas id="paths"></canvas>
+          <div class="legend"><span><i style="background:#f4f5ef"></i>Histórico real</span><span><i style="background:#ff5e62"></i>Pior DD simulado</span><span><i style="background:#32d6bd"></i>Mediana dos caminhos amostrados</span><span><i style="background:#ff9b45"></i>Linha de quebra</span></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title"><div><small>Distribuição</small><h2>Frequência do DD máximo</h2></div></div>
+          <canvas id="histogram"></canvas>
+        </div>
+
+        <div class="panel wide">
+          <div class="panel-title"><div><small>Cola de riesgo</small><h2>Percentiles observados</h2></div></div>
+          <div class="table-wrap"><table><thead><tr><th>Nivel</th><th>DD máximo</th><th>% del capital</th><th>Lectura</th></tr></thead><tbody id="percentileRows"><tr><td colspan="4" class="empty">Ejecute una simulación.</td></tr></tbody></table></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title"><div><small>Ruptura</small><h2>Maiores probabilidades de quebra</h2></div></div>
+          <div class="table-wrap"><table><thead><tr><th>Límite</th><th>Caminos</th><th>Probabilidad</th></tr></thead><tbody id="ruinRows"><tr><td colspan="3" class="empty">Sin cálculo.</td></tr></tbody></table></div>
+        </div>
+
+        <div class="panel full">
+          <div class="panel-title"><div><small>Auditoría</small><h2>Cómo se produjo este resultado</h2></div></div>
+          <div class="audit" id="audit"><div><span>Gerador</span><b>PRNG Mulberry32</b></div><div><span>Algoritmo</span><b>Fisher-Yates</b></div><div><span>Semente</span><b>-</b></div><div><span>Base</span><b>-</b></div></div>
+        </div>
+      </section>
+
+      <section class="grid" id="batteryView" hidden>
+        <div class="panel full">
+          <div class="panel-title"><div><small>Protocolo consolidado</small><h2>Minha bateria recomendada completa</h2></div><small>70.000 caminhos por cenário</small></div>
+          <div class="battery-runner">
+            <div>
+              <p id="batteryFilterSummary">Carregando configuração...</p>
+              <div class="battery-methods">
+                <div><b>Permutação completa</b><span>10.000 caminhos</span></div>
+                <div><b>Bootstrap individual</b><span>3 sementes × 10.000</span></div>
+                <div><b>Bootstrap por blocos</b><span>2, 3 e 5 · 10.000 cada</span></div>
+              </div>
+              <label class="check-control" style="margin-top:12px"><input id="compareAllOperations" type="checkbox"><span>Comparar seleção contra Op1 + Op2 + Op3</span><small id="operationCompareStatus">Adiciona 70.000 caminhos</small></label>
+            </div>
+            <div class="actions"><button class="primary" id="runBattery">Executar bateria completa</button><button class="secondary" id="cancelBattery" hidden>Cancelar</button><button class="secondary" id="adjustFilters">Ajustar filtros</button></div>
+          </div>
+          <div class="battery-progress"><span id="batteryProgress"></span></div>
+          <div class="battery-status"><span id="batteryStatus">Pronta para executar</span><span id="batteryCounter">0 / 70.000</span></div>
+        </div>
+
+        <div class="panel full" id="batterySummaryPanel" hidden>
+          <div class="panel-title"><div><small>Fronteira de risco</small><h2>Referências para capital e escalado</h2></div><small id="batteryScenarioLabel"></small></div>
+          <div class="scenario-strip" id="batteryReferenceCards"></div>
+          <p class="decision-note" id="batteryConclusion"></p>
+        </div>
+
+        <div class="panel full">
+          <div class="panel-title"><div><small>Resultados por modelo</small><h2>Cauda, CVaR e probabilidade de quebra</h2></div></div>
+          <div class="table-wrap"><table><thead><tr><th>Cenário</th><th>Modelo</th><th>Mediana DD</th><th>P95</th><th>P99</th><th>P99,9</th><th>CVaR 99,9</th><th>Pior DD</th><th>Quebra 60%</th><th>Quebra 80%</th><th>Quebra 100%</th><th>Resultado/DD</th></tr></thead><tbody id="batteryRows"><tr><td colspan="12" class="empty">Execute a bateria para gerar a fronteira de risco.</td></tr></tbody></table></div>
+        </div>
+
+        <div class="panel full">
+          <div class="panel-title"><div><small>Critério de decisão</small><h2>Como a referência será escolhida</h2></div></div>
+          <p class="method-note"><b>Agresivo:</b> maior P99 entre os modelos. <b>Controlado recomendado:</b> maior CVaR 99,9. <b>Fronteira extrema:</b> maior caminho individual encontrado. A quantidade de operações não decide o vencedor; resultado/DD e probabilidade de quebra permanecem visíveis para evitar uma falsa melhora obtida apenas por operar menos.</p>
+        </div>
+      </section>
+
+      <section class="grid" id="decisionView" hidden>
+        <div class="panel full" id="decisionEmpty">
+          <div class="panel-title"><div><small>Síntese executiva</small><h2>Execute uma bateria compatível</h2></div></div>
+          <p class="disclaimer">Este painel não cria outra simulação. Ele transforma a última bateria completa desta sessão em referências comparáveis de capital, cobertura e eficiência.</p>
+          <div class="actions"><button class="primary" id="decisionGoBattery">Ir para Bateria Completa</button><button class="secondary" id="decisionGoFilters">Revisar filtros</button></div>
+        </div>
+
+        <div class="panel full" id="decisionContent" hidden>
+          <div class="panel-title"><div><small>Referências por contrato</small><h2>Capital medido pela cauda de drawdown</h2></div><small id="decisionContext"></small></div>
+          <div class="decision-hero" id="decisionCards"></div>
+        </div>
+
+        <div class="panel wide" id="decisionChartPanel" hidden>
+          <div class="panel-title"><div><small>Comparação visual</small><h2>P99, CVaR 99,9 e fronteira extrema</h2></div><small>Valores por contrato</small></div>
+          <canvas id="decisionChart"></canvas>
+          <div class="legend"><span><i style="background:#eacb58"></i>P99</span><span><i style="background:#32d6bd"></i>CVaR 99,9</span><span><i style="background:#ff5e62"></i>Pior DD</span><span><i style="background:#62a7ff"></i>Capital atual</span></div>
+        </div>
+
+        <div class="panel" id="decisionReadingPanel" hidden>
+          <div class="panel-title"><div><small>Leitura automática</small><h2>O que os números permitem concluir</h2></div></div>
+          <div class="decision-verdict" id="decisionVerdict"></div>
+        </div>
+
+        <div class="panel full" id="decisionMatrixPanel" hidden>
+          <div class="panel-title"><div><small>Matriz de decisão</small><h2>Risco, cobertura e eficiência por cenário</h2></div><small id="decisionPaths"></small></div>
+          <div class="table-wrap"><table><thead><tr><th>Cenário</th><th>Resultado mediano</th><th>P99 / contrato</th><th>CVaR / contrato</th><th>Pior DD / contrato</th><th>Cobertura atual</th><th>Resultado/CVaR</th><th>Quebra 100%</th><th>Dispersão P99</th><th>Leitura</th></tr></thead><tbody id="decisionRows"></tbody></table></div>
+          <p class="method-note"><b>Cobertura atual</b> = capital por contrato ÷ CVaR 99,9 por contrato. <b>Dispersão P99</b> mede quanto os métodos divergem; dispersão alta reduz a confiança em um único número.</p>
+        </div>
+
+        <div class="panel full" id="decisionRulesPanel" hidden>
+          <div class="panel-title"><div><small>Disciplina de uso</small><h2>Como interpretar sem transformar simulação em certeza</h2></div></div>
+          <div class="audit"><div><span>Referência agressiva</span><b>Maior P99</b></div><div><span>Referência controlada</span><b>Maior CVaR 99,9</b></div><div><span>Stress matemático</span><b>Maior DD encontrado</b></div><div><span>Decisão comparativa</span><b>Risco + eficiência + estabilidade</b></div></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script id="embeddedData" type="application/json">{"generatedAt":"","gatto":[],"gio":[]}</script>
+  <script>
+    'use strict';
+    const API_URL = 'https://script.google.com/macros/s/AKfycby1rs6UObGzUGgp2I-vLt4W48V1tu2Jk8MIB066GdBynFTKjJXgBZHl8uptw3Gx_jLd/exec';
+    const state = { datasets: { gatto: [], gio: [] }, dataset: 'gatto', results: null, stopComparison: null, running: false, batteryRunning: false, batteryCancelled: false, batteryResults: null, calibrationRunning: false, calibrationCancelled: false, calibrationResults: null };
+    const $ = id => document.getElementById(id);
+    const money = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    const number = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 });
+    const pct = value => `${number.format(value)}%`;
+    const fmt = value => money.format(value);
+    const OPERATION_LABELS = { all: 'Op1 + Op2 + Op3', op12: 'Op1 + Op2', op13: 'Op1 + Op3', op23: 'Op2 + Op3', op1: 'Somente Op1', op2: 'Somente Op2', op3: 'Somente Op3' };
+    const ROBUST_PERIOD_LABELS = { all:'Histórico completo', allNoCritical:'Total sem período crítico', '2024':'2024', '2025':'2025', '2026':'2026 completo', '2026NoCritical':'2026 sem período crítico', critical:'Somente período crítico' };
+
+    function parseNumber(value) {
+      if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+      let raw = String(value ?? '').trim().replace('R$', '').replace('pts', '').replaceAll(' ', '');
+      if (!raw) return null;
+      if (raw.includes(',')) raw = raw.split('.').join('').replace(',', '.');
+      const parsed = Number(raw);
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+    function normalizeGatto(rows) {
+      return (rows || []).map((row, index) => ({
+        id: row.id || row.idOperacao || `g-${index}`,
+        date: String(row.dataHoraIso || row.data || '').slice(0, 10),
+        value: parseNumber(row.financeiro) ?? ((parseNumber(row.pontos) || 0) * .2),
+        stop: parseNumber(row.tamanhoStop ?? row.stopInicial ?? row.stop),
+        order: Number(row.order) || index + 1
+      })).filter(row => row.date && Number.isFinite(row.value)).sort((a,b) => a.date.localeCompare(b.date) || a.order-b.order);
+    }
+    function normalizeGio(rows) {
+      return (rows || []).map((row, index) => ({
+        id: row.id || `gio-${index}`,
+        date: String(row.date || row.data || '').slice(0, 10),
+        value: (parseNumber(row.protected ?? row.executadoProtegendo ?? row['EXECUTADO PROTEGENDO']) || 0) * .2,
+        stop: null,
+        order: Number(String(row.id || '').split('__').at(-1)) || index + 1
+      })).filter(row => row.date && Number.isFinite(row.value)).sort((a,b) => a.date.localeCompare(b.date) || a.order-b.order);
+    }
+    function operationNumber(row) {
+      const match = String(row.id || '').match(/__(\d+)$/);
+      return match ? Number(match[1]) : null;
+    }
+    function selectedOperations(applyStopFilter = true, operationSet = $('operationSet').value) {
+      const period = $('period').value;
+      const criticalStart = '2026-09-10';
+      const criticalEnd = '2026-10-31';
+      const isCritical = row => row.date >= criticalStart && row.date <= criticalEnd;
+      let rows = state.datasets[state.dataset];
+      if (period === 'critical') rows = rows.filter(isCritical);
+      else if (period !== 'all') rows = rows.filter(row => row.date.startsWith(period));
+      if ($('excludeCritical').checked && period !== 'critical') rows = rows.filter(row => !isCritical(row));
+      const allowed = { all: [1,2,3], op12: [1,2], op13:[1,3], op23:[2,3], op1: [1], op2: [2], op3: [3] }[operationSet] || [1,2,3];
+      rows = rows.filter(row => allowed.includes(operationNumber(row)));
+      let removedSl = 0;
+      let missingSl = 0;
+      if ($('excludeLargeStop').checked && applyStopFilter) {
+        removedSl = rows.filter(row => Number.isFinite(row.stop) && row.stop >= 550).length;
+        missingSl = rows.filter(row => !Number.isFinite(row.stop)).length;
+        rows = rows.filter(row => !(Number.isFinite(row.stop) && row.stop >= 550));
+      }
+      return { rows, removedSl, missingSl };
+    }
+    function valuesForSelection(applyStopFilter = true, operationSet = $('operationSet').value) {
+      const { rows } = selectedOperations(applyStopFilter, operationSet);
+      if ($('scope').value === 'days') {
+        const grouped = new Map();
+        rows.forEach(row => grouped.set(row.date, (grouped.get(row.date) || 0) + row.value));
+        return [...grouped.entries()].sort(([a],[b]) => a.localeCompare(b)).map(([date,value]) => ({ date, value }));
+      }
+      return rows;
+    }
+    function mulberry32(seed) {
+      let a = seed >>> 0;
+      return function() {
+        a |= 0; a = a + 0x6D2B79F5 | 0;
+        let t = Math.imul(a ^ a >>> 15, 1 | a);
+        t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+        return ((t ^ t >>> 14) >>> 0) / 4294967296;
+      };
+    }
+    function shuffled(values, rand) {
+      const out = values.slice();
+      for (let i = out.length - 1; i > 0; i--) {
+        const j = Math.floor(rand() * (i + 1));
+        [out[i], out[j]] = [out[j], out[i]];
+      }
+      return out;
+    }
+    function resample(values, rand, method, blockSize) {
+      if (method === 'permutation') return shuffled(values, rand);
+      if (method === 'bootstrap') return Array.from({ length: values.length }, () => values[Math.floor(rand() * values.length)]);
+      const out = [];
+      while (out.length < values.length) {
+        const start = Math.floor(rand() * values.length);
+        for (let j = 0; j < blockSize && out.length < values.length; j++) out.push(values[(start + j) % values.length]);
+      }
+      return out;
+    }
+    function pathStats(values, scale = 1, checkpoints = 120) {
+      let equity = 0, peak = 0, maxDd = 0, min = 0;
+      const path = [0];
+      const step = Math.max(1, Math.floor(values.length / checkpoints));
+      values.forEach((value, i) => {
+        equity += value * scale;
+        peak = Math.max(peak, equity);
+        min = Math.min(min, equity);
+        maxDd = Math.max(maxDd, peak - equity);
+        if (i % step === 0 || i === values.length - 1) path.push(equity);
+      });
+      return { final: equity, maxDd, min, path };
+    }
+    function quantile(sorted, p) {
+      if (!sorted.length) return 0;
+      const pos = (sorted.length - 1) * p;
+      const lo = Math.floor(pos), hi = Math.ceil(pos), w = pos - lo;
+      return sorted[lo] * (1-w) + sorted[hi] * w;
+    }
+    function medianPath(paths) {
+      if (!paths.length) return [];
+      const length = Math.max(...paths.map(path => path.length));
+      return Array.from({length}, (_, i) => {
+        const vals = paths.map(path => path[Math.min(i, path.length-1)]).sort((a,b)=>a-b);
+        return quantile(vals, .5);
+      });
+    }
+
+    const CRITICAL_START = '2026-09-10';
+    const CRITICAL_END = '2026-10-31';
+
+    function robustnessBaseRows() {
+      const operationSet = $('robustOperationSet').value;
+      const allowed = { all:[1,2,3], op12:[1,2], op13:[1,3], op23:[2,3], op1:[1], op2:[2], op3:[3] }[operationSet] || [1,2,3];
+      let rows = state.datasets[state.dataset].filter(row => allowed.includes(operationNumber(row)));
+      if ($('robustStopFilter').checked) rows = rows.filter(row => !(Number.isFinite(row.stop) && row.stop >= 550));
+      return rows;
+    }
+
+    function robustnessRows() {
+      const rows=robustnessBaseRows(), period=$('robustPeriod').value;
+      if(period==='critical')return rows.filter(row=>row.date>=CRITICAL_START&&row.date<=CRITICAL_END);
+      if(period==='allNoCritical')return rows.filter(row=>row.date<CRITICAL_START||row.date>CRITICAL_END);
+      if(period==='2026NoCritical')return rows.filter(row=>row.date.startsWith('2026')&&(row.date<CRITICAL_START||row.date>CRITICAL_END));
+      if(['2024','2025','2026'].includes(period))return rows.filter(row=>row.date.startsWith(period));
+      return rows;
+    }
+
+    function isoWeekKey(dateString) {
+      const date = new Date(`${dateString}T00:00:00Z`);
+      const day = date.getUTCDay() || 7;
+      date.setUTCDate(date.getUTCDate() + 4 - day);
+      const yearStart = new Date(Date.UTC(date.getUTCFullYear(),0,1));
+      const week = Math.ceil((((date-yearStart)/86400000)+1)/7);
+      return `${date.getUTCFullYear()}-W${String(week).padStart(2,'0')}`;
+    }
+
+    function groupedSums(rows, keyFn) {
+      const groups = new Map();
+      rows.forEach(row => groups.set(keyFn(row), (groups.get(keyFn(row)) || 0) + row.value));
+      return [...groups.entries()].map(([key,value]) => ({key,value}));
+    }
+
+    function historicalMetrics(rows) {
+      if (!rows.length) return { operations:0, result:0, points:0, maxDd:0, ratio:0, pf:0, hit:0, worstDay:0, worstWeek:0, worstMonth:0, path:[] };
+      const values=rows.map(row=>row.value), stats=pathStats(values,1,160);
+      const gains=values.filter(value=>value>0), losses=values.filter(value=>value<0);
+      const gainSum=gains.reduce((sum,value)=>sum+value,0), lossSum=Math.abs(losses.reduce((sum,value)=>sum+value,0));
+      const minGroup=groups=>groups.length?Math.min(...groups.map(group=>group.value)):0;
+      return {
+        operations:rows.length,
+        result:stats.final,
+        points:stats.final/.2,
+        maxDd:stats.maxDd,
+        ratio:stats.maxDd?stats.final/stats.maxDd:0,
+        pf:lossSum?gainSum/lossSum:gainSum>0?Infinity:0,
+        hit:gains.length/rows.length*100,
+        worstDay:minGroup(groupedSums(rows,row=>row.date)),
+        worstWeek:minGroup(groupedSums(rows,row=>isoWeekKey(row.date))),
+        worstMonth:minGroup(groupedSums(rows,row=>row.date.slice(0,7))),
+        path:stats.path
+      };
+    }
+
+    function historicalWindows(rows=robustnessBaseRows()) {
+      const outsideCritical=row=>row.date<CRITICAL_START||row.date>CRITICAL_END;
+      return [
+        {name:'Histórico completo',rows},
+        {name:'2024',rows:rows.filter(row=>row.date.startsWith('2024'))},
+        {name:'2025',rows:rows.filter(row=>row.date.startsWith('2025'))},
+        {name:'2026',rows:rows.filter(row=>row.date.startsWith('2026'))},
+        {name:'2026 sem período crítico',rows:rows.filter(row=>row.date.startsWith('2026')&&outsideCritical(row))},
+        {name:'Antes do período crítico',rows:rows.filter(row=>row.date<CRITICAL_START)},
+        {name:'Período crítico',rows:rows.filter(row=>row.date>=CRITICAL_START&&row.date<=CRITICAL_END)},
+        {name:'Após período crítico',rows:rows.filter(row=>row.date>CRITICAL_END)},
+        {name:'Sem período crítico',rows:rows.filter(outsideCritical)}
+      ].map(item=>({...item,metrics:historicalMetrics(item.rows)}));
+    }
+
+    function syncRobustControls() {
+      $('robustOperationSet').value=$('operationSet').value;
+      $('robustStopFilter').checked=$('excludeLargeStop').checked;
+      $('robustCapital').value=$('capital').value;
+      document.querySelectorAll('#robustDatasetTabs button').forEach(button=>button.classList.toggle('active',button.dataset.value===state.dataset));
+      const rows=robustnessRows();
+      $('robustContextLabel').textContent=`${state.dataset.toUpperCase()} · ${OPERATION_LABELS[$('robustOperationSet').value]} · ${ROBUST_PERIOD_LABELS[$('robustPeriod').value]} · ${rows.length.toLocaleString('pt-BR')} operações`;
+    }
+
+    function renderSummary() {
+      const windows=historicalWindows(), total=historicalMetrics(robustnessRows()), capital=Math.max(100,Number($('robustCapital').value)||2500);
+      const years=windows.filter(item=>['2024','2025','2026'].includes(item.name)&&item.metrics.operations>0);
+      const critical=windows.find(item=>item.name==='Período crítico').metrics;
+      const coverage=total.maxDd?capital/total.maxDd:0;
+      const metrics=[
+        ['Resultado histórico',total.result,'good'],['DD máximo',total.maxDd,total.maxDd>=capital?'bad':'warn'],
+        ['Cobertura do capital',coverage,coverage>=1.25?'good':coverage>=1?'warn':'bad','ratio'],['Resultado / DD',total.ratio,total.ratio>=5?'good':'warn','ratio'],
+        ['Pior dia',Math.abs(total.worstDay),'warn'],['Operações',total.operations,'good','count']
+      ];
+      $('summaryMetrics').innerHTML=metrics.map(([label,value,tone,type])=>`<div class="metric ${tone}"><span>${label}</span><strong>${type==='ratio'?`${number.format(value)}×`:type==='count'?value.toLocaleString('pt-BR'):fmt(value)}</strong></div>`).join('');
+      const signals=[
+        {label:'Tamanho da amostra',value:`${total.operations.toLocaleString('pt-BR')} operações`,tone:total.operations>=1000?'good':'warn'},
+        {label:'Resultado acumulado',value:fmt(total.result),tone:total.result>0?'good':'bad'},
+        {label:'Anos positivos',value:`${years.filter(item=>item.metrics.result>0).length} de ${years.length}`,tone:years.length&&years.every(item=>item.metrics.result>0)?'good':'warn'},
+        {label:'Período crítico',value:critical.operations?fmt(critical.result):'Sem amostra',tone:critical.result>0?'good':critical.operations?'bad':'warn'},
+        {label:'DD histórico versus capital',value:`${pct(total.maxDd/capital*100)} do capital`,tone:total.maxDd<capital*.8?'good':total.maxDd<capital?'warn':'bad'},
+        {label:'Profit factor histórico',value:number.format(total.pf),tone:total.pf>1.4?'good':total.pf>1?'warn':'bad'}
+      ];
+      $('summarySignals').innerHTML=signals.map(item=>`<div class="signal ${item.tone}"><i></i><span>${item.label}</span><strong>${item.value}</strong></div>`).join('');
+      if(state.batteryResults?.length){
+        const controlled=Math.max(...state.batteryResults.map(item=>item.cvar999/item.contracts));
+        $('summaryBatteryStatus').innerHTML=`<b>Bateria disponível.</b><br>Pior CVaR 99,9 por contrato: ${fmt(controlled)}.<br>Cobertura do capital: ${number.format(capital/controlled)}×.`;
+      } else $('summaryBatteryStatus').innerHTML='<b>Teste ainda não executado.</b><br>O resumo histórico não substitui Monte Carlo. Execute a bateria para medir P99, CVaR e quebra.';
+      const summaryNames=['Histórico completo','Sem período crítico','2024','2025','2026','2026 sem período crítico','Período crítico'];
+      $('summaryPeriodRows').innerHTML=windows.filter(item=>summaryNames.includes(item.name)).map(item=>{
+        const m=item.metrics;if(!m.operations)return `<tr><td>${item.name}</td><td colspan="7" class="empty">Sem dados</td></tr>`;
+        return `<tr><td>${item.name}</td><td>${m.operations.toLocaleString('pt-BR')}</td><td>${fmt(m.result)}</td><td>${number.format(m.points)}</td><td>${fmt(m.maxDd)}</td><td>${number.format(m.ratio)}×</td><td>${number.format(m.pf)}</td><td>${pct(m.hit)}</td></tr>`;
+      }).join('');
+      $('summaryPeriodLabel').textContent=`${state.dataset.toUpperCase()} · ${OPERATION_LABELS[$('robustOperationSet').value]} · ${ROBUST_PERIOD_LABELS[$('robustPeriod').value]}`;
+    }
+
+    function renderHistorical() {
+      const windows=historicalWindows(), capital=Math.max(100,Number($('robustCapital').value)||2500);
+      $('historicalRows').innerHTML=windows.map(item=>{const m=item.metrics;if(!m.operations)return `<tr><td>${item.name}</td><td colspan="10" class="empty">Sem dados</td></tr>`;return `<tr><td>${item.name}</td><td>${m.operations.toLocaleString('pt-BR')}</td><td>${fmt(m.result)}</td><td>${number.format(m.points)}</td><td>${fmt(m.maxDd)}</td><td>${pct(m.maxDd/capital*100)}</td><td>${number.format(m.ratio)}×</td><td>${number.format(m.pf)}</td><td>${pct(m.hit)}</td><td>${fmt(m.worstDay)}</td><td>${fmt(m.worstWeek)}</td></tr>`;}).join('');
+      const years=windows.filter(item=>['2024','2025','2026'].includes(item.name)&&item.metrics.operations>0), critical=windows.find(item=>item.name==='Período crítico'), noCritical=windows.find(item=>item.name==='Sem período crítico'), total=windows[0];
+      const positive=years.filter(item=>item.metrics.result>0).length;
+      const ddChange=noCritical.metrics.maxDd? (total.metrics.maxDd-noCritical.metrics.maxDd)/noCritical.metrics.maxDd*100:0;
+      $('historicalVerdict').innerHTML=`<b>Anos:</b> ${positive} de ${years.length} positivos.<br><b>Período crítico:</b> ${critical.metrics.operations?`${fmt(critical.metrics.result)} e DD ${fmt(critical.metrics.maxDd)}`:'sem dados'}.<br><b>Impacto no DD:</b> incluir o período crítico ${ddChange>=0?'aumentou':'reduziu'} o DD em ${pct(Math.abs(ddChange))} frente à amostra sem esse trecho.`;
+      $('historicalSampleLabel').textContent=`${total.metrics.operations.toLocaleString('pt-BR')} operações · capital ${fmt(capital)}`;
+      requestAnimationFrame(()=>drawHistoricalChart(windows.filter(item=>item.metrics.operations>0&&['2024','2025','2026','2026 sem período crítico','Período crítico','Sem período crítico'].includes(item.name))));
+    }
+
+    function drawHistoricalChart(windows) {
+      const {ctx,w,h}=fitCanvas($('historicalChart'));ctx.clearRect(0,0,w,h);
+      const pad={l:64,r:58,t:24,b:66},cw=w-pad.l-pad.r,ch=h-pad.t-pad.b;
+      const maxResult=Math.max(1,...windows.map(item=>Math.abs(item.metrics.result))),maxDd=Math.max(1,...windows.map(item=>item.metrics.maxDd));
+      const groupW=cw/Math.max(1,windows.length),barW=Math.min(34,groupW/3);
+      windows.forEach((item,i)=>{const center=pad.l+groupW*(i+.5),resH=Math.abs(item.metrics.result)/maxResult*ch,ddH=item.metrics.maxDd/maxDd*ch;ctx.fillStyle=item.metrics.result>=0?'#32d6bd':'#ff9b45';ctx.fillRect(center-barW-2,pad.t+ch-resH,barW,resH);ctx.fillStyle='#ff5e62';ctx.fillRect(center+2,pad.t+ch-ddH,barW,ddH);ctx.fillStyle='#a7aea5';ctx.font='11px system-ui';ctx.textAlign='center';const label=item.name.length>18?`${item.name.slice(0,16)}…`:item.name;ctx.fillText(label,center,h-38);ctx.fillText(`${fmt(item.metrics.result)} / ${fmt(item.metrics.maxDd)}`,center,h-18);});
+      ctx.strokeStyle='#343a34';ctx.beginPath();ctx.moveTo(pad.l,pad.t+ch);ctx.lineTo(w-pad.r,pad.t+ch);ctx.stroke();ctx.fillStyle='#a7aea5';ctx.textAlign='left';ctx.fillText('Escalas independentes: resultado / DD',pad.l,14);
+    }
+
+    function dailySeries(rows) {
+      const grouped=new Map();
+      rows.forEach(row=>grouped.set(row.date,(grouped.get(row.date)||0)+row.value));
+      return [...grouped.entries()].sort(([a],[b])=>a.localeCompare(b)).map(([date,value])=>({date,value}));
+    }
+
+    function calibrationFolds(rows=robustnessBaseRows()) {
+      const definitions=[
+        {train:'Somente 2024',test:'2025',trainFilter:row=>row.date.startsWith('2024'),testFilter:row=>row.date.startsWith('2025')},
+        {train:'2024 + 2025',test:'2026',trainFilter:row=>row.date<'2026-01-01',testFilter:row=>row.date.startsWith('2026')},
+        {train:'Até 09/09/2026',test:'Período crítico',trainFilter:row=>row.date<CRITICAL_START,testFilter:row=>row.date>=CRITICAL_START&&row.date<=CRITICAL_END},
+        {train:'Até 31/10/2026',test:'Após período crítico',trainFilter:row=>row.date<=CRITICAL_END,testFilter:row=>row.date>CRITICAL_END}
+      ];
+      return definitions.map(item=>({...item,trainDays:dailySeries(rows.filter(item.trainFilter)),testDays:dailySeries(rows.filter(item.testFilter))})).filter(item=>item.trainDays.length>=20&&item.testDays.length>0);
+    }
+
+    function resampleDays(values,rand,blockSize,targetLength) {
+      const out=[];
+      while(out.length<targetLength){
+        const start=Math.floor(rand()*values.length);
+        for(let j=0;j<blockSize&&out.length<targetLength;j++)out.push(values[(start+j)%values.length]);
+      }
+      return out;
+    }
+
+    function calibrationPercentile(sorted,value) {
+      let lo=0,hi=sorted.length;
+      while(lo<hi){const mid=(lo+hi)>>1;if(sorted[mid]<=value)lo=mid+1;else hi=mid;}
+      return sorted.length?lo/sorted.length*100:0;
+    }
+
+    function simplePathStats(values) {
+      let equity=0,peak=0,maxDd=0,min=0;
+      values.forEach(value=>{equity+=value;peak=Math.max(peak,equity);min=Math.min(min,equity);maxDd=Math.max(maxDd,peak-equity);});
+      return {final:equity,maxDd,min};
+    }
+
+    async function simulateCalibrationFold(fold,settings,onProgress) {
+      const trainValues=fold.trainDays.map(day=>day.value), testValues=fold.testDays.map(day=>day.value);
+      const rand=mulberry32(settings.seed||1),dds=[],finals=[];
+      const chunk=100;
+      for(let start=0;start<settings.runs;start+=chunk){
+        if(state.calibrationCancelled)throw new Error('CALIBRATION_CANCELLED');
+        const end=Math.min(settings.runs,start+chunk);
+        for(let i=start;i<end;i++){
+          const stats=simplePathStats(resampleDays(trainValues,rand,settings.blockSize,testValues.length));
+          dds.push(stats.maxDd);finals.push(stats.final);
+        }
+        onProgress(end-start);
+        await new Promise(resolve=>setTimeout(resolve,0));
+      }
+      dds.sort((a,b)=>a-b);finals.sort((a,b)=>a-b);
+      const actual=pathStats(testValues,1,160),tail=dds.slice(Math.floor(dds.length*.99));
+      const cvar99=tail.reduce((sum,value)=>sum+value,0)/Math.max(1,tail.length);
+      return {
+        train:fold.train,test:fold.test,trainDays:fold.trainDays.length,testDays:fold.testDays.length,
+        runs:settings.runs,p50:quantile(dds,.5),p95:quantile(dds,.95),p99:quantile(dds,.99),cvar99,
+        actualDd:actual.maxDd,ddPercentile:calibrationPercentile(dds,actual.maxDd),
+        actualResult:actual.final,resultPercentile:calibrationPercentile(finals,actual.final),
+        resultP5:quantile(finals,.05),resultP50:quantile(finals,.5),resultP95:quantile(finals,.95)
+      };
+    }
+
+    function calibrationReading(result) {
+      let reading,tone;
+      if(result.actualDd<=result.p95)[reading,tone]=['Dentro de P95','tone-ok'];
+      else if(result.actualDd<=result.p99)[reading,tone]=['Adverso previsto','tone-warn'];
+      else if(result.actualDd<=result.cvar99)[reading,tone]=['Cauda extrema','tone-warn'];
+      else [reading,tone]=['Acima do CVaR','tone-bad'];
+      return result.testDays<20?[`${reading} · teste curto`,'tone-warn']:[reading,tone];
+    }
+
+    function renderCalibrationSample() {
+      const rows=robustnessBaseRows(),days=dailySeries(rows),metrics=historicalMetrics(rows),years=['2024','2025','2026'].map(year=>({year,metrics:historicalMetrics(rows.filter(row=>row.date.startsWith(year)))})).filter(item=>item.metrics.operations);
+      const critical=historicalMetrics(rows.filter(row=>row.date>=CRITICAL_START&&row.date<=CRITICAL_END));
+      const first=rows[0]?.date||'-',last=rows.at(-1)?.date||'-',positiveYears=years.filter(item=>item.metrics.result>0).length;
+      const yearlyCoverage=years.map(item=>`${item.year}: ${item.metrics.operations.toLocaleString('pt-BR')} op.`).join(' · ');
+      const yearlyCounts=years.map(item=>item.metrics.operations),coverageRatio=yearlyCounts.length?Math.min(...yearlyCounts)/Math.max(...yearlyCounts):0;
+      const coverageReading=coverageRatio>=.7?'A cobertura entre anos é relativamente equilibrada.':coverageRatio>=.35?'A cobertura anual é desigual; compare os anos com cautela.':'Há uma lacuna anual importante; provas envolvendo o ano curto são apenas indicativas.';
+      let representativity;
+      if(days.length>=600&&years.length>=3)representativity='A amostra é extensa para estudar distribuição central, dependência por pregão e risco de sequência.';
+      else if(days.length>=250)representativity='A amostra é útil, mas a calibração de caudas extremas permanece limitada.';
+      else representativity='A amostra é curta para inferências fortes de cauda; os resultados devem ser tratados como exploratórios.';
+      $('calibrationSampleInterpretation').innerHTML=`<b>Composição:</b> ${rows.length.toLocaleString('pt-BR')} operações em ${days.length.toLocaleString('pt-BR')} pregões, de ${first} a ${last}.<br><b>Cobertura:</b> ${yearlyCoverage} ${coverageReading}<br><b>Estabilidade anual:</b> ${positiveYears} de ${years.length} anos com resultado positivo; resultado total ${fmt(metrics.result)}, PF ${number.format(metrics.pf)} e DD real ${fmt(metrics.maxDd)}.<br><b>Regime crítico:</b> ${critical.operations?`${critical.operations} operações, resultado ${fmt(critical.result)} e DD ${fmt(critical.maxDd)}`:'sem amostra disponível'}.<br><b>Interpretação:</b> ${representativity} Ela representa os regimes observados, não regimes futuros inexistentes na base.`;
+      $('calibrationSampleLabel').textContent=`${state.dataset.toUpperCase()} · ${OPERATION_LABELS[$('robustOperationSet').value]}${$('robustStopFilter').checked?' · sem SL 550':''}`;
+    }
+
+    function renderCalibrationResults(results) {
+      $('calibrationRows').innerHTML=results.map(item=>{const [reading,tone]=calibrationReading(item);return `<tr><td>${item.train}</td><td>${item.test}</td><td>${item.trainDays} / ${item.testDays}</td><td>${fmt(item.p95)}</td><td>${fmt(item.p99)}</td><td>${fmt(item.cvar99)}</td><td>${fmt(item.actualDd)}</td><td>${pct(item.ddPercentile)}</td><td>${fmt(item.actualResult)}</td><td>${pct(item.resultPercentile)}</td><td class="${tone}">${reading}</td></tr>`;}).join('');
+      const withinP95=results.filter(item=>item.actualDd<=item.p95).length,withinP99=results.filter(item=>item.actualDd<=item.p99).length,aboveCvar=results.filter(item=>item.actualDd>item.cvar99).length;
+      const shortTests=results.filter(item=>item.testDays<20).length;
+      const worst=results.reduce((a,b)=>b.ddPercentile>a.ddPercentile?b:a);
+      let conclusion;
+      if(aboveCvar)conclusion=`${aboveCvar} prova(s) superaram o CVaR previsto. O modelo subestimou pelo menos um regime posterior e não deve ser usado sem margem adicional.`;
+      else if(withinP99===results.length)conclusion='Todos os drawdowns posteriores ficaram dentro do P99 previsto. Há evidência favorável de enquadramento, ainda limitada pelo pequeno número de provas.';
+      else conclusion='Nenhum teste superou o CVaR, mas ao menos um excedeu P99. O modelo captura a direção do risco, porém a cauda exige cautela.';
+      $('calibrationVerdict').innerHTML=`<b>Dentro de P95:</b> ${withinP95} de ${results.length}.<br><b>Dentro de P99:</b> ${withinP99} de ${results.length}.<br><b>Acima do CVaR:</b> ${aboveCvar}.<br><b>Testes curtos:</b> ${shortTests}; devem ser lidos como indício, não validação.<br><b>Dependência entre provas:</b> 2026 completo contém o período crítico; esses dois resultados não são evidências independentes.<br><b>Prova mais severa:</b> ${worst.train} → ${worst.test}, percentil ${pct(worst.ddPercentile)}.<br><b>Conclusão:</b> ${conclusion}`;
+      $('calibrationResultLabel').textContent=`${results.reduce((sum,item)=>sum+item.runs,0).toLocaleString('pt-BR')} caminhos · bloco ${$('calibrationBlock').value}`;
+      ['calibrationChartPanel','calibrationVerdictPanel','calibrationTablePanel'].forEach(id=>$(id).hidden=false);
+      requestAnimationFrame(()=>drawCalibrationChart(results));
+    }
+
+    function drawCalibrationChart(results) {
+      const {ctx,w,h}=fitCanvas($('calibrationChart'));ctx.clearRect(0,0,w,h);const pad={l:68,r:20,t:24,b:74},cw=w-pad.l-pad.r,ch=h-pad.t-pad.b,max=Math.max(1,...results.flatMap(item=>[item.p95,item.p99,item.cvar99,item.actualDd]))*1.12,y=value=>pad.t+(max-value)/max*ch,groupW=cw/Math.max(1,results.length),barW=Math.min(24,groupW/6),colors=['#eacb58','#ff9b45','#ff5e62','#62a7ff'];
+      for(let i=0;i<=4;i++){const value=max*(1-i/4),yy=pad.t+i/4*ch;ctx.strokeStyle='#343a34';ctx.beginPath();ctx.moveTo(pad.l,yy);ctx.lineTo(w-pad.r,yy);ctx.stroke();ctx.fillStyle='#a7aea5';ctx.textAlign='right';ctx.fillText(fmt(value),pad.l-7,yy+4);}
+      results.forEach((item,i)=>{const center=pad.l+groupW*(i+.5);[item.p95,item.p99,item.cvar99,item.actualDd].forEach((value,j)=>{const x=center+(j-1.5)*(barW+3)-barW/2;ctx.fillStyle=colors[j];ctx.fillRect(x,y(value),barW,pad.t+ch-y(value));});ctx.fillStyle='#a7aea5';ctx.textAlign='center';ctx.fillText(`${item.train} →`,center,h-38);ctx.fillText(item.test,center,h-20);});
+    }
+
+    async function runCalibration() {
+      if(state.calibrationRunning)return;
+      const folds=calibrationFolds();if(!folds.length)return;
+      const runs=Number($('calibrationRuns').value)||5000,blockSize=Number($('calibrationBlock').value)||3,seed=Math.max(1,Number($('calibrationSeed').value)||1),total=runs*folds.length;
+      let completed=0;state.calibrationRunning=true;state.calibrationCancelled=false;state.calibrationResults=null;
+      $('runCalibration').disabled=true;$('runCalibration').textContent='Executando...';$('cancelCalibration').hidden=false;$('calibrationProgress').style.width='0%';$('calibrationCounter').textContent=`0 / ${total.toLocaleString('pt-BR')}`;
+      try{
+        const results=[];
+        for(let i=0;i<folds.length;i++){
+          $('calibrationStatus').textContent=`${folds[i].train} → ${folds[i].test}`;
+          results.push(await simulateCalibrationFold(folds[i],{runs,blockSize,seed:seed+i*104729},delta=>{completed+=delta;$('calibrationProgress').style.width=`${completed/total*100}%`;$('calibrationCounter').textContent=`${completed.toLocaleString('pt-BR')} / ${total.toLocaleString('pt-BR')}`;}));
+        }
+        state.calibrationResults=results;renderCalibrationResults(results);$('calibrationStatus').textContent='Calibração concluída';
+      }catch(error){if(error.message==='CALIBRATION_CANCELLED')$('calibrationStatus').textContent='Calibração cancelada';else{console.error(error);$('calibrationStatus').textContent='Erro na calibração';}}
+      finally{state.calibrationRunning=false;$('runCalibration').disabled=false;$('runCalibration').textContent='Executar calibração';$('cancelCalibration').hidden=true;}
+    }
+
+    function deterministicStressScenarios(rows=robustnessRows()) {
+      const baseValues=rows.map(row=>row.value), baseline=historicalMetrics(rows);
+      const byDay=new Map(),byWeek=new Map();
+      rows.forEach(row=>{if(!byDay.has(row.date))byDay.set(row.date,[]);byDay.get(row.date).push(row.value);const week=isoWeekKey(row.date);if(!byWeek.has(week))byWeek.set(week,[]);byWeek.get(week).push(row.value);});
+      const worstGroup=map=>[...map.values()].sort((a,b)=>a.reduce((s,v)=>s+v,0)-b.reduce((s,v)=>s+v,0))[0]||[];
+      const worstDay=worstGroup(byDay),worstWeek=worstGroup(byWeek),worst10=baseValues.filter(value=>value<0).sort((a,b)=>a-b).slice(0,10),critical=rows.filter(row=>row.date>=CRITICAL_START&&row.date<=CRITICAL_END).map(row=>row.value);
+      const definitions=[
+        {name:'Histórico real',shock:[],description:'Sem choque'},
+        {name:'Pior dia repetido 3x',shock:[...worstDay,...worstDay,...worstDay],description:'3 repetições'},
+        {name:'Pior semana repetida 2x',shock:[...worstWeek,...worstWeek],description:'2 repetições'},
+        {name:'10 maiores perdas consecutivas',shock:worst10,description:'10 operações'},
+        {name:'Período crítico repetido',shock:critical,description:'1 cópia adicional'},
+        {name:'Choque combinado',shock:[...worstWeek,...worstWeek,...worst10],description:'2 piores semanas + 10 perdas'}
+      ];
+      return definitions.map(item=>{const stats=pathStats([...baseValues,...item.shock],1,160),shockResult=item.shock.reduce((sum,value)=>sum+value,0);return {...item,result:stats.final,maxDd:stats.maxDd,ddIncrease:stats.maxDd-baseline.maxDd,shockResult,baselineDd:baseline.maxDd};});
+    }
+
+    function renderStress() {
+      const scenarios=deterministicStressScenarios(),capital=Math.max(100,Number($('robustCapital').value)||2500);
+      const touched=(dd,limit)=>dd>=capital*limit;
+      $('stressRows').innerHTML=scenarios.map(item=>{const ratio=item.maxDd/capital*100,tone=ratio>=100?'tone-bad':ratio>=80?'tone-warn':'tone-ok';return `<tr><td>${item.name}</td><td>${item.description} · ${fmt(item.shockResult)}</td><td>${fmt(item.result)}</td><td class="${tone}">${fmt(item.maxDd)}</td><td>${signedMoney(item.ddIncrease)}</td><td>${pct(ratio)}</td><td>${touched(item.maxDd,.6)?'Sim':'Não'}</td><td>${touched(item.maxDd,.8)?'Sim':'Não'}</td><td>${touched(item.maxDd,1)?'Sim':'Não'}</td></tr>`;}).join('');
+      const worst=scenarios.reduce((a,b)=>b.maxDd>a.maxDd?b:a),survivors=scenarios.filter(item=>item.maxDd<capital).length;
+      $('stressVerdict').innerHTML=`<b>Capital:</b> ${fmt(capital)} por contrato.<br><b>Sobrevivência:</b> ${survivors} de ${scenarios.length} cenários ficaram abaixo de 100%.<br><b>Pior choque:</b> ${worst.name}, com DD de ${fmt(worst.maxDd)} (${pct(worst.maxDd/capital*100)} do capital).<br><b>Limite:</b> estes testes medem choques escolhidos; não substituem probabilidade de ruína.`;
+      $('stressCapitalLabel').textContent=`Capital ${fmt(capital)} · 1 contrato`;
+      requestAnimationFrame(()=>drawStressChart(scenarios,capital));
+    }
+
+    function drawStressChart(scenarios,capital) {
+      const {ctx,w,h}=fitCanvas($('stressChart'));ctx.clearRect(0,0,w,h);const pad={l:72,r:22,t:24,b:76},cw=w-pad.l-pad.r,ch=h-pad.t-pad.b,max=Math.max(capital,...scenarios.map(item=>item.maxDd))*1.12||1,y=value=>pad.t+(max-value)/max*ch,groupW=cw/Math.max(1,scenarios.length),barW=Math.min(48,groupW*.48);
+      for(let i=0;i<=4;i++){const value=max*(1-i/4),yy=pad.t+i/4*ch;ctx.strokeStyle='#343a34';ctx.beginPath();ctx.moveTo(pad.l,yy);ctx.lineTo(w-pad.r,yy);ctx.stroke();ctx.fillStyle='#a7aea5';ctx.textAlign='right';ctx.fillText(fmt(value),pad.l-8,yy+4);}
+      scenarios.forEach((item,i)=>{const center=pad.l+groupW*(i+.5);ctx.fillStyle=item.maxDd>=capital?'#ff5e62':'#eacb58';ctx.fillRect(center-barW/2,y(item.maxDd),barW,pad.t+ch-y(item.maxDd));ctx.fillStyle='#a7aea5';ctx.textAlign='center';const label=item.name.length>18?`${item.name.slice(0,16)}…`:item.name;ctx.fillText(label,center,h-40);ctx.fillText(fmt(item.maxDd),center,h-20);});
+      ctx.strokeStyle='#62a7ff';ctx.lineWidth=2;ctx.setLineDash([7,5]);ctx.beginPath();ctx.moveTo(pad.l,y(capital));ctx.lineTo(w-pad.r,y(capital));ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#62a7ff';ctx.textAlign='right';ctx.fillText(`Capital ${fmt(capital)}`,w-pad.r,y(capital)-6);
+    }
+
+    function renderRobustnessViews() {
+      if(!state.datasets[state.dataset].length)return;
+      syncRobustControls();renderSummary();renderHistorical();renderStress();renderCalibrationSample();
+    }
+
+    function resetCalibration() {
+      state.calibrationResults=null;
+      ['calibrationChartPanel','calibrationVerdictPanel','calibrationTablePanel'].forEach(id=>$(id).hidden=true);
+      $('calibrationStatus').textContent='Pronta para executar';
+      $('calibrationProgress').style.width='0%';
+      const total=calibrationFolds().length*(Number($('calibrationRuns').value)||5000);
+      $('calibrationCounter').textContent=`0 / ${total.toLocaleString('pt-BR')}`;
+      if(state.datasets[state.dataset].length)renderCalibrationSample();
+    }
+    function updateSelection() {
+      const rows = valuesForSelection();
+      const selection = selectedOperations();
+      const criticalMode = $('period').value === 'critical';
+      $('excludeCritical').disabled = criticalMode;
+      if (criticalMode) $('excludeCritical').checked = false;
+      const suffix = criticalMode ? ' · somente crítico' : $('excludeCritical').checked ? ' · crítico excluído' : '';
+      const stopSuffix = $('excludeLargeStop').checked ? ` · SL removidos: ${selection.removedSl}` : '';
+      const operationSuffix = ` · ${OPERATION_LABELS[$('operationSet').value]}`;
+      $('sampleLabel').textContent = `${rows.length.toLocaleString('pt-BR')} ${$('scope').value === 'days' ? 'pregões' : 'operações'}${operationSuffix}${suffix}${stopSuffix}`;
+      $('stopFilterStatus').textContent = $('excludeLargeStop').checked
+        ? selection.missingSl ? `${selection.removedSl} removidas · ${selection.missingSl} sem SL disponível` : `${selection.removedSl} operações removidas`
+        : 'Usa TAMANHO STOP';
+      state.results = null;
+      state.stopComparison = null;
+      state.batteryResults = null;
+      resetCalibration();
+      renderEmpty();
+      updateBatteryFilterSummary();
+      renderDecisionPanel();
+      renderRobustnessViews();
+    }
+    function setDataset(value) {
+      state.dataset = value;
+      document.querySelectorAll('#datasetTabs button').forEach(button => button.classList.toggle('active', button.dataset.value === value));
+      updateSelection();
+    }
+    function methodDescription() {
+      const method = $('method').value;
+      const descriptions = {
+        permutation: '<b>Permutação completa:</b> usa todos os resultados exatamente uma vez em cada corrida e altera somente a ordem.',
+        bootstrap: '<b>Bootstrap individual:</b> sorteia resultados com reposição; o total final e a frequência de cada resultado podem mudar.',
+        blocks: Number($('blockSize').value) === 1
+          ? '<b>Bootstrap por blocos · bloco 1:</b> equivale ao bootstrap individual, pois cada sorteio contém somente uma unidade.'
+          : `<b>Bootstrap por blocos · bloco ${$('blockSize').value}:</b> sorteia trechos consecutivos com reposição para preservar parte das sequências e dependências locais.`
+      };
+      $('methodNote').innerHTML = descriptions[method];
+    }
+    function renderEmpty() {
+      $('runLabel').textContent = 'Execute a simulação';
+      $('metrics').innerHTML = ['DD histórico real','Mediana simulada','P99','Pior caminho'].map(label => `<div class="metric"><span>${label}</span><strong>-</strong></div>`).join('');
+      $('percentileRows').innerHTML = '<tr><td colspan="4" class="empty">Execute uma simulação.</td></tr>';
+      $('ruinRows').innerHTML = '<tr><td colspan="3" class="empty">Sem cálculo.</td></tr>';
+      $('stopComparisonPanel').hidden = true;
+      $('stopComparisonCards').innerHTML = '';
+      $('stopComparisonRows').innerHTML = '';
+      $('stopComparisonConclusion').textContent = '';
+      clearCanvas($('paths')); clearCanvas($('histogram'));
+    }
+    async function simulateRows(rows, settings, progressStart, progressSpan) {
+      const { runs, seed, contracts, capital, method, blockSize } = settings;
+      const values = rows.map(row => row.value);
+      const rand = mulberry32(seed);
+      const historical = pathStats(values, contracts);
+      const dds = [], finals = [], sampledPaths = [];
+      let worst = { maxDd: -Infinity, final: 0, path: [] };
+      const chunk = Math.max(20, Math.floor(runs / 100));
+      for (let start = 0; start < runs; start += chunk) {
+        const end = Math.min(runs, start + chunk);
+        for (let i = start; i < end; i++) {
+          const sample = resample(values, rand, method, blockSize);
+          const stats = pathStats(sample, contracts);
+          dds.push(stats.maxDd); finals.push(stats.final);
+          if (stats.maxDd > worst.maxDd) worst = stats;
+          if (i < 250) sampledPaths.push(stats.path);
+        }
+        $('progressBar').style.width = `${(progressStart + (end / runs) * progressSpan) * 100}%`;
+        await new Promise(resolve => setTimeout(resolve, 0));
+      }
+      dds.sort((a,b)=>a-b); finals.sort((a,b)=>a-b);
+      return { runs, seed, contracts, capital, method, blockSize, historical, dds, finals, worst, medianPath: medianPath(sampledPaths), sampleSize: rows.length };
+    }
+    async function runSimulation() {
+      if (state.running) return;
+      const filteredRows = valuesForSelection(true);
+      if (!filteredRows.length) return;
+      state.running = true;
+      $('runButton').disabled = true;
+      $('runButton').textContent = 'Executando...';
+      const settings = {
+        runs: Number($('runs').value),
+        seed: Math.max(1, Number($('seed').value) || 1),
+        contracts: Math.max(1, Number($('contracts').value) || 1),
+        capital: Math.max(100, Number($('capital').value) || 2500) * Math.max(1, Number($('contracts').value) || 1),
+        method: $('method').value,
+        blockSize: Math.min(15, Math.max(1, Number($('blockSize').value) || 15))
+      };
+      const compareStop = $('excludeLargeStop').checked;
+      try {
+        if (compareStop) {
+          const originalRows = valuesForSelection(false);
+          const original = await simulateRows(originalRows, settings, 0, .5);
+          const filtered = await simulateRows(filteredRows, settings, .5, .5);
+          state.results = filtered;
+          state.stopComparison = { original, filtered };
+        } else {
+          state.results = await simulateRows(filteredRows, settings, 0, 1);
+          state.stopComparison = null;
+        }
+        renderResults();
+      } finally {
+        state.running = false;
+        $('runButton').disabled = false;
+        $('runButton').textContent = 'Executar Monte Carlo';
+      }
+    }
+    function riskTone(value, capital) { const ratio=value/capital; return ratio>=1?'bad':ratio>=.6?'warn':'good'; }
+    function ruinProbability(result, limit) {
+      return result.dds.filter(dd => dd >= result.capital * limit).length / result.runs * 100;
+    }
+    function signedMoney(value) { return `${value > 0 ? '+' : ''}${fmt(value)}`; }
+    function signedPct(value) { return `${value > 0 ? '+' : ''}${pct(value)}`; }
+    function renderStopComparison() {
+      if (!state.stopComparison) {
+        $('stopComparisonPanel').hidden = true;
+        return;
+      }
+      const { original, filtered } = state.stopComparison;
+      const originalMedianDd = quantile(original.dds,.5);
+      const filteredMedianDd = quantile(filtered.dds,.5);
+      const originalMedianFinal = quantile(original.finals,.5);
+      const filteredMedianFinal = quantile(filtered.finals,.5);
+      const ratio = (result, dd) => dd ? result / dd : 0;
+      const historicalHit = limit => original.historical.maxDd >= original.capital * limit ? 'Tocou' : 'Não tocou';
+      const originalP99 = quantile(original.dds,.99);
+      const filteredP99 = quantile(filtered.dds,.99);
+      const originalRatio = ratio(originalMedianFinal,originalMedianDd);
+      const filteredRatio = ratio(filteredMedianFinal,filteredMedianDd);
+      const originalRuin100 = ruinProbability(original,1);
+      const filteredRuin100 = ruinProbability(filtered,1);
+      $('stopComparisonCards').innerHTML = `
+        <article class="scenario-card real"><small>1 · Referência observada</small><strong>${fmt(original.historical.maxDd)}</strong><dl><dt>DD real</dt><dd>${pct(original.historical.maxDd/original.capital*100)}</dd><dt>Resultado</dt><dd>${fmt(original.historical.final)}</dd><dt>Resultado/DD</dt><dd>${number.format(ratio(original.historical.final,original.historical.maxDd))}×</dd></dl></article>
+        <article class="scenario-card all"><small>2 · Monte Carlo completo</small><strong>${fmt(originalP99)}</strong><dl><dt>P99 do DD</dt><dd>${pct(originalP99/original.capital*100)}</dd><dt>Quebra 100%</dt><dd>${pct(originalRuin100)}</dd><dt>Resultado/DD mediano</dt><dd>${number.format(originalRatio)}×</dd></dl></article>
+        <article class="scenario-card filtered"><small>3 · Monte Carlo sem SL 550</small><strong>${fmt(filteredP99)}</strong><dl><dt>P99 do DD</dt><dd>${pct(filteredP99/filtered.capital*100)}</dd><dt>Quebra 100%</dt><dd>${pct(filteredRuin100)}</dd><dt>Resultado/DD mediano</dt><dd>${number.format(filteredRatio)}×</dd></dl></article>`;
+      const metrics = [
+        { label: 'Resultado final de referência', real: original.historical.final, all: originalMedianFinal, filtered: filteredMedianFinal, type: 'money', lower: false },
+        { label: 'DD principal', real: original.historical.maxDd, all: originalMedianDd, filtered: filteredMedianDd, type: 'money', lower: true },
+        { label: 'Resultado / DD', real: ratio(original.historical.final,original.historical.maxDd), all: ratio(originalMedianFinal,originalMedianDd), filtered: ratio(filteredMedianFinal,filteredMedianDd), type: 'ratio', lower: false },
+        { label: 'P95 do DD', real: null, all: quantile(original.dds,.95), filtered: quantile(filtered.dds,.95), type: 'money', lower: true },
+        { label: 'P99 do DD', real: null, all: originalP99, filtered: filteredP99, type: 'money', lower: true },
+        { label: 'P99,9 do DD', real: null, all: quantile(original.dds,.999), filtered: quantile(filtered.dds,.999), type: 'money', lower: true },
+        { label: 'Pior caminho / DD real', real: original.historical.maxDd, all: original.worst.maxDd, filtered: filtered.worst.maxDd, type: 'money', lower: true },
+        { label: 'Quebra em 60%', real: historicalHit(.6), all: ruinProbability(original,.6), filtered: ruinProbability(filtered,.6), type: 'pct', lower: true },
+        { label: 'Quebra em 80%', real: historicalHit(.8), all: ruinProbability(original,.8), filtered: ruinProbability(filtered,.8), type: 'pct', lower: true },
+        { label: 'Quebra em 100%', real: historicalHit(1), all: ruinProbability(original,1), filtered: ruinProbability(filtered,1), type: 'pct', lower: true }
+      ];
+      const format = (value, type) => {
+        if (value === null) return 'Não se aplica';
+        if (typeof value === 'string') return value;
+        if (type === 'money') return fmt(value);
+        if (type === 'pct') return pct(value);
+        if (type === 'ratio') return `${number.format(value)}×`;
+        return number.format(value);
+      };
+      const formatDifference = (value, type) => type === 'money' ? signedMoney(value) : type === 'pct' ? signedPct(value) : type === 'ratio' ? `${value > 0 ? '+' : ''}${number.format(value)}×` : number.format(value);
+      $('stopComparisonRows').innerHTML = metrics.map(item => {
+        const difference = item.filtered - item.all;
+        const improved = difference === 0 ? null : item.lower ? difference < 0 : difference > 0;
+        const tone = improved === null ? '' : improved ? 'tone-ok' : 'tone-bad';
+        return `<tr><td>${item.label}</td><td>${format(item.real,item.type)}</td><td>${format(item.all,item.type)}</td><td>${format(item.filtered,item.type)}</td><td class="${tone}">${formatDifference(difference,item.type)}</td></tr>`;
+      }).join('');
+      $('stopComparisonSample').textContent = `${original.sampleSize.toLocaleString('pt-BR')} unidades completas · ${filtered.sampleSize.toLocaleString('pt-BR')} sem SL 550`;
+      const p99Reduction = originalP99 ? (originalP99-filteredP99)/originalP99*100 : 0;
+      const resultChange = originalMedianFinal ? (filteredMedianFinal-originalMedianFinal)/Math.abs(originalMedianFinal)*100 : 0;
+      const ratioChange = originalRatio ? (filteredRatio-originalRatio)/Math.abs(originalRatio)*100 : 0;
+      let verdict;
+      if (p99Reduction > 0 && ratioChange >= 0) verdict = 'A base sem SL 550 domina neste teste: reduz a cauda de drawdown e também melhora a eficiência resultado/DD.';
+      else if (p99Reduction > 0 && ratioChange > -10) verdict = 'A base sem SL 550 apresenta a melhor fronteira controlada neste teste: reduz o P99 com perda pequena de eficiência.';
+      else if (p99Reduction > 0) verdict = 'A retirada do SL 550 reduz o drawdown, mas não domina matematicamente: a eficiência resultado/DD cai de forma relevante.';
+      else verdict = 'A retirada do SL 550 não melhorou a cauda de drawdown nesta configuração; a base completa permanece mais eficiente.';
+      $('stopComparisonConclusion').innerHTML = `<b>Leitura automática:</b> ${verdict} P99: ${p99Reduction>=0?'redução':'aumento'} de ${pct(Math.abs(p99Reduction))}; resultado mediano: ${resultChange>=0?'aumento':'queda'} de ${pct(Math.abs(resultChange))}; resultado/DD: ${ratioChange>=0?'aumento':'queda'} de ${pct(Math.abs(ratioChange))}.`;
+      $('stopComparisonPanel').hidden = false;
+    }
+    function renderResults() {
+      const r = state.results;
+      const median = quantile(r.dds,.5), p95=quantile(r.dds,.95), p99=quantile(r.dds,.99), p999=quantile(r.dds,.999);
+      const positivePct = r.finals.filter(value=>value>0).length/r.runs*100;
+      $('runLabel').textContent = `${r.runs.toLocaleString('pt-BR')} caminhos concluídos`;
+      const cards = [
+        ['DD histórico real', r.historical.maxDd, riskTone(r.historical.maxDd,r.capital)],
+        ['Mediana simulada', median, riskTone(median,r.capital)],
+        ['P99', p99, riskTone(p99,r.capital)],
+        ['Pior caminho', r.worst.maxDd, riskTone(r.worst.maxDd,r.capital)],
+        ['Resultado final P5', quantile(r.finals,.05), 'warn'],
+        ['Resultado final médio', r.finals.reduce((a,b)=>a+b,0)/r.runs, 'good'],
+        ['Caminhos positivos', positivePct, positivePct>90?'good':'warn', true],
+        ['Mínimo intracamino extremo', Math.abs(Math.min(0,r.worst.min)), riskTone(Math.abs(r.worst.min),r.capital)]
+      ];
+      $('metrics').innerHTML = cards.map(([label,value,tone,isPct]) => `<div class="metric ${tone}"><span>${label}</span><strong>${isPct?pct(value):fmt(value)}</strong></div>`).join('');
+      const levels = [['Mediana',median],['P75',quantile(r.dds,.75)],['P90',quantile(r.dds,.90)],['P95',p95],['P99',p99],['P99,9',p999],['Máximo observado',r.worst.maxDd]];
+      $('percentileRows').innerHTML = levels.map(([label,value]) => { const ratio=value/r.capital*100; const tone=ratio>=100?'tone-bad':ratio>=60?'tone-warn':'tone-ok'; return `<tr><td>${label}</td><td>${fmt(value)}</td><td class="${tone}">${pct(ratio)}</td><td>${ratio>=100?'Supera o capital':ratio>=80?'Crítico':ratio>=60?'Alto':'Dentro do colchão'}</td></tr>`; }).join('');
+      $('ruinRows').innerHTML = [.6,.8,1].map(limit => { const count=r.dds.filter(dd=>dd>=r.capital*limit).length; const probability=count/r.runs*100; const tone=probability>5?'tone-bad':probability>0?'tone-warn':'tone-ok'; return `<tr class="risk-row"><td>${pct(limit*100)} · ${fmt(r.capital*limit)}</td><td>${count.toLocaleString('pt-BR')}</td><td class="${tone}">${pct(probability)}</td></tr>`; }).join('');
+      $('audit').innerHTML = `<div><span>Gerador</span><b>Mulberry32</b></div><div><span>Método</span><b>${methodName(r.method)}</b></div><div><span>Semente</span><b>${r.seed}</b></div><div><span>Base</span><b>${state.dataset.toUpperCase()} · ${OPERATION_LABELS[$('operationSet').value]} · ${r.sampleSize.toLocaleString('pt-BR')} unidades</b></div>`;
+      renderStopComparison();
+      drawPaths(); drawHistogram();
+    }
+    function methodName(method) { return method==='permutation'?'Fisher-Yates sem reposição':method==='bootstrap'?'Bootstrap com reposição':`Blocos de ${state.results?.blockSize||15}`; }
+    function fitCanvas(canvas) { const dpr=window.devicePixelRatio||1, rect=canvas.getBoundingClientRect(); canvas.width=Math.max(1,Math.floor(rect.width*dpr)); canvas.height=Math.max(1,Math.floor(rect.height*dpr)); const ctx=canvas.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0); return {ctx,w:rect.width,h:rect.height}; }
+    function clearCanvas(canvas) { const {ctx,w,h}=fitCanvas(canvas); ctx.clearRect(0,0,w,h); ctx.fillStyle='#747b73'; ctx.textAlign='center'; ctx.fillText('Sin simulación',w/2,h/2); }
+    function drawPaths() {
+      const r=state.results, {ctx,w,h}=fitCanvas($('paths')); ctx.clearRect(0,0,w,h);
+      const paths=[r.historical.path,r.worst.path,r.medianPath], floor=-r.capital;
+      const min=Math.min(floor,...paths.flat()), max=Math.max(0,...paths.flat()), pad={l:62,r:18,t:18,b:32};
+      const x=(i,len)=>pad.l+i/Math.max(1,len-1)*(w-pad.l-pad.r), y=v=>pad.t+(max-v)/Math.max(1,max-min)*(h-pad.t-pad.b);
+      ctx.strokeStyle='#343a34'; ctx.lineWidth=1; for(let i=0;i<5;i++){const yy=pad.t+i/4*(h-pad.t-pad.b);ctx.beginPath();ctx.moveTo(pad.l,yy);ctx.lineTo(w-pad.r,yy);ctx.stroke();}
+      ctx.strokeStyle='#ff9b45';ctx.setLineDash([6,5]);ctx.beginPath();ctx.moveTo(pad.l,y(floor));ctx.lineTo(w-pad.r,y(floor));ctx.stroke();ctx.setLineDash([]);
+      [[r.historical.path,'#f4f5ef',2],[r.worst.path,'#ff5e62',2.4],[r.medianPath,'#32d6bd',2]].forEach(([path,color,width])=>{ctx.strokeStyle=color;ctx.lineWidth=width;ctx.beginPath();path.forEach((v,i)=>i?ctx.lineTo(x(i,path.length),y(v)):ctx.moveTo(x(i,path.length),y(v)));ctx.stroke();});
+      ctx.fillStyle='#a7aea5';ctx.font='12px system-ui';ctx.textAlign='right';[max,(max+min)/2,min].forEach(v=>ctx.fillText(fmt(v),pad.l-8,y(v)+4));ctx.textAlign='center';ctx.fillText('Sequência simulada',pad.l+(w-pad.l-pad.r)/2,h-8);
+    }
+    function drawHistogram() {
+      const r=state.results,{ctx,w,h}=fitCanvas($('histogram'));ctx.clearRect(0,0,w,h);const pad={l:54,r:14,t:18,b:32},bins=24,min=r.dds[0],max=r.dds.at(-1),width=(max-min||1)/bins,counts=Array(bins).fill(0);r.dds.forEach(v=>counts[Math.min(bins-1,Math.floor((v-min)/width))]++);const top=Math.max(...counts);
+      counts.forEach((count,i)=>{const x=pad.l+i/bins*(w-pad.l-pad.r),barW=(w-pad.l-pad.r)/bins-2,barH=count/top*(h-pad.t-pad.b);ctx.fillStyle=i/bins>.8?'#ff5e62':'#32d6bd';ctx.fillRect(x,h-pad.b-barH,barW,barH);});
+      ctx.fillStyle='#a7aea5';ctx.font='11px system-ui';ctx.textAlign='center';ctx.fillText(fmt(min),pad.l,h-9);ctx.fillText(fmt(max),w-pad.r,h-9);ctx.save();ctx.translate(14,h/2);ctx.rotate(-Math.PI/2);ctx.fillText('Frequência',0,0);ctx.restore();
+    }
+
+    const BATTERY_MODELS = [
+      { name: 'Permutação completa', method: 'permutation', blockSize: 1, batches: [10000] },
+      { name: 'Bootstrap individual · 3 sementes', method: 'bootstrap', blockSize: 1, batches: [10000,10000,10000] },
+      { name: 'Bootstrap por blocos · 2', method: 'blocks', blockSize: 2, batches: [10000] },
+      { name: 'Bootstrap por blocos · 3', method: 'blocks', blockSize: 3, batches: [10000] },
+      { name: 'Bootstrap por blocos · 5', method: 'blocks', blockSize: 5, batches: [10000] }
+    ];
+    const batteryPercent = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 4 });
+
+    function fastSampleStats(values, rand, method, blockSize, scale) {
+      let equity = 0, peak = 0, maxDd = 0, min = 0;
+      const consume = value => {
+        equity += value * scale;
+        if (equity > peak) peak = equity;
+        if (equity < min) min = equity;
+        const dd = peak - equity;
+        if (dd > maxDd) maxDd = dd;
+      };
+      if (method === 'permutation') {
+        const sample = shuffled(values, rand);
+        for (let i = 0; i < sample.length; i++) consume(sample[i]);
+      } else if (method === 'bootstrap') {
+        for (let i = 0; i < values.length; i++) consume(values[Math.floor(rand() * values.length)]);
+      } else {
+        let used = 0;
+        while (used < values.length) {
+          const start = Math.floor(rand() * values.length);
+          for (let j = 0; j < blockSize && used < values.length; j++, used++) consume(values[(start + j) % values.length]);
+        }
+      }
+      return { final: equity, maxDd, min };
+    }
+
+    function batteryScopeLabel() {
+      const periodLabels = { all: 'histórico completo', critical: 'somente período crítico', '2024': '2024', '2025': '2025', '2026': '2026' };
+      const scope = $('scope').value === 'days' ? 'pregões agregados' : 'operações';
+      const critical = $('excludeCritical').checked ? ' · período crítico excluído' : '';
+      const comparison = $('excludeLargeStop').checked ? ' · comparação com e sem SL ≥ 550' : '';
+      const operations = OPERATION_LABELS[$('operationSet').value];
+      return `${state.dataset.toUpperCase()} · ${periodLabels[$('period').value]} · ${operations} · ${scope}${critical}${comparison}`;
+    }
+
+    function batteryScenarioCount() {
+      const stopVersions = $('excludeLargeStop').checked ? 2 : 1;
+      const compareOperations = $('compareAllOperations').checked && $('operationSet').value !== 'all';
+      return stopVersions * (compareOperations ? 2 : 1);
+    }
+
+    function updateBatteryFilterSummary() {
+      if (!$('batteryFilterSummary')) return;
+      const rows = valuesForSelection(false);
+      const contracts = Math.max(1, Number($('contracts').value) || 1);
+      const capitalPerContract = Math.max(100, Number($('capital').value) || 2500);
+      $('batteryFilterSummary').innerHTML = `<b>${batteryScopeLabel()}</b><br>${rows.length.toLocaleString('pt-BR')} unidades · ${contracts} contrato(s) · capital total ${fmt(capitalPerContract * contracts)}.`;
+      const comparingOperations = $('operationSet').value !== 'all';
+      $('compareAllOperations').disabled = !comparingOperations;
+      if (!comparingOperations) $('compareAllOperations').checked = false;
+      $('operationCompareStatus').textContent = comparingOperations ? 'Adiciona 70.000 caminhos por versão SL' : 'A base completa já está selecionada';
+      if (!state.batteryRunning) $('batteryCounter').textContent = `0 / ${(batteryScenarioCount() * 70000).toLocaleString('pt-BR')}`;
+    }
+
+    function setView(view) {
+      const battery = view === 'battery';
+      const decision = view === 'decision';
+      const summary = view === 'summary';
+      const historical = view === 'historical';
+      const calibration = view === 'calibration';
+      const stress = view === 'stress';
+      const robustness = summary || historical || calibration || stress;
+      $('robustnessContext').hidden = !robustness;
+      $('summaryView').hidden = !summary;
+      $('historicalView').hidden = !historical;
+      $('calibrationView').hidden = !calibration;
+      $('stressView').hidden = !stress;
+      $('singleView').hidden = view !== 'single';
+      $('batteryView').hidden = !battery;
+      $('decisionView').hidden = !decision;
+      document.querySelectorAll('nav button[data-view]').forEach(button => button.classList.toggle('active', button.dataset.view === view));
+      const titles={summary:'Resumo de Robustez',historical:'Cenários Históricos',calibration:'Calibração Retrospectiva',stress:'Stress Determinístico',single:'Simulações Aleatórias',battery:'Bateria Completa de Risco',decision:'Painel de Decisão de Risco'};
+      $('pageTitle').textContent = titles[view] || titles.summary;
+      $('pageDescription').textContent = summary
+        ? 'Separa evidências históricas, limites observados e testes ainda pendentes para evitar uma conclusão baseada em um único indicador.'
+        : historical
+          ? 'Compara janelas reais preservando a ordem cronológica das operações, sem permutação nem bootstrap.'
+          : calibration
+            ? 'Treina apenas com o passado e verifica se o drawdown posterior ficou dentro das faixas previstas. As janelas de teste são fixas e não usam informação futura.'
+          : stress
+            ? 'Aplica choques adversos fixos à curva real para medir resistência do capital, sem atribuir probabilidade aos eventos.'
+            : decision
+        ? 'Converte a bateria estatística em referências comparáveis de capital, cobertura e eficiência. Uso educativo, não recomendação financeira.'
+        : battery
+          ? 'Combina permutação, bootstrap individual e blocos para medir a fronteira de drawdown. Ferramenta educativa de análise histórica.'
+          : 'Reorganiza resultados reais para medir drawdown e risco de ruptura. Ferramenta educativa de análise histórica, não recomendação financeira.';
+      $('robustPeriod').disabled=calibration;
+      $('robustCapital').disabled=calibration;
+      if(calibration){
+        const fixedRows=robustnessBaseRows();
+        $('robustContextLabel').textContent=`${state.dataset.toUpperCase()} · ${OPERATION_LABELS[$('robustOperationSet').value]} · janelas walk-forward fixas · ${fixedRows.length.toLocaleString('pt-BR')} operações`;
+      } else if(robustness) syncRobustControls();
+      if (battery) updateBatteryFilterSummary();
+      if (decision) renderDecisionPanel();
+      if (summary) renderSummary();
+      if (historical) renderHistorical();
+      if (calibration) { renderCalibrationSample(); if(state.calibrationResults)requestAnimationFrame(()=>drawCalibrationChart(state.calibrationResults)); }
+      if (stress) renderStress();
+    }
+
+    async function simulateBatteryModel(rows, model, settings, progress) {
+      const values = rows.map(row => row.value);
+      const dds = [], finals = [];
+      let worst = 0, completed = 0;
+      for (let batchIndex = 0; batchIndex < model.batches.length; batchIndex++) {
+        const runs = model.batches[batchIndex];
+        const seed = (settings.seed + settings.seedSalt + batchIndex * 104729) >>> 0;
+        const rand = mulberry32(seed || 1);
+        const chunk = 100;
+        for (let start = 0; start < runs; start += chunk) {
+          if (state.batteryCancelled) throw new Error('BATTERY_CANCELLED');
+          const end = Math.min(runs, start + chunk);
+          for (let i = start; i < end; i++) {
+            const stats = fastSampleStats(values, rand, model.method, model.blockSize, settings.contracts);
+            dds.push(stats.maxDd);
+            finals.push(stats.final);
+            if (stats.maxDd > worst) worst = stats.maxDd;
+          }
+          const delta = end - start;
+          completed += delta;
+          progress(delta, model.name);
+          await new Promise(resolve => setTimeout(resolve, 0));
+        }
+      }
+      dds.sort((a,b) => a-b);
+      finals.sort((a,b) => a-b);
+      const tailStart = Math.min(dds.length - 1, Math.floor(dds.length * .999));
+      const tail = dds.slice(tailStart);
+      const cvar999 = tail.reduce((sum,value) => sum + value, 0) / Math.max(1, tail.length);
+      const ruin = limit => dds.filter(dd => dd >= settings.capital * limit).length / dds.length * 100;
+      const medianDd = quantile(dds,.5);
+      const medianFinal = quantile(finals,.5);
+      return {
+        scenario: settings.scenario,
+        model: model.name,
+        runs: dds.length,
+        sampleSize: rows.length,
+        capital: settings.capital,
+        contracts: settings.contracts,
+        medianDd,
+        p95: quantile(dds,.95),
+        p99: quantile(dds,.99),
+        p999: quantile(dds,.999),
+        cvar999,
+        worst,
+        ruin60: ruin(.6),
+        ruin80: ruin(.8),
+        ruin100: ruin(1),
+        medianFinal,
+        resultDd: medianDd ? medianFinal / medianDd : 0
+      };
+    }
+
+    function renderBatteryResults(results) {
+      const contracts = results[0]?.contracts || 1;
+      const worstBy = key => results.reduce((a,b) => b[key] > a[key] ? b : a);
+      const aggressive = worstBy('p99');
+      const controlled = worstBy('cvar999');
+      const extreme = worstBy('worst');
+      const card = (title, item, key, className, description) => `<article class="scenario-card ${className}"><small>${title}</small><strong>${fmt(item[key])}</strong><dl><dt>Por contrato</dt><dd>${fmt(item[key]/contracts)}</dd><dt>Modelo</dt><dd>${item.model.replace('Bootstrap por blocos · ','Bloco ')}</dd><dt>Cenário</dt><dd>${item.scenario}</dd><dt>Capital atual</dt><dd>${pct(item[key]/item.capital*100)}</dd></dl><p class="method-note">${description}</p></article>`;
+      $('batteryReferenceCards').innerHTML =
+        card('1 · Referência agressiva · maior P99', aggressive, 'p99', 'all', 'Somente 1% dos caminhos apresentou DD maior neste modelo.') +
+        card('2 · Colchão controlado · maior CVaR 99,9', controlled, 'cvar999', 'filtered', 'Média dos 0,1% piores drawdowns, usada como referência principal.') +
+        card('3 · Fronteira matemática extrema', extreme, 'worst', 'real', 'Maior drawdown individual encontrado; não é uma estimativa estável de probabilidade.');
+      const riskPct = value => `${batteryPercent.format(value)}%`;
+      $('batteryRows').innerHTML = results.map(item => `<tr><td>${item.scenario}</td><td>${item.model}</td><td>${fmt(item.medianDd)}</td><td>${fmt(item.p95)}</td><td>${fmt(item.p99)}</td><td>${fmt(item.p999)}</td><td>${fmt(item.cvar999)}</td><td>${fmt(item.worst)}</td><td>${riskPct(item.ruin60)}</td><td>${riskPct(item.ruin80)}</td><td>${riskPct(item.ruin100)}</td><td>${number.format(item.resultDd)}×</td></tr>`).join('');
+      const maxRuin60 = worstBy('ruin60'), maxRuin80 = worstBy('ruin80'), maxRuin100 = worstBy('ruin100');
+      let comparisonText = '';
+      const selectedLabel = OPERATION_LABELS[$('operationSet').value];
+      const selectedBaseName = `${selectedLabel} · base`;
+      const selectedFilteredName = `${selectedLabel} · sem SL ≥ 550`;
+      const scenarioMetric = (name, key) => Math.max(...results.filter(item => item.scenario === name).map(item => item[key]));
+      if ($('excludeLargeStop').checked) {
+        const fullCvar = scenarioMetric(selectedBaseName, 'cvar999');
+        const filteredCvar = scenarioMetric(selectedFilteredName, 'cvar999');
+        const change = fullCvar ? (filteredCvar-fullCvar)/fullCvar*100 : 0;
+        comparisonText = ` A retirada dos SL ≥ 550 ${change <= 0 ? 'reduziu' : 'aumentou'} a pior referência CVaR em ${pct(Math.abs(change))}.`;
+      }
+      if ($('compareAllOperations').checked && $('operationSet').value !== 'all') {
+        const selectedCvar = scenarioMetric(selectedBaseName, 'cvar999');
+        const completeCvar = scenarioMetric('Op1 + Op2 + Op3 · base', 'cvar999');
+        const change = completeCvar ? (selectedCvar-completeCvar)/completeCvar*100 : 0;
+        comparisonText += ` Frente às três operações, ${selectedLabel} ${change <= 0 ? 'reduziu' : 'aumentou'} a pior referência CVaR em ${pct(Math.abs(change))}.`;
+      }
+      $('batteryConclusion').innerHTML = `<b>Leitura automática:</b> para dimensionamento controlado, a referência mais defensável desta bateria é ${fmt(controlled.cvar999)} (${fmt(controlled.cvar999/contracts)} por contrato), produzida por ${controlled.model} na ${controlled.scenario}. A referência agressiva é ${fmt(aggressive.p99)} e a fronteira extrema observada é ${fmt(extreme.worst)}. As maiores probabilidades de ruptura foram ${riskPct(maxRuin60.ruin60)} em 60%, ${riskPct(maxRuin80.ruin80)} em 80% e ${riskPct(maxRuin100.ruin100)} em 100%.${comparisonText}`;
+      $('batteryScenarioLabel').textContent = `${results.reduce((sum,item)=>sum+item.runs,0).toLocaleString('pt-BR')} caminhos · ${batteryScopeLabel()}`;
+      $('batterySummaryPanel').hidden = false;
+    }
+
+    function decisionSummaries(results) {
+      const groups = new Map();
+      results.forEach(item => {
+        if (!groups.has(item.scenario)) groups.set(item.scenario, []);
+        groups.get(item.scenario).push(item);
+      });
+      const medianOf = values => quantile(values.slice().sort((a,b)=>a-b), .5);
+      return [...groups.entries()].map(([scenario, items]) => {
+        const contracts = items[0].contracts;
+        const capital = items[0].capital;
+        const p99Values = items.map(item => item.p99);
+        const p99 = Math.max(...p99Values);
+        const cvar = Math.max(...items.map(item => item.cvar999));
+        const worst = Math.max(...items.map(item => item.worst));
+        const medianFinal = medianOf(items.map(item => item.medianFinal));
+        const ruin100 = Math.max(...items.map(item => item.ruin100));
+        const ruin80 = Math.max(...items.map(item => item.ruin80));
+        const minP99 = Math.min(...p99Values);
+        return {
+          scenario, contracts, capital, currentPerContract: capital/contracts,
+          p99, cvar, worst, p99Pc: p99/contracts, cvarPc: cvar/contracts, worstPc: worst/contracts,
+          medianFinal, efficiency: cvar ? medianFinal/cvar : 0,
+          coverage: cvar ? capital/cvar : 0,
+          ruin100, ruin80,
+          dispersion: minP99 ? (p99-minP99)/minP99*100 : 0,
+          paths: items.reduce((sum,item)=>sum+item.runs,0)
+        };
+      });
+    }
+
+    function drawDecisionChart(summaries) {
+      const canvas = $('decisionChart');
+      const {ctx,w,h} = fitCanvas(canvas);
+      ctx.clearRect(0,0,w,h);
+      const pad={l:70,r:22,t:24,b:72};
+      const capital = summaries[0]?.currentPerContract || 0;
+      const max = Math.max(capital,...summaries.flatMap(item=>[item.p99Pc,item.cvarPc,item.worstPc])) * 1.12 || 1;
+      const chartW=w-pad.l-pad.r, chartH=h-pad.t-pad.b;
+      const y=value=>pad.t+(max-value)/max*chartH;
+      ctx.font='11px system-ui';
+      for(let i=0;i<=4;i++){
+        const value=max*(1-i/4), yy=pad.t+i/4*chartH;
+        ctx.strokeStyle='#343a34';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(pad.l,yy);ctx.lineTo(w-pad.r,yy);ctx.stroke();
+        ctx.fillStyle='#a7aea5';ctx.textAlign='right';ctx.fillText(fmt(value),pad.l-8,yy+4);
+      }
+      const colors=['#eacb58','#32d6bd','#ff5e62'];
+      const groupW=chartW/Math.max(1,summaries.length), barW=Math.min(28,groupW/5);
+      summaries.forEach((item,index)=>{
+        const center=pad.l+groupW*(index+.5);
+        [item.p99Pc,item.cvarPc,item.worstPc].forEach((value,j)=>{
+          const x=center+(j-1)*(barW+4)-barW/2;
+          ctx.fillStyle=colors[j];ctx.fillRect(x,y(value),barW,pad.t+chartH-y(value));
+        });
+        ctx.fillStyle='#a7aea5';ctx.textAlign='center';
+        const label=item.scenario.length>24?`${item.scenario.slice(0,22)}…`:item.scenario;
+        ctx.fillText(label,center,h-39);
+        ctx.fillText(`${number.format(item.coverage)}× cobertura`,center,h-20);
+      });
+      ctx.strokeStyle='#62a7ff';ctx.lineWidth=2;ctx.setLineDash([7,5]);ctx.beginPath();ctx.moveTo(pad.l,y(capital));ctx.lineTo(w-pad.r,y(capital));ctx.stroke();ctx.setLineDash([]);
+      ctx.fillStyle='#62a7ff';ctx.textAlign='right';ctx.fillText(`Capital ${fmt(capital)}`,w-pad.r,y(capital)-6);
+    }
+
+    function renderDecisionPanel() {
+      const results = state.batteryResults;
+      const hasResults = Array.isArray(results) && results.length > 0;
+      $('decisionEmpty').hidden = hasResults;
+      ['decisionContent','decisionChartPanel','decisionReadingPanel','decisionMatrixPanel','decisionRulesPanel'].forEach(id => $(id).hidden = !hasResults);
+      if (!hasResults) return;
+      const summaries = decisionSummaries(results);
+      const maxBy = key => summaries.reduce((a,b)=>b[key]>a[key]?b:a);
+      const minBy = key => summaries.reduce((a,b)=>b[key]<a[key]?b:a);
+      const aggressive=maxBy('p99Pc'), controlled=maxBy('cvarPc'), extreme=maxBy('worstPc');
+      const current=controlled.currentPerContract;
+      const points=value=>number.format(value/.2);
+      const coverage=value=>value?current/value:0;
+      const card=(title,item,key,className,meaning)=>`<article class="decision-card ${className}"><small>${title}</small><strong>${fmt(item[key])}</strong><dl><dt>Equivalente</dt><dd>${points(item[key])} pontos</dd><dt>Cenário responsável</dt><dd>${item.scenario}</dd><dt>Cobertura atual</dt><dd>${number.format(coverage(item[key]))}×</dd><dt>Capital atual</dt><dd>${fmt(current)}</dd></dl><p class="method-note">${meaning}</p></article>`;
+      $('decisionCards').innerHTML=
+        card('Agressivo · maior P99',aggressive,'p99Pc','aggressive','Apenas 1% dos caminhos deste modelo superou esta referência.')+
+        card('Controlado · maior CVaR 99,9',controlled,'cvarPc','','Média da fração mais extrema da cauda; referência central deste painel.')+
+        card('Stress · maior DD encontrado',extreme,'worstPc','extreme','Fronteira observada na bateria, não uma garantia de perda máxima futura.');
+      $('decisionContext').textContent=batteryScopeLabel();
+      $('decisionPaths').textContent=`${summaries.reduce((sum,item)=>sum+item.paths,0).toLocaleString('pt-BR')} caminhos consolidados`;
+
+      const pareto=summaries.filter(candidate=>!summaries.some(other=>other!==candidate && other.cvarPc<=candidate.cvarPc && other.efficiency>=candidate.efficiency && other.ruin100<=candidate.ruin100 && (other.cvarPc<candidate.cvarPc || other.efficiency>candidate.efficiency || other.ruin100<candidate.ruin100)));
+      const safest=minBy('cvarPc'), efficient=maxBy('efficiency'), stable=minBy('dispersion');
+      const status=item=>{
+        const dominated=!pareto.includes(item);
+        if(item.ruin100>0)return ['Quebra simulada','tone-bad'];
+        if(item.coverage<1)return ['Capital insuficiente','tone-bad'];
+        if(dominated)return ['Dominado','tone-warn'];
+        if(item.dispersion>30)return ['Fronteira instável','tone-warn'];
+        return ['Fronteira eficiente','tone-ok'];
+      };
+      $('decisionRows').innerHTML=summaries.map(item=>{
+        const [label,tone]=status(item);
+        return `<tr><td>${item.scenario}</td><td>${fmt(item.medianFinal)}</td><td>${fmt(item.p99Pc)}</td><td>${fmt(item.cvarPc)}</td><td>${fmt(item.worstPc)}</td><td>${number.format(item.coverage)}×</td><td>${number.format(item.efficiency)}×</td><td>${batteryPercent.format(item.ruin100)}%</td><td>${pct(item.dispersion)}</td><td class="${tone}">${label}</td></tr>`;
+      }).join('');
+      const controlledCoverage=current/controlled.cvarPc;
+      const coverageText=controlledCoverage<1
+        ? `O capital atual de ${fmt(current)} não cobre a pior referência CVaR da comparação.`
+        : controlledCoverage<1.25
+          ? `O capital atual cobre o CVaR, mas com margem inferior a 25%.`
+          : `O capital atual cobre ${number.format(controlledCoverage)} vezes a pior referência CVaR.`;
+      const frontierText=pareto.length===1
+        ? `${pareto[0].scenario} domina os demais cenários na combinação de CVaR, eficiência e quebra.`
+        : `Não existe um vencedor absoluto: ${pareto.map(item=>item.scenario).join(' e ')} permanecem na fronteira eficiente.`;
+      $('decisionVerdict').innerHTML=`<b>Cobertura:</b> ${coverageText}<br><b>Menor risco de cauda:</b> ${safest.scenario}, com CVaR de ${fmt(safest.cvarPc)} por contrato.<br><b>Maior eficiência:</b> ${efficient.scenario}, com resultado/CVaR de ${number.format(efficient.efficiency)}×.<br><b>Maior estabilidade entre métodos:</b> ${stable.scenario}, com dispersão P99 de ${pct(stable.dispersion)}.<br><b>Conclusão:</b> ${frontierText}`;
+      requestAnimationFrame(()=>drawDecisionChart(summaries));
+    }
+
+    async function runBattery() {
+      if (state.batteryRunning) return;
+      const selectedSet = $('operationSet').value;
+      const selectedLabel = OPERATION_LABELS[selectedSet];
+      const selectedRows = valuesForSelection(false, selectedSet);
+      if (!selectedRows.length) return;
+      const scenarios = [{ name: `${selectedLabel} · base`, rows: selectedRows }];
+      if ($('excludeLargeStop').checked) scenarios.push({ name: `${selectedLabel} · sem SL ≥ 550`, rows: valuesForSelection(true, selectedSet) });
+      if ($('compareAllOperations').checked && selectedSet !== 'all') {
+        scenarios.push({ name: 'Op1 + Op2 + Op3 · base', rows: valuesForSelection(false, 'all') });
+        if ($('excludeLargeStop').checked) scenarios.push({ name: 'Op1 + Op2 + Op3 · sem SL ≥ 550', rows: valuesForSelection(true, 'all') });
+      }
+      const totalPaths = scenarios.length * 70000;
+      const contracts = Math.max(1, Number($('contracts').value) || 1);
+      const capital = Math.max(100, Number($('capital').value) || 2500) * contracts;
+      const baseSeed = Math.max(1, Number($('seed').value) || 1);
+      let completed = 0;
+      state.batteryRunning = true;
+      state.batteryCancelled = false;
+      state.batteryResults = null;
+      $('runBattery').disabled = true;
+      $('runBattery').textContent = 'Executando...';
+      $('cancelBattery').hidden = false;
+      $('batterySummaryPanel').hidden = true;
+      $('batteryRows').innerHTML = '<tr><td colspan="12" class="empty">Simulação em andamento...</td></tr>';
+      $('batteryProgress').style.width = '0%';
+      const results = [];
+      try {
+        for (let scenarioIndex = 0; scenarioIndex < scenarios.length; scenarioIndex++) {
+          const scenario = scenarios[scenarioIndex];
+          for (let modelIndex = 0; modelIndex < BATTERY_MODELS.length; modelIndex++) {
+            const model = BATTERY_MODELS[modelIndex];
+            $('batteryStatus').textContent = `${scenario.name} · ${model.name}`;
+            const result = await simulateBatteryModel(scenario.rows, model, {
+              scenario: scenario.name,
+              contracts,
+              capital,
+              seed: baseSeed,
+              seedSalt: scenarioIndex * 1000003 + modelIndex * 7919
+            }, (delta, name) => {
+              completed += delta;
+              $('batteryProgress').style.width = `${completed / totalPaths * 100}%`;
+              $('batteryCounter').textContent = `${completed.toLocaleString('pt-BR')} / ${totalPaths.toLocaleString('pt-BR')}`;
+              $('batteryStatus').textContent = `${scenario.name} · ${name}`;
+            });
+            results.push(result);
+          }
+        }
+        state.batteryResults = results;
+        renderBatteryResults(results);
+        renderDecisionPanel();
+        renderSummary();
+        $('batteryStatus').textContent = 'Bateria concluída';
+      } catch (error) {
+        if (error.message === 'BATTERY_CANCELLED') {
+          $('batteryStatus').textContent = 'Bateria cancelada pelo usuário';
+          $('batteryRows').innerHTML = '<tr><td colspan="12" class="empty">Execução cancelada. Nenhum resultado parcial foi usado.</td></tr>';
+        } else {
+          console.error(error);
+          $('batteryStatus').textContent = 'Erro durante a execução';
+        }
+      } finally {
+        state.batteryRunning = false;
+        $('runBattery').disabled = false;
+        $('runBattery').textContent = 'Executar bateria completa';
+        $('cancelBattery').hidden = true;
+      }
+    }
+    function applyLivePayload(payload) {
+      state.datasets.gatto=normalizeGatto(payload.operacoes);
+      const stopById = new Map(state.datasets.gatto.filter(row => Number.isFinite(row.stop)).map(row => [row.id, row.stop]));
+      state.datasets.gio=normalizeGio(payload.comparativoGio||payload.comparativoProtegido).map(row => ({...row, stop: stopById.get(row.id) ?? null}));
+    }
+    function applyParentData(payload) {
+      if (!payload || !Array.isArray(payload.gatto) || !Array.isArray(payload.gio) || !payload.gatto.length) return false;
+      state.datasets.gatto=normalizeGatto(payload.gatto);
+      const stopById = new Map(state.datasets.gatto.filter(row => Number.isFinite(row.stop)).map(row => [row.id, row.stop]));
+      state.datasets.gio=normalizeGatto(payload.gio).map(row => ({...row, stop: row.stop ?? stopById.get(row.id) ?? null}));
+      $('statusDot').className='dot ok';
+      $('statusText').textContent=`Dados do site · ${state.datasets.gatto.length.toLocaleString('pt-BR')} GATTO · ${state.datasets.gio.length.toLocaleString('pt-BR')} GIO${payload.read ? ` · ${String(payload.read).slice(0,10)}` : ''}`;
+      updateSelection();
+      return true;
+    }
+    function loadParentData() {
+      try {
+        return window.parent !== window && typeof window.parent.PuloPauseData === 'function'
+          ? applyParentData(window.parent.PuloPauseData())
+          : false;
+      } catch(error) {
+        console.warn('Dados do site principal indisponíveis.', error);
+        return false;
+      }
+    }
+    function applyEmbeddedSnapshot(snapshot) {
+      if (!snapshot || !Array.isArray(snapshot.gatto) || !Array.isArray(snapshot.gio)) throw new Error('Base incorporada inválida');
+      state.datasets.gatto = snapshot.gatto;
+      state.datasets.gio = snapshot.gio;
+      return snapshot.generatedAt || '';
+    }
+    async function loadData() {
+      if (loadParentData()) return;
+      let embeddedLoaded = false;
+      try {
+        const embedded = JSON.parse($('embeddedData').textContent);
+        const generatedAt = applyEmbeddedSnapshot(embedded);
+        embeddedLoaded = state.datasets.gatto.length > 0;
+        if (embeddedLoaded) {
+          $('statusDot').className='dot ok';
+          $('statusText').textContent=`Base incorporada · ${state.datasets.gatto.length.toLocaleString('pt-BR')} GATTO · ${state.datasets.gio.length.toLocaleString('pt-BR')} GIO${generatedAt ? ` · ${generatedAt.slice(0,10)}` : ''}`;
+          updateSelection();
+        }
+      } catch(error) {
+        console.warn('Base incorporada indisponível.', error);
+      }
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 12000);
+        const response=await fetch(API_URL,{cache:'no-store',signal:controller.signal});
+        clearTimeout(timeout);
+        if(!response.ok) throw new Error(`HTTP ${response.status}`);
+        const payload=await response.json(); if(!payload.sucesso) throw new Error(payload.mensagem||'API inválida');
+        applyLivePayload(payload);
+        $('statusDot').className='dot ok'; $('statusText').textContent=`Dados atualizados · ${state.datasets.gatto.length.toLocaleString('pt-BR')} GATTO · ${state.datasets.gio.length.toLocaleString('pt-BR')} GIO`;
+        updateSelection();
+      } catch(error) {
+        if (!embeddedLoaded) {
+          $('statusDot').className='dot error'; $('statusText').textContent='Erro ao carregar dados';
+          console.error(error);
+        } else {
+          console.warn('Atualização externa indisponível; usando base incorporada.', error);
+        }
+      }
+    }
+    $('datasetTabs').addEventListener('click', event=>{const value=event.target.dataset.value;if(value)setDataset(value);});
+    $('robustDatasetTabs').addEventListener('click',event=>{const value=event.target.dataset.value;if(value)setDataset(value);});
+    $('robustOperationSet').addEventListener('change',()=>{$('operationSet').value=$('robustOperationSet').value;updateSelection();});
+    $('robustStopFilter').addEventListener('change',()=>{$('excludeLargeStop').checked=$('robustStopFilter').checked;updateSelection();});
+    $('robustCapital').addEventListener('change',()=>{$('capital').value=$('robustCapital').value;updateSelection();});
+    $('robustPeriod').addEventListener('change',renderRobustnessViews);
+    document.querySelectorAll('nav button[data-view]').forEach(button => button.addEventListener('click', () => setView(button.dataset.view)));
+    ['period','scope','operationSet','excludeCritical','excludeLargeStop','contracts','capital'].forEach(id=>$(id).addEventListener('change',updateSelection));
+    $('compareAllOperations').addEventListener('change',()=>{state.batteryResults=null;updateBatteryFilterSummary();renderDecisionPanel();});
+    $('method').addEventListener('change',methodDescription);
+    $('blockSize').addEventListener('change',()=>{$('method').value='blocks';methodDescription();renderEmpty();});
+    $('runButton').addEventListener('click',runSimulation);
+    $('runBattery').addEventListener('click',runBattery);
+    $('runCalibration').addEventListener('click',runCalibration);
+    $('cancelCalibration').addEventListener('click',()=>{state.calibrationCancelled=true;$('calibrationStatus').textContent='Cancelando após o bloco atual...';});
+    ['calibrationRuns','calibrationBlock','calibrationSeed'].forEach(id=>$(id).addEventListener('change',resetCalibration));
+    $('cancelBattery').addEventListener('click',()=>{state.batteryCancelled=true;$('batteryStatus').textContent='Cancelando após o bloco atual...';});
+    $('adjustFilters').addEventListener('click',()=>setView('single'));
+    $('decisionGoBattery').addEventListener('click',()=>setView('battery'));
+    $('decisionGoFilters').addEventListener('click',()=>setView('single'));
+    $('summaryGoBattery').addEventListener('click',()=>setView('battery'));
+    $('newSeed').addEventListener('click',()=>{const seed=new Uint32Array(1);crypto.getRandomValues(seed);$('seed').value=seed[0]||1;});
+    $('reset').addEventListener('click',()=>{$('period').value='all';$('scope').value='operations';$('operationSet').value='all';$('robustPeriod').value='all';$('excludeCritical').checked=false;$('excludeLargeStop').checked=false;$('compareAllOperations').checked=false;$('method').value='permutation';$('runs').value='10000';$('seed').value='20261119';$('capital').value='2500';$('contracts').value='1';$('blockSize').value='15';setDataset('gatto');methodDescription();});
+    window.addEventListener('pulo:pause-data',loadParentData);
+    window.addEventListener('resize',()=>{if(state.results){drawPaths();drawHistogram();}if(state.batteryResults&&!$('decisionView').hidden)drawDecisionChart(decisionSummaries(state.batteryResults));if(!$('historicalView').hidden)renderHistorical();if(state.calibrationResults&&!$('calibrationView').hidden)drawCalibrationChart(state.calibrationResults);if(!$('stressView').hidden)renderStress();});
+    methodDescription(); renderEmpty(); setView('summary'); loadData();
+  </script>
+</body>
+</html>
