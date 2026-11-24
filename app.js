@@ -1,6 +1,6 @@
 'use strict';
 
-const PAUSE_PAGES = new Set(['drawdownCompare', 'pauseRadar', 'pauseRegimes', 'lineCombinations', 'dailyTarget', 'stopCut']);
+const PAUSE_PAGES = new Set(['drawdownCompare', 'pauseRadar', 'pauseRegimes', 'lineCombinations', 'dailyTarget', 'stopCut', 'monteCarlo']);
 window.PuloPauseData = () => ({
   gatto: state.gattoAll,
   gio: state.gioAll,
