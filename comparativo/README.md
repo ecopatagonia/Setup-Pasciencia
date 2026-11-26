@@ -44,3 +44,11 @@ Também é aceita a matriz Q:Y/A:I com ou sem cabeçalho. `protected: null` sign
 O submenu **Comparativo linha a linha** fica após **Desempenho por operação**. Recebe o mesmo payload central, sem outra requisição e sem dados fixos. `line-comparison-data.js` une `operacoes[].id` (A) com `comparativoGio[].id` (Q), compara `operacoes[].pontos` (L) com `protected` (V), e preserva diferenças entre L e T como informação, sem excluir esses pares. Não altera as regras dos submenus anteriores, que continuam usando o original registrado em GIO.
 
 Somente pares numéricos (incluindo zero) de Op1/Op2/Op3 entram nas curvas; IDs duplicados bloqueiam a nova análise com aviso. Pendências e IDs sem par são informados por linha/período. Abre no último ano disponível e permite selecionar linha, três painéis, histórico completo, ano, operações/pregões, curvas sobrepostas/separadas na mesma escala, vantagem acumulada, métricas, drawdowns e resultados anuais/mensais. Valores para um contrato, sem escalado. A linha de risco no gráfico de drawdown é −R$ 2.500. Não carrega o snapshot incorporado ao restante do módulo.
+
+### Stop inicial GIO na mesma resposta
+
+O helper `apps-script.gs` agora acrescenta `tamanhoStop` e `candleEntrada` aos registros GIO, lendo GIOLVAN A:I em cada geração e verificando a identidade por data, ordem de entrada, lado e resultados. Os campos de resultados existentes são preservados.
+
+Para ativar, substituir `buildComparativoGio_` e adicionar `buildGiolvanStops_` no **mesmo projeto Apps Script da API existente**; manter a chamada e os demais campos de `doGet`. Criar nova versão da implantação existente, mantendo `/exec`, e invalidar o cache da resposta se o projeto o utilizar. Confirmar `comparativoGio[].tamanhoStop` na resposta nova antes de publicar o frontend. Atualizações posteriores da base passam pelo fluxo normal da API e seu cache, sem renovar arquivos de stop no GitHub.
+
+Conferência de 25/11/2026 (somente evidência, não incorporada como base): GIO 2026 Op1+Op2, sem reposição, corte >545: 434 originais, 330 conservadas, 197 pregões, 43.675 pontos e DD por fechamento de 2.995 pontos.

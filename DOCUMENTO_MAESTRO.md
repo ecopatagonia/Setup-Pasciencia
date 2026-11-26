@@ -42,3 +42,11 @@
 - A API atual de GIO ainda não fornece SL: `corte-sl/gio-stops.js` contém somente metadados de stop, conferidos por ID, data, lado e resultados na preparação. Deve ser atualizado quando os stops de GIOLVAN forem corrigidos, até a API transmitir esse campo. Registros sem SL são mantidos e informados, sem imputação. Resultados novos do painel não são substituídos por snapshots.
 - Ganhos sacrificados, perdas evitadas, médias/medianas, efeito líquido, resultado, DD por operação ou pregão, profit factor, comparações por janela, busca parametrizável de cortes, curvas e exportação CSV. DD recalculado desde zero para cada janela.
 - Novo módulo em pasta própria `corte-sl/`; branch e PR dedicados. Sem alteração do motor de outros módulos.
+
+## 2026-11-25 — SL Limit: stops GIO na carga compartilhada
+
+- Correção preparada em branch/PR próprios: resultados e stops iniciais vêm da mesma resposta da API; removida a dependência do mapa fixo de 18/11.
+- `buildComparativoGio_` passa a ler GIOLVAN A:I a cada geração. Emparelha por ID construído por data e CANDLE_ENTRADA, lado e resultados originais/protegidos. Não usa stops de GATTO nem altera resultados. Emparelhamentos ambíguos ficam sem stop.
+- O painel já preserva `tamanhoStop` e `candleEntrada` nos registros compartilhados. SL Limit recebe essas propriedades em cada evento de atualização. Se faltar stop na seleção, não mostra simulação de corte incompleta como resultado válido; original sem corte continua disponível.
+- Seleção histórica de Op1/Op2 permanece sem reposição por Op3. A regra experimental de completar duas entradas válidas não faz parte desta correção da fonte.
+- **Ativação pendente:** substituir o helper no Apps Script existente e publicar nova versão da mesma implantação, mantendo a URL. O projeto Apps Script não está neste repositório; um push ao GitHub não atualiza a API. Não publicar a alteração do frontend antes de verificar a nova resposta com stops GIO.
