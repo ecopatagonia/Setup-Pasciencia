@@ -1,5 +1,5 @@
 'use strict';
-let DATA=SLData.fromDashboard(null,window.PuloGioStopMetadata);
+let DATA=SLData.fromDashboard(null);
 const $=id=>document.getElementById(id), nf=new Intl.NumberFormat('pt-BR',{maximumFractionDigits:2}),mf=new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'});
 const fmt=x=>x===null||x===undefined?'—':x===Infinity?'∞':nf.format(x),money=x=>x===null||x===undefined?'—':mf.format(x*.2),pct=x=>fmt(x)+'%',date=s=>s?s.split('-').reverse().join('/'):'—',cls=x=>x>1e-7?'pos':x< -1e-7?'neg':'',sign=x=>x>0?'+':'';
 const moneySign=x=>sign(x)+money(x),pts=x=>fmt(x)+' pts',both=x=>pts(x)+'<small>'+money(x)+'</small>';
@@ -9,13 +9,22 @@ $('combo').innerHTML=Study.combos.map(([v,t])=>`<option value="${v}">${t}</optio
 const selectedRows=()=>Study.select(DATA,$('base').value,$('window').value,$('combo').value);
 function pair(label,a,b){return `<span>${label}</span><span>${a}${b?'<small>'+b+'</small>':''}</span>`}
 function render(){
- const base=$('base').value,window=$('window').value,combo=$('combo').value,mode=$('mode').value,rows=selectedRows(),r=Study.simulate(rows,cut,mode);current=r;lastRows=rows;
+ const base=$('base').value,window=$('window').value,combo=$('combo').value,mode=$('mode').value,rows=selectedRows();lastRows=rows;
  const maxSL=Math.max(1000,...DATA[base].filter(Study.validSL).map(o=>o.sl),cut||0);$('slider').max=Math.ceil(maxSL/50)*50;$('cut').value=cut===null?'':cut;$('slider').disabled=cut===null;if(cut!==null)$('slider').value=cut;
  $('cut').placeholder='Sin corte';document.querySelector('.filter-title').innerHTML=cut===null?'Todas las operaciones · sin corte':`Excluir SL inicial &gt; <span id="cutLabel">${fmt(cut)}</span> pts`;
  document.querySelectorAll('[data-cut]').forEach(b=>b.setAttribute('aria-pressed',String(cut===Number(b.dataset.cut))));$('noCut').setAttribute('aria-pressed',String(cut===null));
- const all=DATA[base],pending=base==='gio'?DATA.gioPending.filter(o=>Study.inWindow(o,window,DATA.asOf)&&combo.includes(String(o.order))).length:0;
- const supplemental=rows.filter(o=>o.slSource==='GIOLVAN').length;
- $('coverage').textContent=(base==='gio'?'GIO · cobertura parcial en 2024 y 2025. '+pending+' registros pendientes de resultado en esta selección. SL propios de GIOLVAN en '+supplemental+' operaciones; mapa verificado hasta '+date(DATA.gioStopThrough)+' (consulta '+DATA.gioStopUpdatedAt+'). ':'GATTO · tamaño stop de la API actual. ')+`SL sin valor válido: ${r.missing.length}; se conservan en ambos escenarios.`;
+ const pending=base==='gio'?DATA.gioPending.filter(o=>Study.inWindow(o,window,DATA.asOf)&&combo.includes(String(o.order))).length:0;
+ const missing=rows.filter(o=>!Study.validSL(o)).length;
+ $('coverage').textContent=(base==='gio'?`GIO · cobertura parcial en 2024 y 2025. ${pending} resultados pendientes en esta selección. Resultados y TAMANHO_STOP propio de GIOLVAN en la misma carga del panel. `:'GATTO · resultados y tamaño stop de la API actual. ')+`SL sin valor válido: ${missing}.`;
+ const complete=cut===null||missing===0;
+ $('analysis').hidden=!complete;
+ if(!complete){
+  current=null;chartSeries=[];
+  $('coverage').textContent+=` No se calcula el corte: faltan stops iniciales en ${missing} operaciones de esta selección. Actualiza la base del panel; la API debe enviar tamanhoStop. Puedes consultar el original con «Sin corte».`;
+  $('context').textContent=`Carga del panel ${DATA.retrievedAt} · ${rows.length} operaciones · cálculo pendiente de stops completos.`;
+  return;
+ }
+ const r=Study.simulate(rows,cut,mode);current=r;
  $('context').textContent=`Carga del panel ${DATA.retrievedAt} · ${rows.length} operaciones con resultado / ${r.before.days} pregones con registros · ${date(rows[0]?.date)} — ${date(rows.at(-1)?.date)} · Campo: Tamaño stop · 1 contrato`;
  const removedPct=rows.length?100*r.removed.length/rows.length:0;
  $('stats').innerHTML=[['Operaciones excluidas',fmt(r.removed.length),`${pct(removedPct)} de ${fmt(rows.length)} · quedan ${fmt(r.kept.length)}`,''],['Resultado con corte',money(r.after.points),`Original ${money(r.before.points)}`,cls(r.after.points)],['Efecto neto del corte',moneySign(r.net),`Pérdidas evitadas − ganancias sacrificadas`,cls(r.net)],['Drawdown máximo',money(r.after.dd),`Original ${money(r.before.dd)} · ${mode==='ops'?'por operación':'por pregón'}`,'']].map(([l,v,t,c])=>`<div class="stat"><small>${l}</small><div class="value ${c}">${v}</div><small>${t}</small></div>`).join('');
@@ -27,7 +36,7 @@ function render(){
  const a=r.before,b=r.after;
  const metrics=[['Operaciones',a.n,b.n,fmt,false],['Pregones con operaciones',a.days,b.days,fmt,false],['Resultado · puntos',a.points,b.points,fmt,true],['Resultado · R$',a.points,b.points,money,true],['DD máximo · puntos',a.dd,b.dd,fmt,false],['DD máximo · R$',a.dd,b.dd,money,false],['Resultado / drawdown',a.ratio,b.ratio,fmt,true],['Profit factor',a.pf,b.pf,fmt,true],['Resultado medio · puntos',a.mean,b.mean,fmt,true],['Resultado medio · R$',a.mean,b.mean,money,true],['Resultado mediano · puntos',a.median,b.median,fmt,true],['Resultado mediano · R$',a.median,b.median,money,true],['Acierto · %',a.winRate,b.winRate,fmt,true]];
  $('comparison').innerHTML=metrics.map(([label,x,y,f,higher])=>{const diff=Number.isFinite(x)&&Number.isFinite(y)?y-x:null;return `<tr><td>${label}</td><td>${f(x)}</td><td>${f(y)}</td><td class="${diff===null?'':cls(higher?diff:-diff)}">${diff===null?'—':sign(diff)+f(diff)}${label==='Acierto · %'&&diff!==null?' pp':''}</td></tr>`}).join('');
- $('windows').innerHTML=Study.windows.map(([w,label])=>{const rs=Study.select(DATA,base,w,combo),s=Study.simulate(rs,cut,mode);return `<tr class="${window===w?'active':''}"><td><button data-window="${w}">${label}</button>${base==='gio'&&['all','2024','2025'].includes(w)?'<small>Cobertura parcial</small>':''}</td><td>${rs.length}</td><td>${s.removed.length}<small>${pct(rs.length?s.removed.length/rs.length*100:0)}</small></td><td>${rs.length?money(s.before.points):'—'}</td><td>${rs.length?money(s.after.points):'—'}</td><td class="${cls(s.net)}">${rs.length?moneySign(s.net):'—'}</td><td>${rs.length?money(s.before.dd):'—'}</td><td>${rs.length?money(s.after.dd):'—'}</td><td>${fmt(s.before.ratio)} → ${fmt(s.after.ratio)}</td></tr>`}).join('');
+ $('windows').innerHTML=Study.windows.map(([w,label])=>{const rs=Study.select(DATA,base,w,combo);if(cut!==null&&rs.some(o=>!Study.validSL(o)))return `<tr><td>${label}</td><td>${rs.length}</td><td colspan=7>Sin cálculo: faltan stops iniciales en esta ventana.</td></tr>`;const s=Study.simulate(rs,cut,mode);return `<tr class="${window===w?'active':''}"><td><button data-window="${w}">${label}</button>${base==='gio'&&['all','2024','2025'].includes(w)?'<small>Cobertura parcial</small>':''}</td><td>${rs.length}</td><td>${s.removed.length}<small>${pct(rs.length?s.removed.length/rs.length*100:0)}</small></td><td>${rs.length?money(s.before.points):'—'}</td><td>${rs.length?money(s.after.points):'—'}</td><td class="${cls(s.net)}">${rs.length?moneySign(s.net):'—'}</td><td>${rs.length?money(s.before.dd):'—'}</td><td>${rs.length?money(s.after.dd):'—'}</td><td>${fmt(s.before.ratio)} → ${fmt(s.after.ratio)}</td></tr>`}).join('');
  $('chartNote').textContent=`${mode==='ops'?'Secuencia de operaciones históricas':'Secuencia de pregones con registros'} · los eventos excluidos mantienen la curva filtrada horizontal.`;
  chartSeries=Study.curve(rows,cut,mode);drawCharts();opLimit=100;renderOps();scan();
  $('footer').textContent=`PULO DO GATTO · Estudio de cortes por SL inicial · Datos hasta ${date(DATA.asOf)} · GATTO ${DATA.gatto.length} operaciones · GIO ${DATA.gio.length} resultados disponibles · Carga del panel: ${DATA.retrievedAt}.`;
@@ -36,6 +45,7 @@ function render(){
 function renderOps(){const r=current;$('opsSummary').textContent=`Ver ${r.removed.length} operaciones excluidas`;const show=r.removed.slice(0,opLimit);$('opsRows').innerHTML=show.map(o=>`<tr><td>${date(o.date)}</td><td>Op${o.order}</td><td>${o.side==='COMPRA'?'Compra':'Venta'}</td><td>${fmt(o.sl)}</td><td class="${cls(o.points)}">${fmt(o.points)}</td><td class="${cls(o.points)}">${money(o.points)}</td></tr>`).join('')||'<tr><td colspan="6" class="empty">No hay operaciones excluidas.</td></tr>';$('more').hidden=opLimit>=r.removed.length;$('exportOps').disabled=!r.removed.length}
 function setCut(v){if(v!==null&&(!Number.isFinite(v)||v<0||v>100000||!Number.isInteger(v))){$('inputError').textContent='Introduce un corte entero entre 0 y 100.000 puntos.';return}$('inputError').textContent='';cut=v;render()}
 function scan(){
+ if(lastRows.some(o=>!Study.validSL(o))){$('scanError').textContent='No se pueden comparar cortes mientras falten stops iniciales.';$('scanRows').innerHTML='';$('scanSummary').innerHTML='';return}
  const min=Number($('scanMin').value),max=Number($('scanMax').value),step=Number($('scanStep').value),retain=Number($('retain').value);
  if(![min,max,step,retain].every(Number.isFinite)||![min,max,step].every(Number.isInteger)||min<0||max<min||step<1||retain<0||retain>100||(max-min)/step>250){$('scanError').textContent='Usa límites enteros válidos, un paso ≥ 1, un mínimo de 0–100% y hasta 251 cortes.';$('scanRows').innerHTML='';$('scanSummary').innerHTML='';return}
  $('scanError').textContent='';const cuts=new Set();for(let x=min;x<=max;x+=step)cuts.add(x);if(cut!==null)cuts.add(cut);
@@ -80,7 +90,7 @@ function receiveLiveData(){
    else payload=parent.PuloPauseData?.();
   }
  }catch(_){message='No se pudo leer la base del panel.'}
- DATA=SLData.fromDashboard(payload,window.PuloGioStopMetadata);
+ DATA=SLData.fromDashboard(payload);
  if(DATA.duplicates.length)message='IDs duplicados en la base: '+DATA.duplicates.join(', ')+'. Corrige los registros antes de simular.';
  const ready=!!DATA.retrievedAt&&!message;
  $('module').hidden=!ready;$('loadStatus').hidden=ready;

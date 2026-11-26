@@ -2,13 +2,16 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const D=require('../data-bridge.js'),S=require('../engine.js');
 const row=(id,side,sl,points)=>({id,dataHoraIso:'2026-09-10T10:00:00',lado:side,tamanhoStop:sl,pontos:points});
 const id='OP_10-09-2026__1';
-test('GIO uses only its own live stop or metadata with matching ID, date and side',()=>{
+test('GIO uses its own current API stop and never an archived metadata map',()=>{
  const meta={stops:{[id]:{date:'2026-09-10',side:'COMPRA',sl:350}}};
- assert.equal(D.normalize([row(id,'COMPRA',null,80)],'gio',meta).rows[0].sl,350);
+ assert.equal(D.normalize([row(id,'COMPRA',null,80)],'gio',meta).rows[0].sl,null);
  assert.equal(D.normalize([row(id,'COMPRA',400,80)],'gio',meta).rows[0].sl,400);
- assert.equal(D.normalize([row(id,'VENDA',null,80)],'gio',meta).rows[0].sl,null);
- assert.equal(D.normalize([row(id,'COMPRA',null,80)],'gatto',meta).rows[0].sl,null);
- meta.stops[id].date='2026-09-11';assert.equal(D.normalize([row(id,'COMPRA',null,80)],'gio',meta).rows[0].sl,null);
+ const payload={read:'2026-11-25',gio:[row(id,'COMPRA',545,250)]};
+ assert.equal(D.fromDashboard(payload,meta).gio[0].sl,545);
+ payload.gio[0].tamanhoStop=550;
+ assert.equal(D.fromDashboard(payload,meta).gio[0].sl,550);
+ delete payload.gio[0].tamanhoStop;
+ assert.equal(D.fromDashboard(payload,meta).gio[0].sl,null);
 });
 test('pending results are excluded, zeros are real, original IDs retain their operation number',()=>{
  const second='OP_10-09-2026__2',third='OP_10-09-2026__3';
@@ -35,6 +38,6 @@ test('menu is a first-level authenticated entry between Meta diária and Pausas,
  const root=path.join(__dirname,'../..'),html=fs.readFileSync(path.join(root,'index.html'),'utf8'),app=fs.readFileSync(path.join(root,'app.js'),'utf8');
  const target=html.indexOf('data-page="stopCut"'),prior=html.indexOf('data-page="dailyTarget"'),next=html.indexOf('id="pausesNav"');assert(prior<target&&target<next);
  const button=html.slice(html.lastIndexOf('<button',target),html.indexOf('</button>',target));assert(button.includes('data-permission="resultados"'));assert(button.includes('<svg'));assert(button.includes('SL Limit'));
- assert(html.includes('id="page-stopCut"'));assert(app.split('\n')[2].includes("'stopCut'"));assert(html.includes('data-pause-src="corte-sl/index.html?v=1"'));
+ assert(html.includes('id="page-stopCut"'));assert(app.split('\n')[2].includes("'stopCut'"));assert(html.includes('data-pause-src="corte-sl/index.html?v=2"'));
  assert(!fs.readFileSync(path.join(root,'corte-sl/index.html'),'utf8').includes('study-data'));
 });
